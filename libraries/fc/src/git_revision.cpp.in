@@ -1,0 +1,11 @@
+#include <fc/git_revision.hpp>
+
+#define NODE_GIT_REVISION_SHA     "@NODE-REVISION@"
+#define NODE_GIT_REVISION_UNIX_TIMESTAMP @NODE_GIT_REVISION_UNIX_TIMESTAMP@
+
+namespace fc { 
+
+const char* const git_revision_sha = NODE_GIT_REVISION_SHA;
+const uint32_t git_revision_unix_timestamp = NODE_GIT_REVISION_UNIX_TIMESTAMP;
+
+} // end namespace fc

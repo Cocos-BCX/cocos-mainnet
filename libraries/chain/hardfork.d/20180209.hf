@@ -1,0 +1,4 @@
+// CHECK_REVIEW_PERIOD_TIME
+#ifndef CHECK_REVIEW_PERIOD_TIME
+#define CHECK_REVIEW_PERIOD_TIME (fc::time_point_sec( 1518162390 ))
+#endif

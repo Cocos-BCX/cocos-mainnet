@@ -1,0 +1,51 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# CMake->MSVC artifacts
+*.sln
+*.vcxproj
+ALL_BUILD
+ZERO_CHECK
+
+# MSVC secondary artifacts
+*.suo
+*.vcxproj.filters
+*.vcxproj.user
+*.pdb
+*.ilk
+*.lastbuildstate
+*.sdf
+*.opensdf
+Debug/
+Release/
+
+CMakeCache.txt
+CMakeFiles
+Makefile
+#*.cmake
+*.cbp
+
+libfc.a
+libfc_debug.a
+
+*.sw*
+
+fc_automoc.cpp
+git_revision.cpp
+GitSHA3.cpp
+
+task_cancel_test
