@@ -1,12 +1,12 @@
 # Defines BitShares library target.
-project( COCOS )
+project( WALKER )
 cmake_minimum_required( VERSION 2.8.12 )
 
-set( BLOCKCHAIN_NAME "COCOS" )
+set( BLOCKCHAIN_NAME "WALKER" )
 
-set( CLI_CLIENT_EXECUTABLE_NAME COCOS_client )
-set( GUI_CLIENT_EXECUTABLE_NAME COCOS )
-set( CUSTOM_URL_SCHEME "cocos" )
+set( CLI_CLIENT_EXECUTABLE_NAME walker_client )
+set( GUI_CLIENT_EXECUTABLE_NAME WALKER )
+set( CUSTOM_URL_SCHEME "gcs" )
 set( INSTALLER_APP_ID "68ad7005-8eee-49c9-95ce-9eed97e5b347" )
 
 # http://stackoverflow.com/a/18369825

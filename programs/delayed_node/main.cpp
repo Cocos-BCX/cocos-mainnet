@@ -56,6 +56,7 @@ using namespace graphene;
 namespace bpo = boost::program_options;
 
 void write_default_logging_config_to_stream(std::ostream& out);
+static void load_log_config_file( const fc::path& log_config_ini_path );
 fc::optional<fc::logging_config> load_logging_config_from_ini_file(const fc::path& config_ini_filename);
 
 int main(int argc, char** argv) {
@@ -132,14 +133,13 @@ int main(int argc, char** argv) {
             }
             out_cfg << "\n";
          }
-         write_default_logging_config_to_stream(out_cfg);
+         //write_default_logging_config_to_stream(out_cfg);
          out_cfg.close();
          // read the default logging config we just wrote out to the file and start using it
          fc::optional<fc::logging_config> logging_config = load_logging_config_from_ini_file(config_ini_path);
          if (logging_config)
             fc::configure_logging(*logging_config);
       }
-
       // Parse configuration file
       try {
          bpo::store(bpo::parse_config_file<char>(config_ini_path.preferred_string().c_str(), cfg_options, true), options);
@@ -149,6 +149,8 @@ int main(int argc, char** argv) {
             fc::optional<fc::logging_config> logging_config = load_logging_config_from_ini_file(config_ini_path);
             if (logging_config)
                fc::configure_logging(*logging_config);
+            fc::path log_cfg_ini_path = data_dir / "log_cfg.ini";
+            load_log_config_file( log_cfg_ini_path );
          }
          catch (const fc::exception&)
          {
@@ -292,4 +294,35 @@ fc::optional<fc::logging_config> load_logging_config_from_ini_file(const fc::pat
          return fc::optional<fc::logging_config>();
    }
    FC_RETHROW_EXCEPTIONS(warn, "")
+}
+
+static void create_new_log_config_file( const fc::path& log_config_ini_path)
+{
+   ilog("Writing new log config file at ${path}", ("path", log_config_ini_path));
+   std::ofstream out_cfg(log_config_ini_path.preferred_string());
+   write_default_logging_config_to_stream(out_cfg);
+   out_cfg.close();
+   fc::optional<fc::logging_config> logging_config = load_logging_config_from_ini_file(log_config_ini_path);
+   if (logging_config)
+	  fc::configure_logging(*logging_config);
+}
+
+// try to get logging options from the config file.
+static void load_log_config_file( const fc::path& log_config_ini_path )
+{
+   if( !fc::exists(log_config_ini_path) )
+   {
+         create_new_log_config_file( log_config_ini_path );
+		 return;
+   }
+   try
+   {
+      fc::optional<fc::logging_config> logging_config = load_logging_config_from_ini_file(log_config_ini_path);
+      if (logging_config)
+         fc::configure_logging(*logging_config);
+   }
+   catch (const fc::exception&)
+   {
+      wlog("Error parsing logging config from config file ${config}, using default config", ("config", log_config_ini_path.preferred_string()));
+   }
 }

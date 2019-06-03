@@ -180,7 +180,7 @@ static void create_new_config_file( const fc::path& config_ini_path, const fc::p
       }
       out_cfg << "\n";
    }
-   write_default_logging_config_to_stream(out_cfg);
+   //write_default_logging_config_to_stream(out_cfg);
    out_cfg.close();
    // read the default logging config we just wrote out to the file and start using it
    fc::optional<fc::logging_config> logging_config = load_logging_config_from_ini_file(config_ini_path);
@@ -188,7 +188,8 @@ static void create_new_config_file( const fc::path& config_ini_path, const fc::p
       fc::configure_logging(*logging_config);
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv) 
+{
    app::application* node = new app::application();
    fc::oexception unhandled_exception;
    try {
@@ -202,11 +203,11 @@ int main(int argc, char** argv) {
       bpo::variables_map options;
 
       auto witness_plug = node->register_plugin<witness_plugin::witness_plugin>();
-      //auto debug_witness_plug = node->register_plugin<debug_witness_plugin::debug_witness_plugin>();
+      auto debug_witness_plug = node->register_plugin<debug_witness_plugin::debug_witness_plugin>();
       auto history_plug = node->register_plugin<account_history::account_history_plugin>();
-      auto elasticsearch_plug = node->register_plugin<elasticsearch::elasticsearch_plugin>();
+      //auto elasticsearch_plug = node->register_plugin<elasticsearch::elasticsearch_plugin>();
       auto market_history_plug = node->register_plugin<market_history::market_history_plugin>();
-      //auto delayed_plug = node->register_plugin<delayed_node::delayed_node_plugin>();
+      auto delayed_plug = node->register_plugin<delayed_node::delayed_node_plugin>();
       auto snapshot_plug = node->register_plugin<snapshot_plugin::snapshot_plugin>();
 
       try
@@ -238,10 +239,10 @@ int main(int argc, char** argv) {
       }
 
       fc::path config_ini_path = data_dir / "config.ini";
-      fc::path log_cfg_ini_path = data_dir / "log_cfg.ini";
       if( !fc::exists(config_ini_path) )
          create_new_config_file( config_ini_path, data_dir, cfg_options );
       load_config_file( config_ini_path, cfg_options, options );
+      fc::path log_cfg_ini_path = data_dir / "log_cfg.ini";
       load_log_config_file( log_cfg_ini_path );
 
       bpo::notify(options);

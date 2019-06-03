@@ -1,1 +1,1 @@
-cmd='/home/nico/COCOS/libraries/fc/vendor/secp256k1-zkp/configure;--prefix=/home/nico/COCOS/libraries/fc/vendor/secp256k1-zkp;--with-bignum=no'
+cmd='/home/nico/walker/libraries/fc/vendor/secp256k1-zkp/configure;--prefix=/home/nico/walker/libraries/fc/vendor/secp256k1-zkp;--with-bignum=no'

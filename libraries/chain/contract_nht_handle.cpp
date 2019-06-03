@@ -55,7 +55,7 @@ string register_scheduler::create_nh_asset(string owner_id_or_name, string symbo
 
         const nh_asset_object &nh_asset_obj = db.create<nh_asset_object>([&](nh_asset_object &nh_asset) {
             nh_asset.nh_asset_owner = owner_id;
-            nh_asset.nh_asset_creator = this->contract.owner;
+            nh_asset.nh_asset_creator = contract.owner;
             nh_asset.nh_asset_active = owner_id;
             nh_asset.dealership = owner_id;
             nh_asset.asset_qualifier = symbol;

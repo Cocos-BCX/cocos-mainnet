@@ -66,7 +66,7 @@ operation_result generic_evaluator::start_evaluate(transaction_evaluation_state 
     trx_state = &eval_state;
     bool _apply_transaction_is_success = false;
     uint16_t maximum_run_time_ratio = db().get_global_properties().parameters.maximum_run_time_ratio;
-    auto magnification = 10000ll * std::min(maximum_run_time_ratio / GRAPHENE_1_PERCENT, 50); //A single operation's available duty ratio in a block interval is the minor value between 50% and maximum_run_time_ratio
+    auto magnification = 10000ll * std::min(maximum_run_time_ratio / GRAPHENE_1_PERCENT, 50); //单次op最大时间占比不能超过50%
     uint64_t block_interval = eval_state.db().block_interval() * magnification;
     operation_result result;
     fc::microseconds now, start = fc::time_point::now().time_since_epoch();

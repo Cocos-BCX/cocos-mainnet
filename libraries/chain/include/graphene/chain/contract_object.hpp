@@ -63,8 +63,9 @@ class contract_object : public graphene::db::abstract_object<contract_object>
   public:
     contract_object(){};
     contract_object(string name):name(name){id=contract_id_type(1);}
-    void compiling_contract(lua_State *bL, string lua_code,bool docall=true);
+    void compiling_contract(lua_State *bL, string lua_code,bool is_baseENV=false);
     contract_id_type get_id() const { return id; }
+    optional<lua_types> parse_function_summary(lua_scheduler &context, int index);
     lua_table do_contract(string lua_code,lua_State *L=nullptr);
     void do_contract_function(account_id_type caller, string function_name, vector<lua_types> value_list,
                               lua_map &account_data, graphene::chain::database &db, const flat_set<public_key_type> &sigkeys, contract_result &apply_result);

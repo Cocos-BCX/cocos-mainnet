@@ -1,4 +1,6 @@
 #include <graphene/chain/protocol/lua_scheduler.hpp>
+#include "lobject.hpp"
+#include "lstate.hpp"
 namespace graphene
 {
 namespace chain
@@ -91,6 +93,31 @@ bool lua_scheduler::get_function(string spacename, string func)
 	}
 	return false;
 }
+
+ boost::optional<FunctionSummary> lua_scheduler::Reader<FunctionSummary>::read(lua_State *state, int index)
+    {
+
+        Closure *pt = (Closure *)lua_topointer(state, index);
+        if (pt != 0 && ttisclosure((TValue *)pt) && pt->l.p != 0)
+        {
+            struct FunctionSummary sfunc;
+            Proto *pro = pt->l.p;
+            auto arg_num = (int)pro->numparams;
+            sfunc.is_var_arg = (bool)pro->is_vararg;
+            LocVar *var = pro->locvars;
+            if (arg_num != 0 && arg_num <= pro->sizelocvars && var != nullptr)
+            {
+                LocVar *per = nullptr;
+                for (int pos = 0; pos < arg_num; pos++)
+                {
+                    per = var + pos;
+                    sfunc.arglist.push_back(getstr(per->varname));
+                }
+            }
+            return sfunc;
+        }
+        return boost::none;
+    }
 
 } // namespace chain
 } // namespace graphene

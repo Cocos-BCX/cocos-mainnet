@@ -42,7 +42,6 @@ database::database()
 {
     initialize_indexes();
     initialize_evaluators();
-    initialize_luaVM();
 }
 
 database::~database()
@@ -185,6 +184,7 @@ void database::open(
                       ("last_block->id", last_block)("head_block_id", head_block_num()));
             reindex(data_dir);
         }
+        initialize_luaVM();
     }
     FC_CAPTURE_LOG_AND_RETHROW((data_dir))
 }

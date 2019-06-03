@@ -72,6 +72,8 @@ void debug_api_impl::debug_push_blocks( const std::string& src_filename, uint32_
       }
       ilog( "Completed loading block_database successfully" );
       return;
+   }else{
+      ilog("src_path error");
    }
 }
 

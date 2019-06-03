@@ -154,7 +154,7 @@ void database::update_last_irreversible_block()
   if (new_last_irreversible_block_num > dpo.last_irreversible_block_num)
   {
     modify(dpo, [&](dynamic_global_property_object &_dpo) {
-      _dpo.last_irreversible_block_num = new_last_irreversible_block_num; //nico 更新最后不可逆区块
+      _dpo.last_irreversible_block_num = new_last_irreversible_block_num; //nico :跟新最后不可逆区块
     });
   }
 }

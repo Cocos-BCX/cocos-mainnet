@@ -2,10 +2,8 @@
 #include <graphene/chain/is_authorized_asset.hpp>
 #include <graphene/chain/nh_asset_object.hpp>
 #include <graphene/chain/contract_function_register_scheduler.hpp>
-#include "lobject.hpp"
-#include "lstate.hpp"
 #include "lundump.hpp"
-
+#include "lstate.hpp"
 namespace graphene
 {
 namespace chain
@@ -77,7 +75,8 @@ optional<lua_types> contract_object::get_lua_data(lua_scheduler &context, int in
                 if (stack == 1)
                 {
                     auto len = (sizeof(Key_Special) / sizeof(Key_Special[0]));
-                    if (std::find(Key_Special, Key_Special + len, key.key.get<lua_string>().v) == Key_Special + len && (LUA_TFUNCTION == lua_type(context.mState, index + 2)) == check_fc)
+                    if ( std::find(Key_Special, Key_Special + len, key.key.get<lua_string>().v) == Key_Special + len &&
+                        (LUA_TFUNCTION == lua_type(context.mState, index + 2)) == check_fc)
                     {
                         auto val = get_lua_data(context, index + 2, check_fc);
                         if (val)
@@ -105,25 +104,11 @@ optional<lua_types> contract_object::get_lua_data(lua_scheduler &context, int in
     }
     case LUA_TFUNCTION:
     {
-        Closure *pt = (Closure *)lua_topointer(context.mState, index);
-        if (pt != 0 && ttisclosure((TValue *)pt) && pt->l.p != 0)
+        auto sfunc = lua_scheduler::Reader<FunctionSummary>::read(context.mState, index);
+        if (sfunc)
         {
-            struct SKeyFunctionData sfunc;
-            Proto *pro = pt->l.p;
-            auto arg_num = (int)pro->numparams;
-            sfunc.is_var_arg = (bool)pro->is_vararg;
-            LocVar *var = pro->locvars;
-            if (arg_num != 0 && arg_num <= pro->sizelocvars && var != nullptr)
-            {
-                LocVar *per = nullptr;
-                for (int pos = 0; pos < arg_num; pos++)
-                {
-                    per = var + pos;
-                    sfunc.arglist.push_back(getstr(per->varname));
-                }
-            }
             stack--;
-            return sfunc;
+            return *sfunc;
         }
         break;
     }
@@ -154,6 +139,31 @@ optional<lua_types> contract_object::get_lua_data(lua_scheduler &context, int in
     }
     stack--;
     return {};
+}
+
+optional<lua_types> contract_object::parse_function_summary(lua_scheduler &context, int index)
+{
+    FC_ASSERT(context.mState);
+    FC_ASSERT(lua_type(context.mState, index) == LUA_TTABLE);
+    lua_table v_table;
+    lua_pushnil(context.mState); // nil 入栈作为初始 key
+    while (0 != lua_next(context.mState, index))
+    {
+        try
+        {
+            if (LUA_TFUNCTION == lua_type(context.mState, index + 2))
+            {
+                auto op_key = lua_string(lua_tostring(context.mState, index + 1));
+                lua_key key = lua_types(op_key);
+                auto sfunc = lua_scheduler::Reader<FunctionSummary>::read(context.mState, index + 2);
+                if (sfunc)
+                    v_table.v[key] = *sfunc;
+            }
+        }
+        FC_CAPTURE_AND_RETHROW()
+        lua_pop(context.mState, 1);
+    }
+    return v_table;
 }
 
 void contract_object::push_global_parameters(lua_scheduler &context, lua_map &global_variable_list, string tablename)
@@ -235,13 +245,13 @@ void contract_object::set_process_value(vector<char> process_value)
 vector<char> contract_object::set_result_process_value()
 {
     auto source = fc::raw::pack(_process_value);
-    this->result.process_value = fc::aes_encrypt(key, source);  // encryption(this->_process_value)  
-                                                                // encryption _process_value and write the cipher into contract_result
+    this->result.process_value = fc::aes_encrypt(key, source); // encryption(this->_process_value)
+                                                               // encryption _process_value and write the cipher into contract_result
     return this->result.process_value;
 }
 
 void contract_object::do_contract_function(account_id_type caller, string function_name, vector<lua_types> value_list,
-                                           lua_map &account_data, database &db, const flat_set<public_key_type> &sigkeys, 
+                                           lua_map &account_data, database &db, const flat_set<public_key_type> &sigkeys,
                                            contract_result &apply_result)
 {
     try
@@ -250,9 +260,9 @@ void contract_object::do_contract_function(account_id_type caller, string functi
         {
             auto &baseENV = contract_bin_code_id_type(0)(db);
             auto abi_itr = contract_ABI.find(lua_types(lua_string(function_name)));
-            FC_ASSERT(abi_itr != contract_ABI.end(),"${function_name} maybe a internal function", ("function_name", function_name));
+            FC_ASSERT(abi_itr != contract_ABI.end(), "${function_name} maybe a internal function", ("function_name", function_name));
             FC_ASSERT(value_list.size() >= abi_itr->second.get<lua_function>().arglist.size(),
-            "${function_name}`s parameter list is ${plist}...", ("function_name", function_name)("plist", abi_itr->second.get<lua_function>().arglist));
+                      "${function_name}`s parameter list is ${plist}...", ("function_name", function_name)("plist", abi_itr->second.get<lua_function>().arglist));
             contract_base_info cbi(*this, caller);
             lua_scheduler &context = db.get_luaVM();
             register_scheduler scheduler(db, caller, *this, this->mode, result, context, sigkeys, apply_result, account_data);
@@ -313,11 +323,11 @@ lua_table contract_object::do_contract(string lua_code, lua_State *L)
     try
     {
         lua_scheduler context;
-        if (L != nullptr&&this->get_id() == contract_id_type())
+        if (L != nullptr && this->get_id() == contract_id_type())
         {
             context.mState = L;
             context.ismthread = false;
-            compiling_contract(context.mState, lua_code, false);
+            compiling_contract(context.mState, lua_code, true);
             lua_setglobal(context.mState, "baseENV");
             lua_getglobal(context.mState, "baseENV");
             int err = lua_pcall(context.mState, 0, 1, 0);
@@ -333,25 +343,40 @@ lua_table contract_object::do_contract(string lua_code, lua_State *L)
         else
         {
             compiling_contract(context.mState, lua_code);
-            lua_getglobal(context.mState, "_G");
-            return get_lua_data(context, lua_gettop(context.mState), true)->get<lua_table>();
+            lua_getglobal(context.mState, name.c_str());
+            auto ret = parse_function_summary(context, lua_gettop(context.mState))->get<lua_table>();
+            lua_pushnil(context.mState);
+            lua_setglobal(context.mState, name.c_str());
+            return ret;
         }
     }
     FC_CAPTURE_AND_RETHROW()
 }
 
-void contract_object::compiling_contract(lua_State *bL, string lua_code, bool docall)
+void contract_object::compiling_contract(lua_State *bL, string lua_code, bool is_baseENV)
 {
+    if (!is_baseENV)
+    {
+        lua_getglobal(bL, name.c_str());
+        FC_ASSERT(lua_isnil(bL, -1), "The contract already exists,name:${name}", ("name", name));
+        lua_newtable(bL);
+        lua_setglobal(bL, name.c_str());
+    }
     int err = luaL_loadbuffer(bL, lua_code.data(), lua_code.size(), name.c_str());
     FC_ASSERT(err == 0, "Try the contract resolution compile failure,${message}", ("message", string(lua_tostring(bL, -1))));
+    if (!is_baseENV)
+    {
+        lua_getglobal(bL, name.c_str());
+        lua_setupvalue(bL, -2, 1);
+    }
     Proto *f = getproto(bL->top - 1);
     lua_lock(bL);
     lua_code_b.clear();
     luaU_dump(bL, f, compiling_contract_writer, &lua_code_b, 0);
     lua_unlock(bL);
-    if (docall)
+    if (!is_baseENV)
     {
-        err|=lua_pcall(bL, 0, 0, 0);
+        err |= lua_pcall(bL, 0, 0, 0);
         FC_ASSERT(err == 0, "Try the contract resolution compile failure,${message}", ("message", string(lua_tostring(bL, -1))));
     }
 }

@@ -398,14 +398,6 @@ public:
       }
       _chain_db->add_checkpoints(loaded_checkpoints);
 
-      if (_options->count("pausepoint"))
-      {
-        wdump(("pausepoint checking..."));
-        auto pausepoint = _options->at("pausepoint").as<uint32_t>();
-        wdump((pausepoint));
-        if (pausepoint)
-          _chain_db->set_pause_point(pausepoint);
-      }
       if(_options->count("message_cache_limit"))
       {
         auto limit_size=_options->at("message_cache_limit").as<uint16_t>();
@@ -998,7 +990,6 @@ void application::set_program_options(boost::program_options::options_descriptio
                                         ("seed-node,s", bpo::value<vector<string>>()->composing(), "P2P nodes to connect to on startup (may specify multiple times)")
                                         ("seed-nodes", bpo::value<string>()->composing(), "JSON array of P2P nodes to connect to on startup")
                                         ("checkpoint,c", bpo::value<vector<string>>()->composing(), "Pairs of [BLOCK_NUM,BLOCK_ID] that should be enforced as checkpoints.")
-                                        ("pausepoint",bpo::value<uint32_t>(),"You can use a block number to set a pause point")
                                         ("rpc-endpoint", bpo::value<string>()->implicit_value("127.0.0.1:8090"), "Endpoint for websocket RPC to listen on")
                                         ("rpc-tls-endpoint", bpo::value<string>()->implicit_value("127.0.0.1:8089"), "Endpoint for TLS websocket RPC to listen on")
                                         ("server-pem,p", bpo::value<string>()->implicit_value("server.pem"), "The TLS certificate file for this server")

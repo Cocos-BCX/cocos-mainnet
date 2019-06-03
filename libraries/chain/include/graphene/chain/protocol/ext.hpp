@@ -167,8 +167,32 @@ struct graphene_extension_from_variant_visitor
    T& value;
    mutable uint32_t count_left = 0;
 };
+/*
+//nico 尝试特化类
+template<  >
+struct graphene_extension_from_variant_visitor<double>
+{
+   graphene_extension_from_variant_visitor( const variant_object& v, double& val )
+      : vo( v ), value( val )
+   {
+      count_left = vo.size();
+   }
+   void operator()( const char* name )const
+   {
+      auto it = vo.find(name);
+      if( it != vo.end() )
+      {
+         from_variant( it->value(), (value.*member) );
+         assert( count_left > 0 );    // x.find(k) returns true for n distinct values of k only if x.size() >= n
+         --count_left;
+      }
+   }
 
-
+   const variant_object& vo;
+   double& value;
+   mutable uint32_t count_left = 0;
+};
+*/
 template< typename T >
 void from_variant( const fc::variant& var, graphene::chain::extension<T>& value )
 {

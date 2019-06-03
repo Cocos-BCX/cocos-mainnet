@@ -87,11 +87,11 @@
 #define GRAPHENE_MAX_COLLATERAL_RATIO                   32000 ///< higher than this is unnecessary and may exceed int16 storage
 #define GRAPHENE_DEFAULT_MAINTENANCE_COLLATERAL_RATIO   1750 ///< Call when collateral only pays off 175% the debt
 #define GRAPHENE_DEFAULT_MAX_SHORT_SQUEEZE_RATIO        1500 ///< Stop calling when collateral only pays off 150% of the debt
-#define MAXIMUN_RUN_TIME_RATIO                          5000 ///Available transaction's duty ratio in a block interval: 5000/10000 = 50%
+#define MAXIMUN_RUN_TIME_RATIO                          5000 ///nico add:: 合约最大占空比::5000/10000
 #define MAXIMUN_NH_ASSET_ORDER_EXPIRATION               (60*60*24*7*2) // zhangfan add :: (Two weeks) maximum expiration time of nht order
 #define MAXIMUN_HANDLING_FEE                            100*std::pow(10,GRAPHENE_BLOCKCHAIN_PRECISION_DIGITS)
 #define VOTING_ADOPTI_RATIO                             7500 /// nico add :: 投票采纳比例 7500/10000
-#define ASSIGNED_TASK_LIFE_CYCLE                        300  /// nico add ::约定任务生命周期　单位(秒)
+#define ASSIGNED_TASK_LIFE_CYCLE                        300  /// nico add ::约定任务生命周期　单位（秒)
 #define CRONTAB_SUSPEND_THRESHOLD                       3 // zf add:: 定时任务挂起阈值，连续失败3次后任务挂起
 #define CRONTAB_SUSPEND_EXPIRATION                      2592000  // zf add:: 定时任务被挂起后的过期时长
 #define GRAPHENE_DEFAULT_MARGIN_PERIOD_SEC              (30*60*60*24)
@@ -152,7 +152,7 @@
 #define GRAPHENE_RECENTLY_MISSED_COUNT_INCREMENT             4
 #define GRAPHENE_RECENTLY_MISSED_COUNT_DECREMENT             3
 
-#define GRAPHENE_CURRENT_DB_VERSION                          "COCOS 0.6.13"
+#define GRAPHENE_CURRENT_DB_VERSION                          "COCOS2.30"
 
 #define GRAPHENE_IRREVERSIBLE_THRESHOLD                      (70 * GRAPHENE_1_PERCENT)//石墨烯不可逆转区块阀值，默认为:7 ,最大为10
 
@@ -164,13 +164,15 @@
 #define GRAPHENE_COMMITTEE_ACCOUNT (graphene::chain::account_id_type(0))
 /// Represents the current witnesses
 #define GRAPHENE_WITNESS_ACCOUNT (graphene::chain::account_id_type(1))
-
+/// Represents the current committee members
+//#define GRAPHENE_RELAXED_COMMITTEE_ACCOUNT (graphene::chain::account_id_type(2))
 /// Represents the canonical account with NO authority (nobody can access funds in null account)
 #define GRAPHENE_NULL_ACCOUNT (graphene::chain::account_id_type(2))
 #define GRAPHENE_ACCOUNT (graphene::chain::account_id_type(15))
 /// Represents the canonical account with WILDCARD authority (anybody can access funds in temp account)
 #define GRAPHENE_TEMP_ACCOUNT (graphene::chain::account_id_type(3))
-
+/// Represents the canonical account for specifying you will vote directly (as opposed to a proxy)
+//#define GRAPHENE_PROXY_TO_SELF_ACCOUNT (graphene::chain::account_id_type(4))
 /// Sentinel value used in the scheduler.
 #define GRAPHENE_NULL_WITNESS (graphene::chain::witness_id_type(0))
 ///@}
@@ -178,7 +180,7 @@
 //#define GRAPHENE_FBA_STEALTH_DESIGNATED_ASSET (asset_id_type(743))
 
 #define CONTRACT_BASE_ENV "local baseENV={ cjson={decode=cjson.decode,encode=cjson.encode},date=os.date,import_contract=import_contract,get_account_contract_data=get_account_contract_data, \
-                            assert=assert, next=next, pairs=pairs, pcall=pcall, print=print, select=select, tonumber=tonumber, tostring=tostring, type=type,\
+                            assert=assert, next=next, pairs=pairs, pcall=pcall, print=print, select=select, tonumber=tonumber, tostring=tostring, type=type,format_vector_with_table=format_vector_with_table\
                             unpack=unpack, _VERSION=_VERSION, xpcall=xpcall, string={ byte=string.byte, char=string.char, find=string.find,\
                             format=string.format, gmatch=string.gmatch, gsub=string.gsub, len=string.len, lower=string.lower,  match=string.match, rep=string.rep,\
                             reverse=string.reverse, sub=string.sub, upper=string.upper }, table={ insert=table.insert, maxn=table.maxn, remove=table.remove, sort=table.sort,\

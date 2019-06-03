@@ -728,15 +728,7 @@ void database::init_genesis(const genesis_state_type &genesis_state)
         };
         FC_ASSERT(genesis_state.initial_contract_base.size() > 0);
         create_contract_base(genesis_state.initial_contract_base);
-        auto & contract_base=contract_id_type()(*this);
-        auto &contract_base_code=contract_base.lua_code_b_id(*this);
-        lua_getglobal(luaVM.mState, "baseENV");
-        if (lua_isnil(luaVM.mState, -1))
-        {
-            lua_pop(luaVM.mState, 1);
-            luaL_loadbuffer(luaVM.mState, contract_base_code.lua_code_b.data(), contract_base_code.lua_code_b.size(), contract_base.name.data());
-            lua_setglobal(luaVM.mState, "baseENV");
-        }
+        initialize_baseENV();
         // Set active witnesses
         modify(get_global_properties(), [&](global_property_object &p) {
             for (uint32_t i = 1; i <= genesis_state.initial_active_witnesses; ++i)
@@ -789,9 +781,23 @@ void database::init_genesis(const genesis_state_type &genesis_state)
     }
     FC_CAPTURE_AND_RETHROW()
 }
+void database::initialize_baseENV()
+{
+    auto & contract_base=contract_id_type()(*this);
+    auto &contract_base_code=contract_base.lua_code_b_id(*this);
+    lua_getglobal(luaVM.mState, "baseENV");
+    if (lua_isnil(luaVM.mState, -1))
+    {
+            lua_pop(luaVM.mState, 1);
+            luaL_loadbuffer(luaVM.mState, contract_base_code.lua_code_b.data(), contract_base_code.lua_code_b.size(), contract_base.name.data());
+            lua_setglobal(luaVM.mState, "baseENV");
+    }
+}
+
 void database::initialize_luaVM()
 {
     luaVM = graphene::chain::lua_scheduler(true);
+    initialize_baseENV();
 }
 
 } // namespace chain

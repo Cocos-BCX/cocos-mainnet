@@ -107,7 +107,7 @@ object_id_result create_nh_asset_order_evaluator::do_apply(const create_nh_asset
 			   nh_asset_order.expiration = o.expiration;
 	       }) ;
 	   d.modify(nh_asset_obj, [&](nh_asset_object& g){
-	   	   g.nh_asset_owner = GRAPHENE_NULL_ACCOUNT;
+	   	   g.nh_asset_owner = GRAPHENE_NULL_ACCOUNT;//nico chang::道具暂时归属到托管账户
 	   	   g.nh_asset_active = GRAPHENE_NULL_ACCOUNT;
 		   g.dealership = GRAPHENE_NULL_ACCOUNT;
 		   });

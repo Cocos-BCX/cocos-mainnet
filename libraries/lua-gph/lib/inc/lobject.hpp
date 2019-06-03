@@ -3,7 +3,7 @@
 ** Type definitions for Lua objects
 ** See Copyright Notice in lua.h
 */
-
+#pragma once
 
 #ifndef lobject_h
 #define lobject_h

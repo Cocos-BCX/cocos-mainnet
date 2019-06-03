@@ -15,10 +15,11 @@ object_id_result contract_create_evaluator::do_apply(const operation_type &o)
 {
     try
     {
-        contract_object co(o.name);
-        lua_table aco = co.do_contract(o.data);
         database &d = db();
+        contract_object co(o.name);
         auto next_id = d.get_index_type<contract_index>().get_next_id();
+        co.id=next_id;
+        lua_table aco = co.do_contract(o.data,d.get_luaVM().mState);
         auto code_bin_object= d.create<contract_bin_code_object>([&](contract_bin_code_object&cbo){cbo.contract_id=next_id;co.get_code(cbo.lua_code_b);});
         contract_object contract = d.create<contract_object>([&](contract_object &c) {
             c.owner = o.owner;

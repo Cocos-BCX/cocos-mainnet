@@ -66,7 +66,7 @@ enum lua_type_num
 #define lua_userdata memo_data, \
                      asset /*6*/
 
-struct SKeyFunctionData
+struct FunctionSummary
 { //处理lua函数信息
     //short arg_num;  //入参个数
     //short ret_num;  //返回值个数
@@ -75,7 +75,7 @@ struct SKeyFunctionData
     //std::vector<std::string> retlist; //返回参数名，按序push
 };
 
-typedef struct SKeyFunctionData lua_function;
+typedef struct FunctionSummary lua_function;
 
 typedef static_variant<
     LUATYPE_NAME(int),    //0
@@ -245,7 +245,7 @@ typedef struct lua_key
 } // namespace graphene
 FC_REFLECT_TYPENAME(graphene::chain::lua_types)
 FC_REFLECT_TYPENAME(graphene::chain::lua_key_variant)
-FC_REFLECT(graphene::chain::SKeyFunctionData, //(arg_num)(ret_num)
+FC_REFLECT(graphene::chain::FunctionSummary, //(arg_num)(ret_num)
            (is_var_arg)(arglist)              //(retlist)
 )
 FC_REFLECT(graphene::chain::LUATYPE_NAME(key), (key))

@@ -47719,7 +47719,7 @@ const const_char_ptr word_list[] = {
 "wali",
 "waling",
 "walk",
-"COCOS",
+"walker",
 "walking",
 "walkist",
 "walkout",

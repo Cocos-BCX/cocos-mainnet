@@ -2451,9 +2451,9 @@ struct lua_scheduler::Pusher<lua_types>
         {
             obj = Pusher<lua_map>::push(state, std::move(value.v));
         }
-        void operator()(SKeyFunctionData value) //noexcept
+        void operator()(FunctionSummary value) //noexcept
         {
-            wdump(("SKeyFunctionData")(value)); //不推送函数摘要
+            wdump(("FunctionSummary")(value)); //不推送函数摘要
         }
 
         lua_types_push_visiter(lua_State *state, PushedObject &obj) : state(state), obj(obj) {}
@@ -3116,6 +3116,12 @@ struct lua_scheduler::Reader<lua_string>
     }
 };
 
+template <>
+struct lua_scheduler::Reader<FunctionSummary>
+{
+    static boost::optional<FunctionSummary> read(lua_State *state, int index);
+};
+
 template <typename... TTypes>
 struct lua_scheduler::Reader<static_variant<TTypes...>>
 {
@@ -3135,7 +3141,7 @@ struct lua_scheduler::Reader<static_variant<TTypes...>>
             // note: using SubReader::read triggers a compilation error when used with a reference
             if (const auto val = SubReader::read(state, index))
             {
-                //if(std::is_same<SubReader,SKeyFunctionData>::value) //拒绝记录合约函数
+                //if(std::is_same<SubReader,FunctionSummary>::value) //拒绝记录合约函数
                 //   return boost::none;
                 return ReturnType(*val);
             }

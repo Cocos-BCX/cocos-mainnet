@@ -133,10 +133,6 @@ std::vector<block_id_type> database::get_block_ids_on_fork(block_id_type head_of
 bool database::push_block(const signed_block &new_block, uint32_t skip)
 {
   bool result;
-  if (new_block.block_num() > pause_point_num && pause_point_num)
-  {
-    FC_THROW("The pause point has been reached. Maybe you should close the node program.");
-  }
   detail::with_skip_flags(*this, skip, [&]() {
     detail::without_pending_transactions(*this, _pending_tx,
                                          [&]() {
@@ -892,12 +888,6 @@ void database::create_block_summary(const signed_block &next_block)
     p.block_id = next_block.block_id;
   });
 }
-
-void database::set_pause_point(uint32_t pause_point_num)
-{
-  this->pause_point_num = pause_point_num;
-}
-
 void database::set_message_cache_size_limit(uint16_t message_cache_size_limit)
 {
   FC_ASSERT(message_cache_size_limit >= 3000 || message_cache_size_limit == 0);

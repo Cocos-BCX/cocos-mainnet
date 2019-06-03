@@ -70,8 +70,8 @@ void register_scheduler::transfer_by_contract(account_id_type from, account_id_t
         FC_RETHROW_EXCEPTIONS(error, "Unable to transfer ${a} from ${f} to ${t}", ("a", db.to_pretty_string(token.amount))("f", from_account.name)("t", to_account.name));
 
         FC_ASSERT(token.amount >= share_type(0), "token amount must big than zero");
-        db.adjust_balance(from, -token.amount);
-        db.adjust_balance(to, token.amount);
+        db.adjust_balance(from, -token);
+        db.adjust_balance(to, token);
         if (enable_logger)
         {
             graphene::chain::token_affected contract_transaction;

@@ -199,7 +199,6 @@ class database : public db::object_database
     void clear_expired_active();
     void clear_expired_timed_task();
     bool log_pending_size();
-    void set_pause_point(uint32_t pause_point_num);
     void set_message_cache_size_limit(uint16_t message_cache_size_limit);
     void set_deduce_in_verification_mode(bool flag){deduce_in_verification_mode=flag;}
 
@@ -228,6 +227,8 @@ class database : public db::object_database
     optional<file_object> lookup_file(const string &file_name_or_ids) const;
     graphene::chain::lua_scheduler &get_luaVM() { return luaVM; };
     void initialize_luaVM();
+    void initialize_baseENV();
+    
     /*******************************************************nico end****************************************************/
 
     /**
