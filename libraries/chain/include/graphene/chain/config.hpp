@@ -180,7 +180,7 @@
 //#define GRAPHENE_FBA_STEALTH_DESIGNATED_ASSET (asset_id_type(743))
 
 #define CONTRACT_BASE_ENV "local baseENV={ cjson={decode=cjson.decode,encode=cjson.encode},date=os.date,import_contract=import_contract,get_account_contract_data=get_account_contract_data, \
-                            assert=assert, next=next, pairs=pairs, pcall=pcall, print=print, select=select, tonumber=tonumber, tostring=tostring, type=type,format_vector_with_table=format_vector_with_table\
+                            assert=assert, next=next, pairs=pairs, pcall=pcall, print=print, select=select, tonumber=tonumber, tostring=tostring, type=type,format_vector_with_table=format_vector_with_table ,\
                             unpack=unpack, _VERSION=_VERSION, xpcall=xpcall, string={ byte=string.byte, char=string.char, find=string.find,\
                             format=string.format, gmatch=string.gmatch, gsub=string.gsub, len=string.len, lower=string.lower,  match=string.match, rep=string.rep,\
                             reverse=string.reverse, sub=string.sub, upper=string.upper }, table={ insert=table.insert, maxn=table.maxn, remove=table.remove, sort=table.sort,\

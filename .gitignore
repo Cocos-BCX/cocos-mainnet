@@ -1,0 +1,39 @@
+# make .git* files visible to git
+!.gitignore
+!.gitattributes
+
+#vim stuff
+*~
+*.swp
+
+*.o
+*.so
+*.so.?
+*.so.?.?.?
+*.a
+*.dylib
+lib/*
+
+# CMake
+#*.cmake
+*.dir
+CMakeFiles
+INSTALL.*
+ZERO_CHECK.*
+CMakeCache.txt
+install_manifest.txt
+# Windows/Visual Studio
+*.vcproj*
+*ipch
+*.bin
+*.sln
+*.suo
+*.ncb
+*/Debug/*
+*/*/Debug/*
+bin/Debug
+*/Release/*
+*/*/Release/*
+*/RelWithDebInfo/*
+*/*/RelWithDebInfo/*
+

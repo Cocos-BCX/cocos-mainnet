@@ -743,7 +743,7 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
         info.trx_in_block = _current_trx_in_block;
       });
     }
-    else if (!(skip & skip_transaction_dupe_check))
+    if (!(skip & skip_transaction_dupe_check))
     {
       this->create<transaction_object>([&](transaction_object &transaction) {
          transaction.trx_hash=trx_hash;
