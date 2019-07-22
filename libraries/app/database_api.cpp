@@ -85,7 +85,8 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
     template <typename Index_tag_type>
     std::pair<vector<nh_asset_order_object>, uint32_t> list_nh_asset_order(const string &asset_symbols_or_id, const string &world_view_name_or_id,
                                                                            const string &base_describe, uint32_t pagesize, uint32_t page);
-
+    //by_greater_id
+    std::pair<vector<nh_asset_order_object>, uint32_t> list_new_nh_asset_order(uint32_t limit);
     // get the NHAs(NH assets) order list of specified account
     std::pair<vector<nh_asset_order_object>, uint32_t> list_account_nh_asset_order(
         const account_id_type &nh_asset_order_owner,
@@ -2746,6 +2747,7 @@ std::pair<vector<nh_asset_order_object>, uint32_t> database_api_impl::list_nh_as
                 nh_hash_type::encoder enc;
                 fc::raw::pack(enc, base_describe);
                 nh_hash_type base_describe_hash(enc.result());
+                base_describe_hash._hash[0]=0;
                 auto filter = boost::make_tuple(world_view_obj->world_view, asset_obj->symbol, base_describe_hash);
                 totality = nh_asset_order_idx.count(filter);
                 const auto &range = nh_asset_order_idx.equal_range(filter);
@@ -2770,6 +2772,24 @@ std::pair<vector<nh_asset_order_object>, uint32_t> database_api::list_account_nh
     uint32_t page)
 {
     return my->list_account_nh_asset_order(nh_asset_order_owner, pagesize, page);
+}
+
+
+std::pair<vector<nh_asset_order_object>, uint32_t> database_api_impl::list_new_nh_asset_order(uint32_t limit)
+{
+    vector<nh_asset_order_object> nh_order;
+    FC_ASSERT(limit<1000);
+    const auto &nh_asset_order_idx = _db.get_index_type<nh_asset_order_index>().indices().get<by_greater_id>();
+    FC_ASSERT(nh_asset_order_idx.size()!=0);
+    auto size=std::min(nh_asset_order_idx.size()-1,size_t(limit));
+    uint32_t index=0;
+    for(auto itr= nh_asset_order_idx.begin(); index<=size;itr++,index++)
+        nh_order.emplace_back(*itr);
+    return make_pair(nh_order,size);
+}
+std::pair<vector<nh_asset_order_object>, uint32_t> database_api::list_new_nh_asset_order(uint32_t limit)
+{
+    return my->list_new_nh_asset_order(limit);
 }
 
 std::pair<vector<nh_asset_order_object>, uint32_t> database_api_impl::list_account_nh_asset_order(

@@ -25,6 +25,7 @@
 #include <graphene/chain/exceptions.hpp>
 #include <graphene/chain/transaction_evaluation_state.hpp>
 #include <graphene/chain/protocol/operations.hpp>
+#include <fc/smart_ref_impl.hpp>
 
 namespace graphene
 {

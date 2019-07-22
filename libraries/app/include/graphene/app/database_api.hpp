@@ -652,6 +652,7 @@ class database_api
       optional<nh_asset_creator_object> get_nh_creator(const account_id_type &nh_asset_creator);
       std::pair<vector<nh_asset_order_object>, uint32_t> list_nh_asset_order(const string &asset_symbols_or_id, const string &world_view_name_or_id,
           const string &base_describe = "", uint32_t pagesize = 10, uint32_t page = 1, bool is_ascending_order = true);
+      std::pair<vector<nh_asset_order_object>, uint32_t> list_new_nh_asset_order(uint32_t limit);
       std::pair<vector<nh_asset_order_object>, uint32_t> list_account_nh_asset_order(const account_id_type &nh_asset_order_owner,
           uint32_t pagesize,uint32_t page);
       optional<file_object> lookup_file(const string &file_name_or_ids) const;
@@ -661,6 +662,7 @@ class database_api
       vector<crontab_object> list_account_crontab(const account_id_type &crontab_creator, bool contain_normal = true, bool contain_suspended = true) const;
       vector<asset_restricted_object> list_asset_restricted_objects(const asset_id_type asset_id,restricted_enum restricted_type) const;
       /*additional members declaration START end*/
+     
     private:
       std::shared_ptr<database_api_impl> my;
 };
@@ -699,7 +701,7 @@ FC_API(graphene::app::database_api,
        // Lua contract
        (get_account_contract_data)(get_contract_public_data)(get_contract)(get_transaction_by_id)(get_transaction_in_block_info)
        //nh asset
-       (lookup_world_view)(lookup_nh_asset)(list_nh_asset_by_creator)(list_account_nh_asset)(get_nh_creator)(list_nh_asset_order)(list_account_nh_asset_order)
+       (lookup_world_view)(lookup_nh_asset)(list_nh_asset_by_creator)(list_account_nh_asset)(get_nh_creator)(list_nh_asset_order)(list_new_nh_asset_order)(list_account_nh_asset_order)
        //file
        (lookup_file)(list_account_created_file)
        //crontab
