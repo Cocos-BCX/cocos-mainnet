@@ -9,6 +9,7 @@
 
 #include "lprefix.hpp"
 
+#include <boost/thread.hpp>
 #include <float.h>
 #include <limits.h>
 #include <math.h>
@@ -908,9 +909,10 @@ newframe:                       /* reentry point when frame changes (call/return
   cl = clLvalue(ci->func);       /* local reference to function's closure */
   k = cl->p->k;                  /* local reference to function's constant table */
   base = ci->u.l.base;           /* local copy of function's base */
-  /* main loop of interpreter */ //  词法解析
+  /* main loop of interpreter */ //  Lexing
   for (;;)
   {
+    boost::this_thread::interruption_point();
     Instruction i;
     StkId ra;
     vmfetch();
