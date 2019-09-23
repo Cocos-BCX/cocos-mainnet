@@ -32,8 +32,8 @@ def init_balance():
     cli_wallet_start()
 
 # wallet_first_init: run once
-def wallet_first_init():
-    cmd = 'rm -rf wallet;  mkdir wallet; cp cli_wallet wallet/'
+def wallet_init():
+    cmd = 'rm -rf wallet; mkdir wallet; chmod +x cli_wallet; cp cli_wallet wallet/'
     print('>>> ' + cmd)
     os.system(cmd)
     init_balance()
@@ -42,7 +42,7 @@ def wallet_first_init():
 if __name__ == '__main__':
     if len(sys.argv) >= 2:
         if sys.argv[1] == 'init':
-            wallet_first_init()
+            wallet_init()
         else:
             cli_wallet_start()
     else:

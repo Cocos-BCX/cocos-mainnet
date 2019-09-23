@@ -9,9 +9,9 @@ data_dir="COCOS_BCX_DATABASE"
 echo "=================== the chain init : start ==================="
 
 pkill witness_node
-
 sleep 3
 
+chmod +x witness_node
 nohup ./witness_node --genesis-json genesis.json >> witness_node.log 2>&1 &
 
 sleep 5

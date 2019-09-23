@@ -15,12 +15,12 @@
 
 
 # 3.钱包启动脚本
-* wallet_first_init.py  
+* wallet_start.py  
 > 和cli_wallet在同一路径下   
 > 
 > 执行命令:  
 > 
-> **python wallet_first_init.py init** : 第一次启动包含import_balance, nicotest account upgrade等操作.  
+> **python  wallet_start.py init** : 第一次启动包含import_balance, nicotest account upgrade等操作.  
 > 
-> **python wallet_first_init.py**  启动cli_wallet
+> **python wallet_start.py**  启动cli_wallet
 
