@@ -22,5 +22,5 @@
 > 
 > **python wallet_first_init.py init** : 第一次启动包含import_balance, nicotest account upgrade等操作.  
 > 
-> **python wallet_first_init.py init**  启动cli_wallet
+> **python wallet_first_init.py**  启动cli_wallet
 
