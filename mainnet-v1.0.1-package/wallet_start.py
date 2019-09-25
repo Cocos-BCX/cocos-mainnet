@@ -5,7 +5,8 @@ import os
 import sys
 
 symbol = "COCOS"
-chain_id = "7c9a7b0b1b8cbe56aa3b24da08aaaf6b3b19a293e7446c7f94f0768d6790cdab"
+#chain_id = "7c9a7b0b1b8cbe56aa3b24da08aaaf6b3b19a293e7446c7f94f0768d6790cdab"
+chain_id = "6bafca1126b191bbf725502e6f7022ba6da32b94f88856b6429a34ff75202158"
 rpc_endpoint = "127.0.0.1:8041"
 
 def cli_wallet_start():
@@ -21,7 +22,7 @@ def init_balance():
     * import balance cli_wallet steps:
     *  1. set_password 123456
     *  2. unlock 123456
-    *  3. import_key  nicotest  5KAUeN3Yv51FzpLGGf4S1ByKpMqVFNzXTJK7euqc3NnaaLz1GJm
+    *  3. import_key  nicotest  5KgiWEMJPYbLpMhX6jvS9yBehhr4mWZhxX7hfxZQEo3rs8iakUQ
     *  4. import_balance  nicotest  ["5KAUeN3Yv51FzpLGGf4S1ByKpMqVFNzXTJK7euqc3NnaaLz1GJm"] true
     *  5. list_account_balances nicotest
     *  6. upgrade_account nicotest true
