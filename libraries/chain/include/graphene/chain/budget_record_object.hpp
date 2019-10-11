@@ -50,6 +50,9 @@ struct budget_record
    // unused budget
    share_type leftover_worker_funds = 0;
 
+   share_type candidates_budget=0;
+   share_type leftover_candidates_budget=0;
+
    // change in supply due to budget operations
    share_type supply_delta = 0;
 };
@@ -79,6 +82,8 @@ FC_REFLECT(
    (witness_budget)
    (worker_budget)
    (leftover_worker_funds)
+   (candidates_budget)
+   (leftover_candidates_budget)
    (supply_delta)
 )
 

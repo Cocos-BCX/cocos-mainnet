@@ -13,9 +13,7 @@ namespace graphene { namespace chain {
        struct fee_parameters_type { 
 	   	  uint64_t fee =  GRAPHENE_BLOCKCHAIN_PRECISION; 
 		  uint32_t price_per_kbyte = 10 * GRAPHENE_BLOCKCHAIN_PRECISION;
-	   };
-	   
-       asset              fee;  //the operation poundage  
+	   }; 
        account_id_type    file_owner;  // the file creator
        string file_name;  // file name
        string file_content;  // file content
@@ -30,9 +28,7 @@ namespace graphene { namespace chain {
        struct fee_parameters_type { 
 	   	  uint64_t fee =  GRAPHENE_BLOCKCHAIN_PRECISION; 
 		  uint32_t price_per_related_account = GRAPHENE_BLOCKCHAIN_PRECISION;
-	   };
-	   
-       asset              fee;  //the operation poundage  
+	   }; 
        account_id_type file_owner;  // the file owner
        file_id_type    file_id;  // file id
        flat_set<account_id_type> related_account; // the accounts who will be related to the file
@@ -48,8 +44,6 @@ namespace graphene { namespace chain {
 	   	  uint64_t fee =  GRAPHENE_BLOCKCHAIN_PRECISION; 
 		  uint32_t price_per_kbyte = 10 * GRAPHENE_BLOCKCHAIN_PRECISION;  // only required for large signature.
 	   };
-	   
-       asset              fee;  // the operation poundage  
        account_id_type signature_account;  // the account who signed
        file_id_type    file_id;  // file id
        string signature; // signature content
@@ -61,9 +55,7 @@ namespace graphene { namespace chain {
    // related a sub file to a parent file
    struct relate_parent_file_operation : public base_operation
    {
-       struct fee_parameters_type { uint64_t fee =  GRAPHENE_BLOCKCHAIN_PRECISION; };
-	   
-       asset              fee;  // the operation poundage  
+       struct fee_parameters_type { uint64_t fee =  GRAPHENE_BLOCKCHAIN_PRECISION; };  
        account_id_type    sub_file_owner;  // the sub file's owner
        file_id_type parent_file;  // the parent file's id
        //flat_set<account_id_type> parent_file_related_account; // the related accounts of parent file
@@ -76,17 +68,16 @@ namespace graphene { namespace chain {
 
 FC_REFLECT(graphene::chain::create_file_operation::fee_parameters_type, (fee)(price_per_kbyte))
 
-FC_REFLECT(graphene::chain::create_file_operation, (fee)(file_owner)(file_name)(file_content))
+FC_REFLECT(graphene::chain::create_file_operation, (file_owner)(file_name)(file_content))
 
-FC_REFLECT(graphene::chain::add_file_relate_account_operation::fee_parameters_type, (fee)(price_per_related_account))
+FC_REFLECT(graphene::chain::add_file_relate_account_operation::fee_parameters_type, (price_per_related_account))
 
-FC_REFLECT(graphene::chain::add_file_relate_account_operation, (fee)(file_owner)(file_id)(related_account))
+FC_REFLECT(graphene::chain::add_file_relate_account_operation, (file_owner)(file_id)(related_account))
 
 FC_REFLECT(graphene::chain::file_signature_operation::fee_parameters_type, (fee)(price_per_kbyte))
 
-FC_REFLECT(graphene::chain::file_signature_operation, (fee)(signature_account)(file_id)(signature))
+FC_REFLECT(graphene::chain::file_signature_operation, (signature_account)(file_id)(signature))
 
 FC_REFLECT(graphene::chain::relate_parent_file_operation::fee_parameters_type, (fee))
 
-FC_REFLECT( graphene::chain::relate_parent_file_operation, (fee)
-	(sub_file_owner)(parent_file)(parent_file_owner)(sub_file) )
+FC_REFLECT( graphene::chain::relate_parent_file_operation,(sub_file_owner)(parent_file)(parent_file_owner)(sub_file) )

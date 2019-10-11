@@ -41,23 +41,19 @@ add_library( graphene_chain
              protocol/address.cpp
              protocol/authority.cpp
              protocol/asset.cpp
-             protocol/assert.cpp
              protocol/account.cpp
              protocol/transfer.cpp
              protocol/committee_member.cpp
              protocol/witness.cpp
              protocol/market.cpp
              protocol/proposal.cpp
-             protocol/withdraw_permission.cpp
              protocol/asset_ops.cpp
              protocol/memo.cpp
              protocol/worker.cpp
-             protocol/custom.cpp
              protocol/operations.cpp
              protocol/transaction.cpp
              protocol/block.cpp
              protocol/fee_schedule.cpp
-             protocol/confidential.cpp
              protocol/vote.cpp
              protocol/lua_scheduler.cpp
              genesis_state.cpp
@@ -68,8 +64,6 @@ add_library( graphene_chain
              evaluator.cpp
              balance_evaluator.cpp
              account_evaluator.cpp
-             OperateItem.cpp
-             assert_evaluator.cpp
              witness_evaluator.cpp
              committee_member_evaluator.cpp
              asset_evaluator.cpp
@@ -98,20 +92,17 @@ add_library( graphene_chain
             protocol/crontab.cpp
             crontab_evaluator.cpp
             crontab_object.cpp
+            gas_evaluator.cpp
             ##############################
 ################################################
              proposal_evaluator.cpp
              market_evaluator.cpp
              vesting_balance_evaluator.cpp
-             withdraw_permission_evaluator.cpp
              worker_evaluator.cpp
-             confidential_evaluator.cpp
              special_authority.cpp
-             buyback.cpp
 
              account_object.cpp
              asset_object.cpp
-             fba_object.cpp
              proposal_object.cpp
              vesting_balance_object.cpp
 
@@ -137,6 +128,9 @@ target_include_directories( graphene_chain
 target_link_libraries( graphene_chain  graphene_utilities )
 target_include_directories( graphene_chain
                             PUBLIC "${CMAKE_SOURCE_DIR}/libraries/utilities/include/graphene/utilities/" )
+target_link_libraries( graphene_chain  process_encryption )
+target_include_directories( graphene_chain
+                            PUBLIC "${CMAKE_SOURCE_DIR}/libraries/process_encryption/include" )
 ###################################################################################################################
 if(MSVC)
   set_source_files_properties( db_init.cpp db_block.cpp database.cpp block_database.cpp PROPERTIES COMPILE_FLAGS "/bigobj" )

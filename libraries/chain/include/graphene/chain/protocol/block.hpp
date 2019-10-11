@@ -34,7 +34,7 @@ namespace graphene { namespace chain {
       fc::time_point_sec            timestamp;
       witness_id_type               witness;
       checksum_type                 transaction_merkle_root;
-      extensions_type               extensions;
+      optional<extensions_type>     extensions;
 
       static uint32_t num_from_id(const block_id_type& id);
    };

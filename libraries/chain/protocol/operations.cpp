@@ -34,7 +34,6 @@ uint64_t base_operation::calculate_data_fee( uint64_t bytes, uint64_t price_per_
 
 void balance_claim_operation::validate()const
 {
-   FC_ASSERT( fee == asset() );
    FC_ASSERT( balance_owner_key != public_key_type() );
 }
 

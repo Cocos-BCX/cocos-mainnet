@@ -5,9 +5,7 @@
 #include <graphene/chain/protocol/operations.hpp>
 #include <graphene/chain/protocol/transaction.hpp>
 #include <graphene/chain/protocol/types.hpp>
-#include <graphene/chain/withdraw_permission_object.hpp>
 #include <graphene/chain/worker_object.hpp>
-#include <graphene/chain/confidential_object.hpp>
 #include <graphene/chain/market_object.hpp>
 #include <graphene/chain/committee_member_object.hpp>
 
@@ -37,7 +35,7 @@ struct get_impacted_account_visitor
       {
             _impacted.insert(op.to);
       }
-
+      
       void operator()(const asset_claim_fees_operation &op) {}
       void operator()(const limit_order_create_operation &op) {}
       void operator()(const limit_order_cancel_operation &op)
@@ -61,7 +59,6 @@ struct get_impacted_account_visitor
       void operator()(const account_create_operation &op)
       {
             _impacted.insert(op.registrar);
-            _impacted.insert(op.referrer);
             add_authority_accounts(_impacted, op.owner);
             add_authority_accounts(_impacted, op.active);
       }
@@ -113,7 +110,6 @@ struct get_impacted_account_visitor
       }
 
       void operator()(const asset_reserve_operation &op) {}
-      void operator()(const asset_fund_fee_pool_operation &op) {}
       void operator()(const asset_settle_operation &op) {}
       void operator()(const asset_global_settle_operation &op) {}
       void operator()(const asset_publish_feed_operation &op) {}
@@ -138,26 +134,6 @@ struct get_impacted_account_visitor
       void operator()(const proposal_update_operation &op) {}
       void operator()(const proposal_delete_operation &op) {}
 
-      void operator()(const withdraw_permission_create_operation &op)
-      {
-            _impacted.insert(op.authorized_account);
-      }
-
-      void operator()(const withdraw_permission_update_operation &op)
-      {
-            _impacted.insert(op.authorized_account);
-      }
-
-      void operator()(const withdraw_permission_claim_operation &op)
-      {
-            _impacted.insert(op.withdraw_from_account);
-      }
-
-      void operator()(const withdraw_permission_delete_operation &op)
-      {
-            _impacted.insert(op.authorized_account);
-      }
-
       void operator()(const committee_member_create_operation &op)
       {
             _impacted.insert(op.committee_member_account);
@@ -175,8 +151,6 @@ struct get_impacted_account_visitor
 
       void operator()(const vesting_balance_withdraw_operation &op) {}
       void operator()(const worker_create_operation &op) {}
-      void operator()(const custom_operation &op) {}
-      void operator()(const assert_operation &op) {}
       void operator()(const balance_claim_operation &op) {}
 
       void operator()(const override_transfer_operation &op)
@@ -186,36 +160,9 @@ struct get_impacted_account_visitor
             _impacted.insert(op.issuer);
       }
 
-      void operator()(const transfer_to_blind_operation &op)
-      {
-            _impacted.insert(op.from);
-            for (const auto &out : op.outputs)
-                  add_authority_accounts(_impacted, out.owner);
-      }
-
-      void operator()(const blind_transfer_operation &op)
-      {
-            for (const auto &in : op.inputs)
-                  add_authority_accounts(_impacted, in.owner);
-            for (const auto &out : op.outputs)
-                  add_authority_accounts(_impacted, out.owner);
-      }
-
-      void operator()(const transfer_from_blind_operation &op)
-      {
-            _impacted.insert(op.to);
-            for (const auto &in : op.inputs)
-                  add_authority_accounts(_impacted, in.owner);
-      }
-
       void operator()(const asset_settle_cancel_operation &op)
       {
             _impacted.insert(op.account);
-      }
-
-      void operator()(const fba_distribute_operation &op)
-      {
-            _impacted.insert(op.account_id);
       }
 
       void operator()(const contract_create_operation &op) //nico 创建合约
@@ -286,6 +233,10 @@ struct get_impacted_account_visitor
       void operator()(const crontab_create_operation &op) {}
       void operator()(const crontab_cancel_operation &op) {}
       void operator()(const crontab_recover_operation &op) {}
+      void operator()(const update_collateral_for_gas_operation &op) {
+             _impacted.insert(op.beneficiary);
+      }
+      void operator()(const account_authentication_operation&op){}
 };
 
 } // namespace chain

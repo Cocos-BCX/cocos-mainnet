@@ -71,9 +71,6 @@ def main():
     for committee in genesis["initial_committee_candidates"]:
         owner_name = member["owner_name"]
         member["owner_name"] = name_map.get(owner_name, owner_name)
-    for worker in genesis["initial_worker_candidates"]:
-        owner_name = worker["owner_name"]
-        worker["owner_name"] = name_map.get(owner_name, owner_name)
 
     if opts.output == "-":
         dump_json( genesis, sys.stdout, opts.pretty )

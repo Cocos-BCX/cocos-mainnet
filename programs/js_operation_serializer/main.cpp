@@ -29,12 +29,9 @@
 #include <graphene/chain/asset_object.hpp>
 #include <graphene/chain/balance_object.hpp>
 #include <graphene/chain/committee_member_object.hpp>
-#include <graphene/chain/confidential_object.hpp>
-#include <graphene/chain/fba_object.hpp>
 #include <graphene/chain/market_object.hpp>
 #include <graphene/chain/proposal_object.hpp>
 #include <graphene/chain/vesting_balance_object.hpp>
-#include <graphene/chain/withdraw_permission_object.hpp>
 #include <graphene/chain/witness_object.hpp>
 #include <graphene/chain/worker_object.hpp>
 
@@ -501,11 +498,9 @@ int main(int argc, char **argv)
 
             detail_ns::js_name<fee_parameters>::name("fee_parameters");
             detail_ns::js_name<operation>::name("operation");
-            //detail_ns::js_name<lua_types>::name("lua_types");
             detail_ns::js_name<operation_result>::name("operation_result");
             detail_ns::js_name<future_extensions>::name("future_extensions");
             detail_ns::js_name<worker_initializer>::name("worker_initializer");
-            detail_ns::js_name<predicate>::name("predicate");
             detail_ns::js_name<vesting_policy_initializer>::name("vesting_policy_initializer");
 
             detail_ns::serializer<fee_parameters>::init();
@@ -514,7 +509,6 @@ int main(int argc, char **argv)
             detail_ns::serializer<block_header>::init();
             detail_ns::serializer<signed_block_header>::init();
             detail_ns::serializer<operation>::init();
-            //detail_ns::serializer<lua_types>::init();
             detail_ns::serializer<transaction>::init();
             detail_ns::serializer<signed_transaction>::init();
             for (const auto &gen : detail_ns::serializers)

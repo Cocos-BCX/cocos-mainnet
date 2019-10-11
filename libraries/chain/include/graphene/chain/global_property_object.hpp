@@ -31,6 +31,15 @@
 
 namespace graphene { namespace chain {
 
+
+   class unsuccessful_candidates_object: public graphene::db::abstract_object<unsuccessful_candidates_object>
+   {
+      public:
+         static const uint8_t space_id = extension_id_for_nico;
+         static const uint8_t type_id  = unsuccessful_candidates_type;
+         flat_set<account_id_type> unsuccessful_candidates;
+   };
+
    /**
     * @class global_property_object
     * @brief Maintains global state information (committee_member list, current fees)
@@ -149,3 +158,5 @@ FC_REFLECT_DERIVED( graphene::chain::global_property_object, (graphene::db::obje
                     (active_committee_members)
                     (active_witnesses)
                   )
+FC_REFLECT_DERIVED( graphene::chain::unsuccessful_candidates_object, (graphene::db::object),(unsuccessful_candidates))
+                  

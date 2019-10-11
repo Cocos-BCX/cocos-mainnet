@@ -14,8 +14,6 @@ struct create_world_view_operation : public base_operation
     {
         uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION;
     };
-
-    asset fee;                          // the operation poundage
     account_id_type fee_paying_account; // creator
     string world_view;                  // the world view name
     account_id_type fee_payer() const { return fee_paying_account; }
@@ -29,8 +27,6 @@ struct relate_world_view_operation : public base_operation
     {
         uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION;
     };
-
-    asset fee;                          // the operation poundage
     account_id_type related_account; // the nht creator account who whill be related
     string world_view;                  // the world view
     account_id_type view_owner;         // the world view's creator
@@ -43,8 +39,8 @@ struct relate_world_view_operation : public base_operation
 
 FC_REFLECT(graphene::chain::create_world_view_operation::fee_parameters_type, (fee))
 
-FC_REFLECT(graphene::chain::create_world_view_operation, (fee)(fee_paying_account)(world_view))
+FC_REFLECT(graphene::chain::create_world_view_operation, (fee_paying_account)(world_view))
 
 FC_REFLECT(graphene::chain::relate_world_view_operation::fee_parameters_type, (fee))
 
-FC_REFLECT(graphene::chain::relate_world_view_operation, (fee)(related_account)(world_view)(view_owner))
+FC_REFLECT(graphene::chain::relate_world_view_operation, (related_account)(world_view)(view_owner))

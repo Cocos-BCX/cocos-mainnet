@@ -140,6 +140,7 @@ namespace graphene { namespace chain {
          asset balance;
          /// The vesting policy stores details on when funds vest, and controls when they may be withdrawn
          vesting_policy policy;
+         fc::optional<string> describe;
 
          vesting_balance_object() {}
 
@@ -207,4 +208,5 @@ FC_REFLECT_DERIVED(graphene::chain::vesting_balance_object, (graphene::db::objec
                    (owner)
                    (balance)
                    (policy)
+                   (describe)
                   )

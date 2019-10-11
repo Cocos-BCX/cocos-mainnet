@@ -46,18 +46,24 @@ namespace graphene { namespace chain {
          string           url;
          int64_t          total_missed = 0;
          uint32_t         last_confirmed_block_num = 0;
-
+         bool              work_status;
+         time_point_sec    next_maintenance_time;
+         map<account_id_type,asset> supporters;
          witness_object() : vote_id(vote_id_type::witness) {}
    };
 
    struct by_account;
    struct by_vote_id;
    struct by_last_block;
+   struct by_work_status{};
    using witness_multi_index_type = multi_index_container<
       witness_object,
       indexed_by<
          ordered_unique< tag<by_id>,
             member<object, object_id_type, &object::id>
+         >,
+         ordered_non_unique< tag<by_work_status>,
+            member<witness_object, bool, &witness_object::work_status>
          >,
          ordered_unique< tag<by_account>,
             member<witness_object, account_id_type, &witness_object::witness_account>
@@ -80,4 +86,7 @@ FC_REFLECT_DERIVED( graphene::chain::witness_object, (graphene::db::object),
                     (url) 
                     (total_missed)
                     (last_confirmed_block_num)
+                    (work_status)
+                    (next_maintenance_time)
+                    (supporters)
                   )

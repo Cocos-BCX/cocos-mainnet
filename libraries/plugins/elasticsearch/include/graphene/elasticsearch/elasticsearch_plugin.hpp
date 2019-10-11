@@ -81,9 +81,6 @@ struct operation_visitor
 {
    typedef void result_type;
 
-   share_type fee_amount;
-   asset_id_type fee_asset;
-
    asset_id_type transfer_asset_id;
    share_type transfer_amount;
    account_id_type transfer_from;
@@ -91,9 +88,6 @@ struct operation_visitor
 
    void operator()( const graphene::chain::transfer_operation& o )
    {
-      fee_asset = o.fee.asset_id;
-      fee_amount = o.fee.amount;
-
       transfer_asset_id = o.amount.asset_id;
       transfer_amount = o.amount.amount;
       transfer_from = o.from;
@@ -102,8 +96,6 @@ struct operation_visitor
    template<typename T>
    void operator()( const T& o )
    {
-      fee_asset = o.fee.asset_id;
-      fee_amount = o.fee.amount;
    }
 };
 
@@ -134,7 +126,6 @@ struct transfer_struct {
 };
 
 struct visitor_struct {
-   fee_struct fee_data;
    transfer_struct transfer_data;
 };
 
@@ -153,7 +144,7 @@ FC_REFLECT( graphene::elasticsearch::operation_history_struct, (trx_in_block)(op
 FC_REFLECT( graphene::elasticsearch::block_struct, (block_num)(block_time)(trx_id) )
 FC_REFLECT( graphene::elasticsearch::fee_struct, (asset)(amount) )
 FC_REFLECT( graphene::elasticsearch::transfer_struct, (asset)(amount)(from)(to) )
-FC_REFLECT( graphene::elasticsearch::visitor_struct, (fee_data)(transfer_data) )
+FC_REFLECT( graphene::elasticsearch::visitor_struct, (transfer_data) )
 FC_REFLECT( graphene::elasticsearch::bulk_struct, (account_history)(operation_history)(operation_type)(block_data)(additional_data) )
 
 

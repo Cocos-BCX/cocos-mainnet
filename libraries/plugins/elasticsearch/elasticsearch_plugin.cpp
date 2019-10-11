@@ -179,9 +179,6 @@ void elasticsearch_plugin_impl::add_elasticsearch( const account_id_type account
    if(_elasticsearch_visitor) {
       operation_visitor o_v;
       oho->op.visit(o_v);
-
-      vs.fee_data.asset = o_v.fee_asset;
-      vs.fee_data.amount = o_v.fee_amount;
       vs.transfer_data.asset = o_v.transfer_asset_id;
       vs.transfer_data.amount = o_v.transfer_amount;
       vs.transfer_data.from = o_v.transfer_from;

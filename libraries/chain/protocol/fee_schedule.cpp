@@ -46,7 +46,15 @@ namespace graphene { namespace chain {
    fee_schedule::fee_schedule()
    {
    }
-
+   void fee_schedule::full()
+   {
+      for( int i = 0; i < fee_parameters().count(); ++i )
+      {
+         fee_parameters x; x.set_which(i);
+         if(parameters.find(x)==parameters.end())
+            parameters.insert(x);
+      }
+   }
    fee_schedule fee_schedule::get_default()
    {
       fee_schedule result;
@@ -97,20 +105,6 @@ namespace graphene { namespace chain {
       }
    };
 
-   struct set_fee_visitor
-   {
-      typedef void result_type;
-      asset _fee;
-
-      set_fee_visitor( asset f ):_fee(f){}
-
-      template<typename OpType>
-      void operator()( OpType& op )const
-      {
-         op.fee = _fee;
-      }
-   };
-
    struct zero_fee_visitor
    {
       typedef void result_type;
@@ -124,7 +118,7 @@ namespace graphene { namespace chain {
 
    void fee_schedule::zero_all_fees()
    {
-      *this = get_default();
+      *this=get_default();
       for( fee_parameters& i : parameters )
          i.visit( zero_fee_visitor() );
       this->scale = 0;
@@ -147,45 +141,19 @@ namespace graphene { namespace chain {
       return result;
    }
 
-   asset fee_schedule::set_fee( operation& op, const price& core_exchange_rate )const
-   {
-      auto f = calculate_fee( op, core_exchange_rate );
-      auto f_max = f;
-      for( int i=0; i<MAX_FEE_STABILIZATION_ITERATION; i++ )
-      {
-         op.visit( set_fee_visitor( f_max ) );
-         auto f2 = calculate_fee( op, core_exchange_rate );
-         if( f == f2 )
-            break;
-         f_max = std::max( f_max, f2 );
-         f = f2;
-         if( i == 0 )
-         {
-            // no need for warnings on later iterations
-            wlog( "set_fee requires multiple iterations to stabilize with core_exchange_rate ${p} on operation ${op}",
-               ("p", core_exchange_rate) ("op", op) );
-         }
-      }
-      return f_max;
-   }
-
    void chain_parameters::validate()const
    {
       current_fees->validate();
-      FC_ASSERT( committee_percent_of_network <= GRAPHENE_100_PERCENT );
-      FC_ASSERT( network_percent_of_fee <= GRAPHENE_100_PERCENT );
-      FC_ASSERT( lifetime_referrer_percent_of_fee <= GRAPHENE_100_PERCENT );
-      FC_ASSERT( network_percent_of_fee + lifetime_referrer_percent_of_fee <= GRAPHENE_100_PERCENT );
-
       FC_ASSERT( block_interval >= GRAPHENE_MIN_BLOCK_INTERVAL );
       FC_ASSERT( block_interval <= GRAPHENE_MAX_BLOCK_INTERVAL );
       FC_ASSERT( block_interval > 0 );
+      FC_ASSERT( (witness_number_of_election&1)==1);
+      FC_ASSERT( (committee_number_of_election&1)==1);
       FC_ASSERT( maintenance_interval > block_interval,
                  "Maintenance interval must be longer than block interval" );
       FC_ASSERT( maintenance_interval % block_interval == 0,
                  "Maintenance interval must be a multiple of block interval" );
-      FC_ASSERT( maximum_transaction_size >= GRAPHENE_MIN_TRANSACTION_SIZE_LIMIT,
-                 "Transaction size limit is too low" );
+      //FC_ASSERT( maximum_transaction_size >= GRAPHENE_MIN_TRANSACTION_SIZE_LIMIT,"Transaction size limit is too low" );
       FC_ASSERT( maximum_block_size >= GRAPHENE_MIN_BLOCK_SIZE_LIMIT,
                  "Block size limit is too low" );
       FC_ASSERT( maximum_time_until_expiration > block_interval,

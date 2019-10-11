@@ -119,14 +119,6 @@ void get_relevant_accounts(const object *obj, flat_set<account_id_type> &account
       get_impacted_accounts_from_operation_reslut(aobj->result, accounts);
       break;
     }
-    case withdraw_permission_object_type:
-    {
-      const auto &aobj = dynamic_cast<const withdraw_permission_object *>(obj);
-      assert(aobj != nullptr);
-      accounts.insert(aobj->withdraw_from_account);
-      accounts.insert(aobj->authorized_account);
-      break;
-    }
     case vesting_balance_object_type:
     {
       const auto &aobj = dynamic_cast<const vesting_balance_object *>(obj);
@@ -138,7 +130,8 @@ void get_relevant_accounts(const object *obj, flat_set<account_id_type> &account
     {
       const auto &aobj = dynamic_cast<const worker_object *>(obj);
       assert(aobj != nullptr);
-      accounts.insert(aobj->worker_account);
+      if(aobj->beneficiary.valid())
+        accounts.insert(*aobj->beneficiary);
       break;
     }
     case balance_object_type:
@@ -216,14 +209,6 @@ void get_relevant_accounts(const object *obj, flat_set<account_id_type> &account
       transaction_get_impacted_accounts(aobj->trx, accounts);
       break;
     }
-    case impl_blinded_balance_object_type:
-    {
-      const auto &aobj = dynamic_cast<const blinded_balance_object *>(obj);
-      assert(aobj != nullptr);
-      for (const auto &a : aobj->owner.account_auths)
-        accounts.insert(a.first);
-      break;
-    }
     case impl_block_summary_object_type:
       break;
     case impl_account_transaction_history_object_type:
@@ -235,10 +220,6 @@ void get_relevant_accounts(const object *obj, flat_set<account_id_type> &account
     case impl_budget_record_object_type:
       break;
     case impl_special_authority_object_type:
-      break;
-    case impl_buyback_object_type:
-      break;
-    case impl_fba_accumulator_object_type:
       break;
     case impl_collateral_bid_object_type:
     {
@@ -270,6 +251,14 @@ void get_relevant_accounts(const object *obj, flat_set<account_id_type> &account
         accounts.insert(aobj->restricted_id);
       }
       break;
+    }
+    case extension_type_for_nico::unsuccessful_candidates_type:
+    {
+      break;
+    }
+    case extension_type_for_nico::collateral_for_gas_type:{
+        const auto &aobj = dynamic_cast<const collateral_for_gas_object *>(obj);
+        accounts.insert(aobj->beneficiary);
     }
     }
   }

@@ -43,8 +43,13 @@ public:
 
    void_result do_evaluate( const account_update_operation& o );
    void_result do_apply( const account_update_operation& o );
+   int64_t verify_account_votes(const account_options &options, const flat_set<vote_id_type> &old_votes);
+
+   template<typename Candidate_Type>
+   void modify_candidate(Candidate_Type& candidate,vote_id_type vote,const flat_set<vote_id_type>& new_support,const flat_set<vote_id_type>&cancellation_support);
 
    const account_object* acnt;
+   asset vote_lock;
 };
 
 class account_upgrade_evaluator : public evaluator<account_upgrade_evaluator>

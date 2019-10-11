@@ -21,46 +21,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <graphene/chain/protocol/protocol.hpp>
+#pragma once
+#include <graphene/chain/evaluator.hpp>
+#include <graphene/chain/protocol/collateral_for_gas.hpp>
 
 namespace graphene { namespace chain {
 
-bool account_name_eq_lit_predicate::validate()const
-{
-   return is_valid_name( name );
-}
+    struct update_collateral_for_gas_evaluator:public evaluator<update_collateral_for_gas_evaluator>
+    {
+        public:
+         typedef update_collateral_for_gas_operation operation_type;
 
-bool asset_symbol_eq_lit_predicate::validate()const
-{
-   return is_valid_symbol( symbol );
-}
+         void_result do_evaluate( const update_collateral_for_gas_operation& o );
+         object_id_result do_apply( const update_collateral_for_gas_operation& o );
+         const collateral_for_gas_object *collateral_for_gas=nullptr;
 
-struct predicate_validator
-{
-   typedef void result_type;
+    };
 
-   template<typename T>
-   void operator()( const T& p )const
-   {
-      p.validate();
-   }
-};
-
-void assert_operation::validate()const
-{
-   FC_ASSERT( fee.amount >= share_type(0) );
-   for( const auto& item : predicates )
-      item.visit( predicate_validator() );
-}
-
-/**
- * The fee for assert operations is proportional to their size,
- * but cheaper than a data fee because they require no storage
- */
-share_type  assert_operation::calculate_fee(const fee_parameters_type& k)const
-{
-   return k.fee * predicates.size();
-}
-
-
-} }  // namespace graphene::chain
+} } // graphene::chain

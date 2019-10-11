@@ -144,7 +144,7 @@ int main( int argc, char** argv )
          bal.owner = address( get_dev_key( "balance-", i ) );
          bal.asset_symbol = "CORE";
          bal.amount = dev_balance_amount;
-         genesis.initial_balances.push_back( bal );
+         genesis.initial_address_balances.push_back( bal );
       }
 
       std::map< std::string, size_t > name2index;

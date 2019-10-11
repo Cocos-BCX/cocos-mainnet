@@ -45,7 +45,7 @@
 #define GRAPHENE_MAX_BLOCK_INTERVAL  30 /* seconds */
 
 #define GRAPHENE_DEFAULT_BLOCK_INTERVAL  5 /* seconds */
-#define GRAPHENE_DEFAULT_MAX_TRANSACTION_SIZE 2048
+//#define GRAPHENE_DEFAULT_MAX_TRANSACTION_SIZE 2048
 #define GRAPHENE_DEFAULT_MAX_BLOCK_SIZE  (2*1000*1000) /* < 2 MiB (less than MAX_MESSAGE_SIZE in graphene/net/config.hpp) */
 #define GRAPHENE_DEFAULT_MAX_TIME_UNTIL_EXPIRATION (60*60*24) // seconds,  aka: 1 day
 #define GRAPHENE_DEFAULT_MAINTENANCE_INTERVAL  (60*60*24) // seconds, aka: 1 day
@@ -90,7 +90,6 @@
 #define MAXIMUN_RUN_TIME_RATIO                          5000 ///nico add:: 合约最大占空比::5000/10000
 #define MAXIMUN_NH_ASSET_ORDER_EXPIRATION               (60*60*24*7*2) // zhangfan add :: (Two weeks) maximum expiration time of nht order
 #define MAXIMUN_HANDLING_FEE                            100*std::pow(10,GRAPHENE_BLOCKCHAIN_PRECISION_DIGITS)
-#define VOTING_ADOPTI_RATIO                             7500 /// nico add :: 投票采纳比例 7500/10000
 #define ASSIGNED_TASK_LIFE_CYCLE                        300  /// nico add ::约定任务生命周期　单位（秒)
 #define CRONTAB_SUSPEND_THRESHOLD                       3 // zf add:: 定时任务挂起阈值，连续失败3次后任务挂起
 #define CRONTAB_SUSPEND_EXPIRATION                      2592000  // zf add:: 定时任务被挂起后的过期时长
@@ -98,21 +97,17 @@
 
 #define GRAPHENE_DEFAULT_MIN_WITNESS_COUNT                    (11)
 #define GRAPHENE_DEFAULT_MIN_COMMITTEE_MEMBER_COUNT           (11)
-#define GRAPHENE_DEFAULT_MAX_WITNESSES                        (1001) // SHOULD BE ODD
-#define GRAPHENE_DEFAULT_MAX_COMMITTEE                        (1001) // SHOULD BE ODD
+#define GRAPHENE_DEFAULT_WITNESSE_NUMBER                        (11) // SHOULD BE ODD
+#define GRAPHENE_DEFAULT_COMMITTEE_NUMBER                        (11) // SHOULD BE ODD
 #define GRAPHENE_DEFAULT_MAX_PROPOSAL_LIFETIME_SEC            (60*60*24*7*4) // Four weeks
 #define GRAPHENE_DEFAULT_COMMITTEE_PROPOSAL_REVIEW_PERIOD_SEC (60*60*24) // 1 day
-#define GRAPHENE_DEFAULT_NETWORK_PERCENT_OF_FEE               (20*GRAPHENE_1_PERCENT)
-#define GRAPHENE_DEFAULT_LIFETIME_REFERRER_PERCENT_OF_FEE     (30*GRAPHENE_1_PERCENT)
 #define GRAPHENE_DEFAULT_MAX_BULK_DISCOUNT_PERCENT            (50*GRAPHENE_1_PERCENT)
 #define GRAPHENE_DEFAULT_BULK_DISCOUNT_THRESHOLD_MIN          ( GRAPHENE_BLOCKCHAIN_PRECISION*int64_t(1000) )
 #define GRAPHENE_DEFAULT_BULK_DISCOUNT_THRESHOLD_MAX          ( GRAPHENE_DEFAULT_BULK_DISCOUNT_THRESHOLD_MIN*int64_t(100) )
-#define GRAPHENE_DEFAULT_CASHBACK_VESTING_PERIOD_SEC          (60*60*24*365) ///< 1 year
-#define GRAPHENE_DEFAULT_CASHBACK_VESTING_THRESHOLD           (GRAPHENE_BLOCKCHAIN_PRECISION*int64_t(100))
+#define GRAPHENE_DEFAULT_CASHBACK_VESTING_PERIOD_SEC          (60*60*24) ///< 1 day
 #define GRAPHENE_DEFAULT_BURN_PERCENT_OF_FEE                  (20*GRAPHENE_1_PERCENT)
 #define GRAPHENE_WITNESS_PAY_PERCENT_PRECISION                (1000000000)
 #define GRAPHENE_DEFAULT_MAX_ASSERT_OPCODE                    1
-#define GRAPHENE_DEFAULT_FEE_LIQUIDATION_THRESHOLD            GRAPHENE_BLOCKCHAIN_PRECISION * 100;
 #define GRAPHENE_DEFAULT_ACCOUNTS_PER_FEE_SCALE               1000
 #define GRAPHENE_DEFAULT_ACCOUNT_FEE_SCALE_BITSHIFTS          4
 #define GRAPHENE_DEFAULT_MAX_BUYBACK_MARKETS                  4
@@ -120,6 +115,8 @@
 #define GRAPHENE_MAX_WORKER_NAME_LENGTH                       63
 
 #define GRAPHENE_MAX_URL_LENGTH                               127
+
+#define GRAPHENE_DESCRIBE_LENGTH                              1024 
 
 // counter initialization values used to derive near and far future seeds for shuffling witnesses
 // we use the fractional bits of sqrt(2) in hex
@@ -162,22 +159,25 @@
 ///@{
 /// Represents the current committee members, two-week review period
 #define GRAPHENE_COMMITTEE_ACCOUNT (graphene::chain::account_id_type(0))
+#define GRAPHENE_RELAXED_COMMITTEE_ACCOUNT (graphene::chain::account_id_type(1))
 /// Represents the current witnesses
-#define GRAPHENE_WITNESS_ACCOUNT (graphene::chain::account_id_type(1))
-/// Represents the current committee members
-//#define GRAPHENE_RELAXED_COMMITTEE_ACCOUNT (graphene::chain::account_id_type(2))
+#define GRAPHENE_WITNESS_ACCOUNT (graphene::chain::account_id_type(2))
 /// Represents the canonical account with NO authority (nobody can access funds in null account)
-#define GRAPHENE_NULL_ACCOUNT (graphene::chain::account_id_type(2))
-#define GRAPHENE_ACCOUNT (graphene::chain::account_id_type(15))
+#define GRAPHENE_NULL_ACCOUNT (graphene::chain::account_id_type(3))
+#define GRAPHENE_ACCOUNT (graphene::chain::account_id_type(0))
 /// Represents the canonical account with WILDCARD authority (anybody can access funds in temp account)
-#define GRAPHENE_TEMP_ACCOUNT (graphene::chain::account_id_type(3))
+#define GRAPHENE_TEMP_ACCOUNT (graphene::chain::account_id_type(4))
 /// Represents the canonical account for specifying you will vote directly (as opposed to a proxy)
 //#define GRAPHENE_PROXY_TO_SELF_ACCOUNT (graphene::chain::account_id_type(4))
 /// Sentinel value used in the scheduler.
 #define GRAPHENE_NULL_WITNESS (graphene::chain::witness_id_type(0))
+#define GRAPHENE_ASSET_GAS (graphene::chain::asset_id_type(1))
 ///@}
-
-//#define GRAPHENE_FBA_STEALTH_DESIGNATED_ASSET (asset_id_type(743))
+#define WITNESS_CANDIDATE_FREEZE   0//100000*std::pow(10,GRAPHENE_BLOCKCHAIN_PRECISION_DIGITS)
+#define COMMITTEE_CANDIDATE_FREEZE  0//100000*std::pow(10,GRAPHENE_BLOCKCHAIN_PRECISION_DIGITS)
+#define CANDIDATE_AWARD_BUDGET  0//100000*std::pow(10,GRAPHENE_BLOCKCHAIN_PRECISION_DIGITS)
+#define COMMITTEE_PERCENT_OF_CANDIDATE_AWARD               5500
+#define UNSUCCESSFUL_CANDIDATES_PERCENT                    1000
 
 #define CONTRACT_BASE_ENV "local baseENV={ cjson={decode=cjson.decode,encode=cjson.encode},date=os.date,import_contract=import_contract,get_account_contract_data=get_account_contract_data, \
                             assert=assert, next=next, pairs=pairs, pcall=pcall, print=print, select=select, tonumber=tonumber, tostring=tostring, type=type,format_vector_with_table=format_vector_with_table ,\

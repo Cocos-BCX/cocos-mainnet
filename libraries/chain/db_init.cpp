@@ -23,18 +23,14 @@
  */
 
 #include <graphene/chain/database.hpp>
-#include <graphene/chain/fba_accumulator_id.hpp>
 
 #include <graphene/chain/account_object.hpp>
 #include <graphene/chain/asset_object.hpp>
 #include <graphene/chain/balance_object.hpp>
 #include <graphene/chain/block_summary_object.hpp>
 #include <graphene/chain/budget_record_object.hpp>
-#include <graphene/chain/buyback_object.hpp>
 #include <graphene/chain/chain_property_object.hpp>
 #include <graphene/chain/committee_member_object.hpp>
-#include <graphene/chain/confidential_object.hpp>
-#include <graphene/chain/fba_object.hpp>
 #include <graphene/chain/global_property_object.hpp>
 #include <graphene/chain/market_object.hpp>
 #include <graphene/chain/operation_history_object.hpp>
@@ -42,7 +38,6 @@
 #include <graphene/chain/special_authority_object.hpp>
 #include <graphene/chain/transaction_object.hpp>
 #include <graphene/chain/vesting_balance_object.hpp>
-#include <graphene/chain/withdraw_permission_object.hpp>
 #include <graphene/chain/witness_object.hpp>
 #include <graphene/chain/witness_schedule_object.hpp>
 #include <graphene/chain/worker_object.hpp>
@@ -52,16 +47,12 @@
 
 #include <graphene/chain/account_evaluator.hpp>
 #include <graphene/chain/asset_evaluator.hpp>
-#include <graphene/chain/assert_evaluator.hpp>
 #include <graphene/chain/balance_evaluator.hpp>
 #include <graphene/chain/committee_member_evaluator.hpp>
-#include <graphene/chain/confidential_evaluator.hpp>
-#include <graphene/chain/custom_evaluator.hpp>
 #include <graphene/chain/market_evaluator.hpp>
 #include <graphene/chain/proposal_evaluator.hpp>
 #include <graphene/chain/transfer_evaluator.hpp>
 #include <graphene/chain/vesting_balance_evaluator.hpp>
-#include <graphene/chain/withdraw_permission_evaluator.hpp>
 #include <graphene/chain/witness_evaluator.hpp>
 #include <graphene/chain/worker_evaluator.hpp>
 
@@ -72,6 +63,7 @@
 #include <graphene/chain/nh_asset_evaluator.hpp>
 #include <graphene/chain/nh_asset_order_evaluator.hpp>
 #include <graphene/chain/world_view_evaluator.hpp>
+#include <graphene/chain/gas_evaluator.hpp>
 
 #include <graphene/chain/nh_asset_creator_object.hpp>
 #include <graphene/chain/world_view_object.hpp>
@@ -140,9 +132,6 @@ const uint8_t transaction_object::type_id;
 const uint8_t vesting_balance_object::space_id;
 const uint8_t vesting_balance_object::type_id;
 
-const uint8_t withdraw_permission_object::space_id;
-const uint8_t withdraw_permission_object::type_id;
-
 const uint8_t witness_object::space_id;
 const uint8_t witness_object::type_id;
 
@@ -174,8 +163,6 @@ void database::initialize_evaluators()
     register_evaluator<call_order_update_evaluator>();
     register_evaluator<bid_collateral_evaluator>();
     register_evaluator<transfer_evaluator>();
-    //register_evaluator<override_transfer_evaluator>();
-    register_evaluator<asset_fund_fee_pool_evaluator>();
     register_evaluator<asset_publish_feeds_evaluator>();
     register_evaluator<proposal_create_evaluator>();
     register_evaluator<proposal_update_evaluator>();
@@ -184,15 +171,8 @@ void database::initialize_evaluators()
     register_evaluator<vesting_balance_withdraw_evaluator>();
     register_evaluator<witness_create_evaluator>();
     register_evaluator<witness_update_evaluator>();
-    register_evaluator<withdraw_permission_create_evaluator>();
-    register_evaluator<withdraw_permission_claim_evaluator>();
-    register_evaluator<withdraw_permission_update_evaluator>();
-    register_evaluator<withdraw_permission_delete_evaluator>();
     register_evaluator<worker_create_evaluator>();
     register_evaluator<balance_claim_evaluator>();
-    register_evaluator<transfer_to_blind_evaluator>();
-    register_evaluator<transfer_from_blind_evaluator>();
-    register_evaluator<blind_transfer_evaluator>();
     register_evaluator<asset_claim_fees_evaluator>();
     register_evaluator<asset_update_restricted_evaluator>();
     register_evaluator<contract_create_evaluator>(); // 注册合约创建验证模块
@@ -204,7 +184,6 @@ void database::initialize_evaluators()
     register_evaluator<create_world_view_evaluator>();
     register_evaluator<relate_world_view_evaluator>();
     register_evaluator<create_nh_asset_evaluator>();
-    //register_evaluator<relate_nh_asset_evaluator>();
     register_evaluator<delete_nh_asset_evaluator>();
     register_evaluator<transfer_nh_asset_evaluator>();
     register_evaluator<create_nh_asset_order_evaluator>();
@@ -217,6 +196,7 @@ void database::initialize_evaluators()
     register_evaluator<crontab_create_evaluator>();
     register_evaluator<crontab_cancel_evaluator>();
     register_evaluator<crontab_recover_evaluator>();
+    register_evaluator<update_collateral_for_gas_evaluator>();
 }
 
 void database::initialize_indexes()
@@ -230,7 +210,6 @@ void database::initialize_indexes()
 
     auto acnt_index = add_index<primary_index<account_index>>();
     acnt_index->add_secondary_index<account_member_index>();
-    acnt_index->add_secondary_index<account_referrer_index>();
 
     add_index<primary_index<committee_member_index>>();
     add_index<primary_index<witness_index>>();
@@ -240,11 +219,9 @@ void database::initialize_indexes()
     auto prop_index = add_index<primary_index<proposal_index>>();
     prop_index->add_secondary_index<required_approval_index>();
 
-    add_index<primary_index<withdraw_permission_index>>();
     add_index<primary_index<vesting_balance_index>>();
     add_index<primary_index<worker_index>>();
     add_index<primary_index<balance_index>>();
-    add_index<primary_index<blinded_balance_index>>();
 #ifdef INCREASE_CONTRACT
     add_index<primary_index<contract_index>>();              // 合约对象数据表
     add_index<primary_index<account_contract_data_index>>(); // 用户合约数据表
@@ -258,6 +235,7 @@ void database::initialize_indexes()
     add_index<primary_index<crontab_index>>();
     add_index<primary_index<asset_restricted_index>>();
     add_index<primary_index<contract_bin_code_index>>();
+    add_index<primary_index<collateral_for_gas_index>>(); 
 #endif
     //Implementation object indexes
     add_index<primary_index<transaction_index>>();
@@ -272,10 +250,8 @@ void database::initialize_indexes()
     add_index<primary_index<simple_index<witness_schedule_object>>>();
     add_index<primary_index<simple_index<budget_record_object>>>();
     add_index<primary_index<special_authority_index>>();
-    add_index<primary_index<buyback_index>>();
     add_index<primary_index<collateral_bid_index>>();
-
-    add_index<primary_index<simple_index<fba_accumulator_object>>>();
+    add_index<primary_index<simple_index<unsuccessful_candidates_object>>>();
 }
 
 void database::init_genesis(const genesis_state_type &genesis_state)
@@ -317,35 +293,36 @@ void database::init_genesis(const genesis_state_type &genesis_state)
         const account_object &committee_account =
             create<account_object>([&](account_object &n) {
                 n.membership_expiration_date = time_point_sec::maximum();
-                n.network_fee_percentage = GRAPHENE_DEFAULT_NETWORK_PERCENT_OF_FEE;
-                n.lifetime_referrer_fee_percentage = GRAPHENE_100_PERCENT - GRAPHENE_DEFAULT_NETWORK_PERCENT_OF_FEE;
                 n.owner.weight_threshold = 1;
                 n.active.weight_threshold = 1;
                 n.name = "committee-account";
                 n.statistics = create<account_statistics_object>([&](account_statistics_object &s) { s.owner = n.id; }).id;
             });
         FC_ASSERT(committee_account.get_id() == GRAPHENE_COMMITTEE_ACCOUNT);
+        FC_ASSERT(create<account_object>([this](account_object& a) {
+                    a.name = "committee-relaxed";
+                    a.statistics = create<account_statistics_object>([&a](account_statistics_object& s){s.owner = a.id;}).id;
+                    a.owner.weight_threshold = 1;
+                    a.active.weight_threshold = 1;
+                    a.registrar = GRAPHENE_RELAXED_COMMITTEE_ACCOUNT;
+                    a.membership_expiration_date = time_point_sec::maximum();
+                }).get_id() == GRAPHENE_RELAXED_COMMITTEE_ACCOUNT);
         FC_ASSERT(create<account_object>([this](account_object &a) {
                       a.name = "witness-account";
                       a.statistics = create<account_statistics_object>([&](account_statistics_object &s) { s.owner = a.id; }).id;
                       a.owner.weight_threshold = 1;
                       a.active.weight_threshold = 1;
-                      a.registrar = a.lifetime_referrer = a.referrer = GRAPHENE_WITNESS_ACCOUNT;
+                      a.registrar = GRAPHENE_WITNESS_ACCOUNT;
                       a.membership_expiration_date = time_point_sec::maximum();
-                      a.network_fee_percentage = GRAPHENE_DEFAULT_NETWORK_PERCENT_OF_FEE;
-                      a.lifetime_referrer_fee_percentage = GRAPHENE_100_PERCENT - GRAPHENE_DEFAULT_NETWORK_PERCENT_OF_FEE;
-                  })
-                      .get_id() == GRAPHENE_WITNESS_ACCOUNT);
+                  }).get_id() == GRAPHENE_WITNESS_ACCOUNT);
         /*              
         FC_ASSERT(create<account_object>([this](account_object &a) {
                       a.name = "relaxed-committee-account";
                       a.statistics = create<account_statistics_object>([&](account_statistics_object &s) { s.owner = a.id; }).id;
                       a.owner.weight_threshold = 1;
                       a.active.weight_threshold = 1;
-                      a.registrar = a.lifetime_referrer = a.referrer = GRAPHENE_RELAXED_COMMITTEE_ACCOUNT;
+                      a.registrar  = GRAPHENE_RELAXED_COMMITTEE_ACCOUNT;
                       a.membership_expiration_date = time_point_sec::maximum();
-                      a.network_fee_percentage = GRAPHENE_DEFAULT_NETWORK_PERCENT_OF_FEE;
-                      a.lifetime_referrer_fee_percentage = GRAPHENE_100_PERCENT - GRAPHENE_DEFAULT_NETWORK_PERCENT_OF_FEE;
                   })
                       .get_id() == GRAPHENE_RELAXED_COMMITTEE_ACCOUNT);
         */
@@ -354,10 +331,8 @@ void database::init_genesis(const genesis_state_type &genesis_state)
                       a.statistics = create<account_statistics_object>([&](account_statistics_object &s) { s.owner = a.id; }).id;
                       a.owner.weight_threshold = 1;
                       a.active.weight_threshold = 1;
-                      a.registrar = a.lifetime_referrer = a.referrer = GRAPHENE_NULL_ACCOUNT;
+                      a.registrar  = GRAPHENE_NULL_ACCOUNT;
                       a.membership_expiration_date = time_point_sec::maximum();
-                      a.network_fee_percentage = 0;
-                      a.lifetime_referrer_fee_percentage = GRAPHENE_100_PERCENT;
                   })
                       .get_id() == GRAPHENE_NULL_ACCOUNT);
         FC_ASSERT(create<account_object>([this](account_object &a) {
@@ -365,92 +340,38 @@ void database::init_genesis(const genesis_state_type &genesis_state)
                       a.statistics = create<account_statistics_object>([&](account_statistics_object &s) { s.owner = a.id; }).id;
                       a.owner.weight_threshold = 0;
                       a.active.weight_threshold = 0;
-                      a.registrar = a.lifetime_referrer = a.referrer = GRAPHENE_TEMP_ACCOUNT;
+                      a.registrar  = GRAPHENE_TEMP_ACCOUNT;
                       a.membership_expiration_date = time_point_sec::maximum();
-                      a.network_fee_percentage = GRAPHENE_DEFAULT_NETWORK_PERCENT_OF_FEE;
-                      a.lifetime_referrer_fee_percentage = GRAPHENE_100_PERCENT - GRAPHENE_DEFAULT_NETWORK_PERCENT_OF_FEE;
                   })
                       .get_id() == GRAPHENE_TEMP_ACCOUNT);
-        /*              
-        FC_ASSERT(create<account_object>([this](account_object &a) {
-                      a.name = "proxy-to-self";
-                      a.statistics = create<account_statistics_object>([&](account_statistics_object &s) { s.owner = a.id; }).id;
-                      a.owner.weight_threshold = 1;
-                      a.active.weight_threshold = 1;
-                      a.registrar = a.lifetime_referrer = a.referrer = GRAPHENE_NULL_ACCOUNT;
-                      a.membership_expiration_date = time_point_sec::maximum();
-                      a.network_fee_percentage = 0;
-                      a.lifetime_referrer_fee_percentage = GRAPHENE_100_PERCENT;
-                  })
-                      .get_id() == GRAPHENE_PROXY_TO_SELF_ACCOUNT);
-        */
-        // Create more special accounts
-        while (true)
-        {
-            uint64_t id = get_index<account_object>().get_next_id().instance();
-            if (id >= genesis_state.immutable_parameters.num_special_accounts)
-                break;
-            const account_object &acct = create<account_object>([&](account_object &a) {
-                a.name = "special-account-" + std::to_string(id);
-                a.statistics = create<account_statistics_object>([&](account_statistics_object &s) { s.owner = a.id; }).id;
-                a.owner.weight_threshold = 1;
-                a.active.weight_threshold = 1;
-                a.registrar = a.lifetime_referrer = a.referrer = account_id_type(id);
-                a.membership_expiration_date = time_point_sec::maximum();
-                a.network_fee_percentage = GRAPHENE_DEFAULT_NETWORK_PERCENT_OF_FEE;
-                a.lifetime_referrer_fee_percentage = GRAPHENE_100_PERCENT - GRAPHENE_DEFAULT_NETWORK_PERCENT_OF_FEE;
-            });
-            FC_ASSERT(acct.get_id() == account_id_type(id));
-            remove(acct);
-        }
         // Create core asset
-        const asset_dynamic_data_object &dyn_asset =
-            create<asset_dynamic_data_object>([&](asset_dynamic_data_object &a) {
-                a.current_supply = GRAPHENE_MAX_SHARE_SUPPLY;
-            });
         const asset_object &core_asset =
             create<asset_object>([&](asset_object &a) {
                 a.symbol = GRAPHENE_SYMBOL;
                 a.options.max_supply = genesis_state.max_core_supply;
                 a.precision = GRAPHENE_BLOCKCHAIN_PRECISION_DIGITS;
-                a.options.flags = 0;
-                a.options.issuer_permissions = 0;
+                a.options.flags =0;
+                a.options.issuer_permissions = 2;
                 a.issuer = GRAPHENE_ACCOUNT;
-                a.options.core_exchange_rate.base.amount = 1;
-                a.options.core_exchange_rate.base.asset_id = asset_id_type(0);
-                a.options.core_exchange_rate.quote.amount = 1;
-                a.options.core_exchange_rate.quote.asset_id = asset_id_type(0);
-                a.dynamic_asset_data_id = dyn_asset.id;
+                // a.options.core_exchange_rate.base=asset(1);
+                //a.options.core_exchange_rate.quote=asset(1);
+                a.dynamic_asset_data_id = create<asset_dynamic_data_object>([&](asset_dynamic_data_object &ad){
+                                                                    ad.current_supply = GRAPHENE_MAX_SHARE_SUPPLY;}).id;
             });
-        assert(asset_id_type(core_asset.id) == asset().asset_id);
-        assert(get_balance(account_id_type(), asset_id_type()) == asset(dyn_asset.current_supply));
-        // Create more special assets
-        while (true)
-        {
-            uint64_t id = get_index<asset_object>().get_next_id().instance();
-            if (id >= genesis_state.immutable_parameters.num_special_assets)
-                break;
-            const asset_dynamic_data_object &dyn_asset =
-                create<asset_dynamic_data_object>([&](asset_dynamic_data_object &a) {
-                    a.current_supply = 0;
-                });
-            const asset_object &asset_obj = create<asset_object>([&](asset_object &a) {
-                a.symbol = "SPECIAL" + std::to_string(id);
-                a.options.max_supply = 0;
+        assert(core_asset.id == asset_id_type());
+        const asset_object &gas_asset =
+            create<asset_object>([&](asset_object &a) {
+                a.symbol = "GAS";
+                a.options.max_supply = genesis_state.max_core_supply;
                 a.precision = GRAPHENE_BLOCKCHAIN_PRECISION_DIGITS;
-                a.options.flags = 0;
-                a.options.issuer_permissions = 0;
-                a.issuer = GRAPHENE_NULL_ACCOUNT;
-                a.options.core_exchange_rate.base.amount = 1;
-                a.options.core_exchange_rate.base.asset_id = asset_id_type(0);
-                a.options.core_exchange_rate.quote.amount = 1;
-                a.options.core_exchange_rate.quote.asset_id = asset_id_type(0);
-                a.dynamic_asset_data_id = dyn_asset.id;
+                a.options.flags = 0x8a;
+                a.options.issuer_permissions = 0x8a;
+                a.issuer = account_id_type(15);
+                a.options.core_exchange_rate=price(asset(1),asset(1,GRAPHENE_ASSET_GAS));
+                a.dynamic_asset_data_id =  create<asset_dynamic_data_object>([&](asset_dynamic_data_object &ad){
+                                                                    ad.current_supply = 0;}).id;
             });
-            FC_ASSERT(asset_obj.get_id() == asset_id_type(id));
-            remove(asset_obj);
-        }
-
+        assert(gas_asset.id == GRAPHENE_ASSET_GAS);
         chain_id_type chain_id = genesis_state.compute_chain_id();
 
         // Create global properties
@@ -467,10 +388,14 @@ void database::init_genesis(const genesis_state_type &genesis_state)
             p.witness_budget = 0;
             p.recent_slots_filled = fc::uint128::max_value();
         });
-
+        create<unsuccessful_candidates_object>([&](unsuccessful_candidates_object& unsuccessful_candidates){});
         FC_ASSERT((genesis_state.immutable_parameters.min_witness_count & 1) == 1, "min_witness_count must be odd");
         FC_ASSERT((genesis_state.immutable_parameters.min_committee_member_count & 1) == 1, "min_committee_member_count must be odd");
-
+        FC_ASSERT(genesis_state.initial_parameters.witness_number_of_election>=genesis_state.immutable_parameters.min_witness_count&&
+                  genesis_state.initial_witness_candidates.size()>=genesis_state.initial_parameters.witness_number_of_election);
+        FC_ASSERT(genesis_state.initial_parameters.committee_number_of_election>=genesis_state.immutable_parameters.min_committee_member_count&&
+                  genesis_state.initial_committee_candidates.size()>=genesis_state.initial_parameters.committee_number_of_election  );
+        
         create<chain_property_object>([&](chain_property_object &p) {
             p.chain_id = chain_id;
             p.base_contract=genesis_state.initial_contract_base;
@@ -520,17 +445,12 @@ void database::init_genesis(const genesis_state_type &genesis_state)
 
         // Helper function to get asset ID by symbol
         const auto &assets_by_symbol = get_index_type<asset_index>().indices().get<by_symbol>();
-        const auto get_asset_id = [&assets_by_symbol](const string &symbol) {
+        const auto get_asset = [&assets_by_symbol](const string &symbol) {
             auto itr = assets_by_symbol.find(symbol);
-
-            // TODO: This is temporary for handling BTS snapshot
-            if (symbol == GRAPHENE_ADDRESS_PREFIX)
-                itr = assets_by_symbol.find(GRAPHENE_SYMBOL);
-
             FC_ASSERT(itr != assets_by_symbol.end(),
                       "Unable to find asset '${sym}'. Did you forget to add a record for it to initial_assets?",
                       ("sym", symbol));
-            return itr->get_id();
+            return *itr;
         };
 
         map<asset_id_type, share_type> total_supplies;
@@ -582,7 +502,7 @@ void database::init_genesis(const genesis_state_type &genesis_state)
                                    }).id;
             }
 
-            dynamic_data_id = create<asset_dynamic_data_object>([&](asset_dynamic_data_object &d) {
+           dynamic_data_id = create<asset_dynamic_data_object>([&](asset_dynamic_data_object &d) {
                                   d.accumulated_fees = asset.accumulated_fees;
                               }).id;
 
@@ -596,7 +516,7 @@ void database::init_genesis(const genesis_state_type &genesis_state)
                 a.issuer = get_account_id(issuer_name);
                 a.options.max_supply = asset.max_supply;
                 a.options.flags = witness_fed_asset;
-                a.options.issuer_permissions = charge_market_fee | override_authority | white_list | transfer_restricted | disable_confidential |
+                a.options.issuer_permissions = charge_market_fee | override_authority | white_list | transfer_restricted |
                                                (asset.is_bitasset ? disable_force_settle | global_settle | witness_fed_asset | committee_fed_asset : 0);
                 a.dynamic_asset_data_id = dynamic_data_id;
                 a.bitasset_data_id = bitasset_data_id;
@@ -605,12 +525,26 @@ void database::init_genesis(const genesis_state_type &genesis_state)
 
         // Create initial balances
         share_type total_allocation;
-        for (const auto &handout : genesis_state.initial_balances)
+        for (const auto &handout : genesis_state.initial_address_balances)
         {
-            const auto asset_id = get_asset_id(handout.asset_symbol);
-            create<balance_object>([&handout, &get_asset_id, total_allocation, asset_id](balance_object &b) {
+            const auto asset_id = get_asset(handout.asset_symbol).get_id();
+            create<balance_object>([&handout,asset_id](balance_object &b) {
                 b.balance = asset(handout.amount, asset_id);
                 b.owner = handout.owner;
+            });
+
+            total_supplies[asset_id] += handout.amount;
+        }
+        for (const auto &handout : genesis_state.initial_account_balances)
+        {
+            const auto asset = get_asset(handout.asset_symbol);
+            FC_ASSERT(!asset.bitasset_data_id.valid(),"this asset is bitasset,asset:${asset}",("asset",handout.asset_symbol));
+            const auto asset_id=asset.get_id();
+            auto account =get_account_id(handout.owner_name);
+            create<account_balance_object>([&handout,account, asset_id](account_balance_object &b) {
+                b.balance = handout.amount;
+                b.owner = account;
+                b.asset_type=asset_id;
             });
 
             total_supplies[asset_id] += handout.amount;
@@ -619,7 +553,7 @@ void database::init_genesis(const genesis_state_type &genesis_state)
         // Create initial vesting balances
         for (const genesis_state_type::initial_vesting_balance_type &vest : genesis_state.initial_vesting_balances)
         {
-            const auto asset_id = get_asset_id(vest.asset_symbol);
+            const auto asset_id = get_asset(vest.asset_symbol).get_id();
             create<balance_object>([&](balance_object &b) {
                 b.owner = vest.owner;
                 b.balance = asset(vest.amount, asset_id);
@@ -705,18 +639,6 @@ void database::init_genesis(const genesis_state_type &genesis_state)
                           apply_operation(genesis_eval_state, op);
                       });
 
-        // Create initial workers
-        std::for_each(genesis_state.initial_worker_candidates.begin(), genesis_state.initial_worker_candidates.end(),
-                      [&](const genesis_state_type::initial_worker_type &worker) {
-                          worker_create_operation op;
-                          op.owner = get_account_id(worker.owner_name);
-                          op.work_begin_date = genesis_state.initial_timestamp;
-                          op.work_end_date = time_point_sec::maximum();
-                          op.daily_pay = worker.daily_pay;
-                          op.name = "Genesis-Worker-" + worker.owner_name;
-                          op.initializer = vesting_balance_worker_initializer{uint16_t(0)};
-                          apply_operation(genesis_eval_state, std::move(op));
-                      });
         // Create initial contract
         //uint32_t record_count = 0;//take off restriction ?
         auto create_contract_base = [&](const string &baseENV) {
@@ -740,6 +662,7 @@ void database::init_genesis(const genesis_state_type &genesis_state)
         // Enable fees
         modify(get_global_properties(), [&genesis_state](global_property_object &p) {
             p.parameters.current_fees = genesis_state.initial_parameters.current_fees;
+            p.parameters.current_fees->full();
         });
 
         // Create witness scheduler
@@ -747,33 +670,6 @@ void database::init_genesis(const genesis_state_type &genesis_state)
             for (const witness_id_type &wid : get_global_properties().active_witnesses)
                 wso.current_shuffled_witnesses.push_back(wid);
         });
-
-        // Create FBA counters
-        create<fba_accumulator_object>([&](fba_accumulator_object &acc) {
-            FC_ASSERT(acc.id == fba_accumulator_id_type(fba_accumulator_id_transfer_to_blind));
-            acc.accumulated_fba_fees = 0;
-#ifdef GRAPHENE_FBA_STEALTH_DESIGNATED_ASSET
-            acc.designated_asset = GRAPHENE_FBA_STEALTH_DESIGNATED_ASSET;
-#endif
-        });
-
-        create<fba_accumulator_object>([&](fba_accumulator_object &acc) {
-            FC_ASSERT(acc.id == fba_accumulator_id_type(fba_accumulator_id_blind_transfer));
-            acc.accumulated_fba_fees = 0;
-#ifdef GRAPHENE_FBA_STEALTH_DESIGNATED_ASSET
-            acc.designated_asset = GRAPHENE_FBA_STEALTH_DESIGNATED_ASSET;
-#endif
-        });
-
-        create<fba_accumulator_object>([&](fba_accumulator_object &acc) {
-            FC_ASSERT(acc.id == fba_accumulator_id_type(fba_accumulator_id_transfer_from_blind));
-            acc.accumulated_fba_fees = 0;
-#ifdef GRAPHENE_FBA_STEALTH_DESIGNATED_ASSET
-            acc.designated_asset = GRAPHENE_FBA_STEALTH_DESIGNATED_ASSET;
-#endif
-        });
-
-        FC_ASSERT(get_index<fba_accumulator_object>().get_next_id() == fba_accumulator_id_type(fba_accumulator_id_count));
 
         debug_dump();
 

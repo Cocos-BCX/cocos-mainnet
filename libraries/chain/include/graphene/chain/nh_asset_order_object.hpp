@@ -51,6 +51,10 @@ class nh_asset_order_object : public graphene::db::abstract_object<nh_asset_orde
          return a.amount < b.amount;
          else return a.asset_id<b.asset_id;
       }
+      friend bool operator > ( const overwrite_asset& a, const overwrite_asset& b )
+      {
+         return !(a<b);
+      }
   };
   static const uint8_t space_id = nh_asset_protocol_ids;
 	static const uint8_t type_id = nh_asset_order_object_type;
@@ -113,7 +117,7 @@ typedef multi_index_container<
                                          std::less<std::string>,
                                          std::less<string>,
                                          std::less<nh_hash_type>,
-                                         std::less<asset>>>,
+                                         std::less<nh_asset_order_object::overwrite_asset>>>,
         ordered_non_unique<tag<by_view_qualifier_describe_and_price_descending>,
                            composite_key<nh_asset_order_object,
                                          member<nh_asset_order_object, string, &nh_asset_order_object::world_view>,
@@ -124,7 +128,7 @@ typedef multi_index_container<
                                          std::less<std::string>,
                                          std::less<string>,
                                          std::less<nh_hash_type>,
-                                         std::greater<asset>>>,
+                                         std::greater<nh_asset_order_object::overwrite_asset>>>,
         ordered_non_unique<tag<by_order_expiration>,
                            composite_key<nh_asset_order_object,
                                          member<nh_asset_order_object, time_point_sec, &nh_asset_order_object::expiration>>>>>

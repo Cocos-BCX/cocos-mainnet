@@ -4,7 +4,7 @@
  *
  * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
  *
- * 1. Any modified source or binaries are used only with the BitShares network.
+ * 1. Any modified source or binaries are used only with the COCOS_BCX network.
  *
  * 2. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
  *
@@ -21,7 +21,6 @@
 #include <graphene/chain/protocol/protocol.hpp>
 #include <graphene/chain/protocol/fee_schedule.hpp>
 #include <graphene/chain/vesting_balance_object.hpp>
-#include <graphene/chain/withdraw_permission_object.hpp>
 #include <graphene/chain/proposal_object.hpp>
 #include <graphene/chain/witness_object.hpp>
 #include <graphene/chain/market_evaluator.hpp>

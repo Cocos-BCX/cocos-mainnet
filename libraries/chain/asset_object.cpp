@@ -72,7 +72,7 @@ void graphene::chain::asset_bitasset_data_object::update_median_feeds(time_point
    }
 
    // *** Begin Median Calculations ***
-   price_feed median_feed;// 多喂价源整合： 将 (settlement_price)(maintenance_collateral_ratio)(maximum_short_squeeze_ratio)(core_exchange_rate) \
+   price_feed median_feed;// 多喂价源整合： 将 (settlement_price)(maintenance_collateral_ratio)(maximum_short_squeeze_ratio) \
    等喂价内容分别排序，当前喂价将取排序后的中间值
    const auto median_itr = current_feeds.begin() + current_feeds.size() / 2;
 #define CALCULATE_MEDIAN_VALUE(r, data, field_name) \

@@ -156,17 +156,6 @@ bool is_cheap_name( const string& n )
 
 void account_options::validate() const
 {
-   auto needed_witnesses = num_witness;
-   auto needed_committee = num_committee;
-
-   for( vote_id_type id : votes )
-      if( id.type() == vote_id_type::witness && needed_witnesses )
-         --needed_witnesses;
-      else if ( id.type() == vote_id_type::committee && needed_committee )
-         --needed_committee;
-
-   FC_ASSERT( needed_witnesses == 0 && needed_committee == 0,
-              "May not specify fewer witnesses or committee members than the number voted for.");
 }
 
 share_type account_create_operation::calculate_fee( const fee_parameters_type& k )const
@@ -186,9 +175,7 @@ share_type account_create_operation::calculate_fee( const fee_parameters_type& k
 
 void account_create_operation::validate()const
 {
-   FC_ASSERT( fee.amount >= share_type(0) );
    FC_ASSERT( is_valid_name( name ) );
-   FC_ASSERT( referrer_percent <= GRAPHENE_100_PERCENT );
    FC_ASSERT( owner.num_auths() != 0 );
    FC_ASSERT( owner.address_auths.size() == 0 );
    FC_ASSERT( active.num_auths() != 0 );
@@ -200,23 +187,7 @@ void account_create_operation::validate()const
       validate_special_authority( *extensions.value.owner_special_authority );
    if( extensions.value.active_special_authority.valid() )
       validate_special_authority( *extensions.value.active_special_authority );
-   if( extensions.value.buyback_options.valid() )
-   {
-      FC_ASSERT( !(extensions.value.owner_special_authority.valid()) );
-      FC_ASSERT( !(extensions.value.active_special_authority.valid()) );
-      FC_ASSERT( owner == authority::null_authority() );
-      FC_ASSERT( active == authority::null_authority() );
-      size_t n_markets = extensions.value.buyback_options->markets.size();
-      FC_ASSERT( n_markets > 0 );
-      for( const asset_id_type m : extensions.value.buyback_options->markets )
-      {
-         FC_ASSERT( m != extensions.value.buyback_options->asset_to_buy );
-      }
-   }
 }
-
-
-
 
 share_type account_update_operation::calculate_fee( const fee_parameters_type& k )const
 {
@@ -229,7 +200,6 @@ share_type account_update_operation::calculate_fee( const fee_parameters_type& k
 void account_update_operation::validate()const
 {
    FC_ASSERT( account != GRAPHENE_TEMP_ACCOUNT );
-   FC_ASSERT( fee.amount >= share_type(0) );
    FC_ASSERT( account != account_id_type() );
 
    bool has_action = (
@@ -273,12 +243,10 @@ share_type account_upgrade_operation::calculate_fee(const fee_parameters_type& k
 
 void account_upgrade_operation::validate() const
 {
-   FC_ASSERT( fee.amount >= share_type(0) );
 }
 
 void account_transfer_operation::validate()const
 {
-   FC_ASSERT( fee.amount >= share_type(0) );
 }
 
 

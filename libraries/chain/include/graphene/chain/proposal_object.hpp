@@ -25,7 +25,7 @@
 
 #include <graphene/chain/protocol/transaction.hpp>
 #include <graphene/chain/transaction_evaluation_state.hpp>
-
+#include <boost/multi_index/composite_key.hpp>
 #include <graphene/db/generic_index.hpp>
 
 namespace graphene { namespace chain {
@@ -51,7 +51,7 @@ class proposal_object : public abstract_object<proposal_object>
       flat_set<account_id_type>     available_owner_approvals;
       flat_set<public_key_type>     available_key_approvals;
       tx_hash_type                  trx_hash;
-      bool                          permitted_clean=false;
+      bool                          allow_execution=false;
 
       bool is_authorized_to_execute(database& db)const;
 };
@@ -88,7 +88,7 @@ typedef boost::multi_index_container<
       ordered_unique< tag< by_id >, member< object, object_id_type, &object::id > >,
       ordered_non_unique< tag< by_expiration_and_isruning >,
                         composite_key<proposal_object,
-                        member< proposal_object, bool, &proposal_object::permitted_clean >,
+                        member< proposal_object, bool, &proposal_object::allow_execution >,
                         member< proposal_object, time_point_sec, &proposal_object::expiration_time > 
                         >
              >
@@ -101,4 +101,4 @@ typedef generic_index<proposal_object, proposal_multi_index_container> proposal_
 FC_REFLECT_DERIVED( graphene::chain::proposal_object, (graphene::chain::object),
                     (expiration_time)(review_period_time)(proposed_transaction)(required_active_approvals)
                     (available_active_approvals)(required_owner_approvals)(available_owner_approvals)
-                    (available_key_approvals)(trx_hash)(permitted_clean) )
+                    (available_key_approvals)(trx_hash)(allow_execution) )

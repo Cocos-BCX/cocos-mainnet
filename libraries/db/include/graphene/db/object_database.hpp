@@ -168,7 +168,7 @@ namespace graphene { namespace db {
          index& get_mutable_index()                   { return get_mutable_index(T::space_id,T::type_id); }
          index& get_mutable_index(object_id_type id)  { return get_mutable_index(id.space(),id.type());   }
          index& get_mutable_index(uint8_t space_id, uint8_t type_id);
-
+         fc::path                                                  _data_dir;
      private:
 
          friend class base_primary_index;
@@ -177,7 +177,7 @@ namespace graphene { namespace db {
          void save_undo_add( const object& obj );
          void save_undo_remove( const object& obj );
 
-         fc::path                                                  _data_dir;
+         
          vector< vector< unique_ptr<index> > >                     _index;
    };
 

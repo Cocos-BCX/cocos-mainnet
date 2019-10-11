@@ -45,13 +45,9 @@ namespace graphene { namespace chain {
          object_id_result do_apply( const limit_order_create_operation& o );
 
          asset calculate_market_fee( const asset_object* aobj, const asset& trade_amount );
-
-         /** override the default behavior defined by generic_evalautor which is to
-          * post the fee to fee_paying_account_stats.pending_fees
-          */
          virtual void pay_fee() override;
+         bool filled=false;
 
-         share_type                          _deferred_fee  = 0;
          const limit_order_create_operation* _op            = nullptr;
          const account_object*               _seller        = nullptr;
          const asset_object*                 _sell_asset    = nullptr;
@@ -76,7 +72,7 @@ namespace graphene { namespace chain {
 
          void_result do_evaluate( const call_order_update_operation& o );
          void_result do_apply( const call_order_update_operation& o );
-
+         
          bool _closing_order = false;
          const asset_object* _debt_asset = nullptr;
          const account_object* _paying_account = nullptr;
@@ -90,7 +86,7 @@ namespace graphene { namespace chain {
          typedef bid_collateral_operation operation_type;
 
          void_result do_evaluate( const bid_collateral_operation& o );
-         void_result do_apply( const bid_collateral_operation& o );
+         object_id_result do_apply( const bid_collateral_operation& o );
 
          const asset_object* _debt_asset = nullptr;
          const asset_bitasset_data_object* _bitasset_data = nullptr;

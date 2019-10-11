@@ -31,7 +31,6 @@
 #include <graphene/chain/market_object.hpp>
 #include <graphene/chain/proposal_object.hpp>
 #include <graphene/chain/transaction_object.hpp>
-#include <graphene/chain/withdraw_permission_object.hpp>
 #include <graphene/chain/witness_object.hpp>
 
 #include <graphene/chain/protocol/fee_schedule.hpp>
@@ -55,23 +54,18 @@ void database::update_global_dynamic_data(const signed_block &b)
   uint32_t missed_blocks = get_slot_at_time(b.timestamp);
   assert(missed_blocks != 0);
   missed_blocks--;
+/*
   for (uint32_t i = 0; i < missed_blocks; ++i)
   {
     const auto &witness_missed = get_scheduled_witness(i + 1)(*this);
     if (witness_missed.id != b.witness)
     {
-      /*
-         const auto& witness_account = witness_missed.witness_account(*this);
-         if( (fc::time_point::now() - b.timestamp) < fc::seconds(30) )
-            wlog( "Witness ${name} missed block ${n} around ${t}", ("name",witness_account.name)("n",b.block_num())("t",b.timestamp) );
-            */
-
       modify(witness_missed, [&](witness_object &w) {
         w.total_missed++;
       });
     }
   }
-
+*/
   // dynamic global properties updating
   modify(_dgp, [&](dynamic_global_property_object &dgp) {
     if (BOOST_UNLIKELY(b.block_num() == 1))
@@ -192,7 +186,6 @@ void database::clear_expired_nh_asset_orders() //nico 清理过期的非同质�
             canceler.fee_paying_account = order.seller;
             canceler.order = order.id;
             canceler.fee = current_fee_schedule().calculate_fee( canceler );
-            cancel_context.skip_fee_schedule_check = true;
             apply_operation(cancel_context, canceler);
             */
       auto &order_obj = *order_index.begin();
@@ -225,7 +218,7 @@ void database::clear_expired_active() //nico add :: 删除过期权限 (新增�
 
 void database::clear_expired_proposals()
 {
-  const auto &proposal_expiration_index = get_index_type<proposal_index>().indices().get<by_expiration_and_isruning>().equal_range(boost::make_tuple(true));
+  const auto &proposal_expiration_index = get_index_type<proposal_index>().indices().get<by_expiration_and_isruning>().equal_range(boost::make_tuple(false));
   auto rang=boost::make_iterator_range(proposal_expiration_index.first,proposal_expiration_index.second);
   for (auto itr = rang.begin(); itr != rang.end() && itr->expiration_time <= head_block_time();)
   {
@@ -320,18 +313,10 @@ void database::clear_expired_orders()
                                 const limit_order_object &order = *limit_index.begin();
                                 canceler.fee_paying_account = order.seller;
                                 canceler.order = order.id;
-                                canceler.fee = current_fee_schedule().calculate_fee(canceler);
-                                if (canceler.fee.amount > order.deferred_fee)
-                                {
-                                  // Cap auto-cancel fees at deferred_fee; see #549
-                                  //wlog( "At block ${b}, fee for clearing expired order ${oid} was capped at deferred_fee ${fee}", ("b", head_block_num())("oid", order.id)("fee", order.deferred_fee) );
-                                  canceler.fee = asset(order.deferred_fee, asset_id_type());
-                                }
                                 // we know the fee for this op is set correctly since it is set by the chain.
                                 // this allows us to avoid a hung chain:
                                 // - if #549 case above triggers
                                 // - if the fee is incorrect, which may happen due to #435 (although since cancel is a fixed-fee op, it shouldn't)
-                                cancel_context.skip_fee_schedule_check = true;
                                 apply_operation(cancel_context, canceler);
                               }
                             });
@@ -491,7 +476,6 @@ void database::clear_expired_timed_task()
     // ZF read: clear expired timed task
     while (!task_index_expiration.empty() && task_index_expiration.begin()->expiration_time <= head_block_time())
     {
-      auto &task_obj = *task_index_expiration.begin();
       remove(*task_index_expiration.begin());
     }
   }
@@ -520,11 +504,6 @@ void database::update_expired_feeds()
       });
       check_call_orders(b.current_feed.settlement_price.base.asset_id(*this));
     }
-    if (!b.current_feed.core_exchange_rate.is_null() &&
-        a.options.core_exchange_rate != b.current_feed.core_exchange_rate)
-      modify(a, [&b](asset_object &a) {
-        a.options.core_exchange_rate = b.current_feed.core_exchange_rate;
-      });
   }
 }
 
@@ -536,15 +515,6 @@ void database::update_maintenance_flag(bool new_maintenance_flag)
         (dpo.dynamic_flags & ~maintenance_flag) | (new_maintenance_flag ? maintenance_flag : 0);
   });
   return;
-}
-
-void database::update_withdraw_permissions()
-{
-  auto &permit_index = get_index_type<withdraw_permission_index>().indices().get<by_expiration>();
-  while (!permit_index.empty() && permit_index.begin()->expiration <= head_block_time())
-  {
-    remove(*permit_index.begin());
-  }
 }
 
 } // namespace chain

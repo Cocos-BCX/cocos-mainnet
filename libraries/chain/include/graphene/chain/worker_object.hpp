@@ -56,7 +56,7 @@ namespace graphene { namespace chain {
  *
  * This worker type pays everything he receives back to the network's reserve funds pool.
  */
-struct refund_worker_type
+struct destroy_worker_type
 {
    /// Record of how much this worker has burned in his lifetime
    share_type total_burned;
@@ -89,13 +89,24 @@ struct burn_worker_type
 
    void pay_worker(share_type pay, database&);
 };
+
+struct issuance_worker_type
+{
+   /// Record of how much this worker has burned in his lifetime
+   share_type total_issuance=0;
+   void pay_worker(share_type pay, database&db);
+};
+
+
+
 ///@}
 
 // The ordering of types in these two static variants MUST be the same.
 typedef static_variant<
-   refund_worker_type,
+   destroy_worker_type,
    vesting_balance_worker_type,
-   burn_worker_type
+   burn_worker_type,
+   issuance_worker_type
 > worker_type;
 
 
@@ -109,7 +120,7 @@ class worker_object : public abstract_object<worker_object>
       static const uint8_t type_id =  worker_object_type;
 
       /// ID of the account which owns this worker
-      account_id_type worker_account;
+      fc::optional<account_id_type> beneficiary;
       /// Time at which this worker begins receiving pay, if elected
       time_point_sec work_begin_date;
       /// Time at which this worker will cease to receive pay. Worker will be deleted at this time
@@ -121,35 +132,36 @@ class worker_object : public abstract_object<worker_object>
       /// Human-readable name for the worker
       string name;
       /// URL to a web page representing this worker
-      string url;
+      string describe;
 
-      /// Voting ID which represents approval of this worker
-      vote_id_type vote_for;
-      /// Voting ID which represents disapproval of this worker
-      vote_id_type vote_against;
+      bool completed=false;
 
-      uint64_t total_votes_for = 0;
-      //uint64_t total_votes_against = 0;
+      bool issuance_or_destroy()const
+      {
+         return worker.which()==worker_type::tag<issuance_worker_type>::value||worker.which()==worker_type::tag<destroy_worker_type>::value;
+      }//nico log::是否是增发工作
 
       bool is_active(fc::time_point_sec now)const {
          return now >= work_begin_date && now <= work_end_date;
       }
-
-      share_type approving_stake()const {
-         return int64_t( total_votes_for ) /* - int64_t( total_votes_against ) */;
-      }
 };
 
 struct by_account;
+struct by_completed{};
 struct by_vote_for;
 struct by_vote_against;
 typedef multi_index_container<
    worker_object,
    indexed_by<
       ordered_unique< tag<by_id>, member< object, object_id_type, &object::id > >,
-      ordered_non_unique< tag<by_account>, member< worker_object, account_id_type, &worker_object::worker_account > >,
-      ordered_unique< tag<by_vote_for>, member< worker_object, vote_id_type, &worker_object::vote_for > >,
-      ordered_unique< tag<by_vote_against>, member< worker_object, vote_id_type, &worker_object::vote_against > >
+      /*
+      ordered_non_unique< tag<by_end_date_and_issuance>,
+                        composite_key<worker_object,
+                           const_mem_fun< worker_object, bool, &worker_object::issuance>,
+                           member<worker_object, time_point_sec, &worker_object::work_end_date >>
+                        >
+      */
+     ordered_non_unique<tag<by_completed>,member< worker_object, bool, &worker_object::completed>>
    >
 > worker_object_multi_index_type;
 
@@ -157,20 +169,18 @@ using worker_index = generic_index<worker_object, worker_object_multi_index_type
 
 } } // graphene::chain
 
-FC_REFLECT( graphene::chain::refund_worker_type, (total_burned) )
+FC_REFLECT( graphene::chain::destroy_worker_type, (total_burned) )
 FC_REFLECT( graphene::chain::vesting_balance_worker_type, (balance) )
 FC_REFLECT( graphene::chain::burn_worker_type, (total_burned) )
+FC_REFLECT( graphene::chain::issuance_worker_type, (total_issuance) )
 FC_REFLECT_TYPENAME( graphene::chain::worker_type )
 FC_REFLECT_DERIVED( graphene::chain::worker_object, (graphene::db::object),
-                    (worker_account)
+                    (name)
+                    (describe)
+                    (beneficiary)
                     (work_begin_date)
                     (work_end_date)
                     (daily_pay)
                     (worker)
-                    (vote_for)
-                    (vote_against)
-                    (total_votes_for)
-                    /* (total_votes_against) */
-                    (name)
-                    (url)
+                    (completed)
                   )

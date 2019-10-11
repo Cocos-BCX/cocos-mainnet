@@ -33,13 +33,12 @@
 namespace graphene { namespace chain {
 
 void_result worker_create_evaluator::do_evaluate(const worker_create_evaluator::operation_type& o)
-{ try {
-   database& d = db();
-
-   FC_ASSERT(d.get(o.owner).is_lifetime_member());
-   FC_ASSERT(o.work_begin_date >= d.head_block_time());
-
-   return void_result();
+{ 
+   try 
+   {
+      database& d = db();
+      FC_ASSERT(o.work_begin_date >= d.head_block_time());
+      return void_result();
 } FC_CAPTURE_AND_RETHROW( (o) ) }
 
 
@@ -55,8 +54,10 @@ struct worker_init_visitor
    result_type operator()( const vesting_balance_worker_initializer& i )const
    {
       vesting_balance_worker_type w;
-       w.balance = db.create<vesting_balance_object>([&](vesting_balance_object& b) {
-         b.owner = worker.worker_account;
+       w.balance = db.create<vesting_balance_object>([&](vesting_balance_object& b) 
+       {
+         FC_ASSERT(worker.beneficiary.valid());
+         b.owner = *worker.beneficiary;
          b.balance = asset(0);
 
          cdd_vesting_policy policy;
@@ -64,6 +65,7 @@ struct worker_init_visitor
          policy.coin_seconds_earned = 0;
          policy.coin_seconds_earned_last_update = db.head_block_time();
          b.policy = policy;
+         b.describe=i.describe;
       }).id;
       worker.worker = w;
    }
@@ -82,33 +84,30 @@ struct worker_init_visitor
 object_id_result worker_create_evaluator::do_apply(const worker_create_evaluator::operation_type& o)
 { try {
    database& d = db();
-   vote_id_type for_id, against_id;
-   d.modify(d.get_global_properties(), [&for_id, &against_id](global_property_object& p) {
-      for_id = get_next_vote_id(p, vote_id_type::worker);
-      against_id = get_next_vote_id(p, vote_id_type::worker);
-   });
+   
 
    return d.create<worker_object>([&](worker_object& w) {
-      w.worker_account = o.owner;
+      w.beneficiary = o.beneficiary;
       w.daily_pay = o.daily_pay;
       w.work_begin_date = o.work_begin_date;
       w.work_end_date = o.work_end_date;
       w.name = o.name;
-      w.url = o.url;
-      w.vote_for = for_id;
-      w.vote_against = against_id;
+      w.describe = o.describe;
 
       w.worker.set_which(o.initializer.which());
       o.initializer.visit( worker_init_visitor( w, d ) );
    }).id;
 } FC_CAPTURE_AND_RETHROW( (o) ) }
 
-void refund_worker_type::pay_worker(share_type pay, database& db)
+void destroy_worker_type::pay_worker(share_type pay, database& db)
 {
    total_burned += pay;
-   db.modify(db.get(asset_id_type()).dynamic_data(db), [pay](asset_dynamic_data_object& d) {
-      d.current_supply -= pay;
-   });
+   db.modify(asset_id_type()(db),[&](asset_object&asset_ob)
+      {
+         FC_ASSERT(asset_ob.reserved(db) >= pay);
+         asset_ob.options.max_supply-=pay;
+         asset_ob.options.max_market_fee=asset_ob.options.max_market_fee<=asset_ob.options.max_supply?asset_ob.options.max_market_fee:asset_ob.options.max_supply;
+      });
 }
 
 void vesting_balance_worker_type::pay_worker(share_type pay, database& db)
@@ -124,5 +123,15 @@ void burn_worker_type::pay_worker(share_type pay, database& db)
    total_burned += pay;
    db.adjust_balance( GRAPHENE_NULL_ACCOUNT, pay );
 }
+
+void issuance_worker_type::pay_worker(share_type pay, database&db)
+   {
+      total_issuance+=pay;
+      db.modify(asset_id_type()(db),[&](asset_object&asset_ob)
+      {
+         asset_ob.options.max_supply+=pay;
+      });
+   }
+
 
 } } // graphene::chain

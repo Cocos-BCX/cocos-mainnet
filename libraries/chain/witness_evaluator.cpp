@@ -27,6 +27,8 @@
 #include <graphene/chain/account_object.hpp>
 #include <graphene/chain/database.hpp>
 #include <graphene/chain/protocol/vote.hpp>
+#include <graphene/chain/global_property_object.hpp>
+#include <graphene/chain/chain_property_object.hpp>
 
 namespace graphene
 {
@@ -37,7 +39,9 @@ void_result witness_create_evaluator::do_evaluate(const witness_create_operation
 {
       try
       {
-            FC_ASSERT(db().get(op.witness_account).is_lifetime_member());
+            auto &_db = db();
+            FC_ASSERT(_db.get(op.witness_account).is_lifetime_member());
+            FC_ASSERT(_db.get_balance(op.witness_account, asset_id_type()).amount.value >= _db.get_global_properties().parameters.witness_candidate_freeze);
             return void_result();
       }
       FC_CAPTURE_AND_RETHROW((op))
@@ -48,18 +52,36 @@ object_id_result witness_create_evaluator::do_apply(const witness_create_operati
       try
       {
             vote_id_type vote_id;
-            auto &_db=db();
+            auto &_db = db();
+            auto candidate_freeze = _db.get_global_properties().parameters.witness_candidate_freeze;
             _db.modify(_db.get_global_properties(), [&vote_id](global_property_object &p) {
                   vote_id = get_next_vote_id(p, vote_id_type::witness);
             });
 
-            const auto &new_witness_object =_db.create<witness_object>([&](witness_object &obj) {
+            const auto &new_witness_object = _db.create<witness_object>([&](witness_object &obj) {
                   obj.witness_account = op.witness_account;
                   obj.signing_key = op.block_signing_key;
                   obj.vote_id = vote_id;
                   obj.url = op.url;
+                  obj.work_status = true;
+                  obj.next_maintenance_time = _db.get_dynamic_global_properties().next_maintenance_time;
+                  obj.total_votes+=candidate_freeze.value;
             });
-            _db.modify(new_witness_object.witness_account(_db),[new_witness_object](account_object& witness){witness.witness_id=new_witness_object.id;});
+            
+            _db.modify(new_witness_object.witness_account(_db), [&](account_object &witness) {
+                  witness.witness_status = std::make_pair(new_witness_object.id, true);
+                  if (!witness.asset_locked.candidate_freeze.valid())
+                  {
+                        witness.asset_locked.candidate_freeze = candidate_freeze;
+                        witness.asset_locked.locked_total[asset_id_type()] += candidate_freeze;
+                  }else
+                  {
+                        auto increment=candidate_freeze-witness.asset_locked.candidate_freeze->amount;
+                        witness.asset_locked.candidate_freeze->amount += increment;
+                        witness.asset_locked.locked_total[asset_id_type()] += increment;
+                  }
+                  FC_ASSERT(*witness.asset_locked.candidate_freeze >= asset());
+            });
             return new_witness_object.id;
       }
       FC_CAPTURE_AND_RETHROW((op))
@@ -69,7 +91,13 @@ void_result witness_update_evaluator::do_evaluate(const witness_update_operation
 {
       try
       {
-            FC_ASSERT(db().get(op.witness).witness_account == op.witness_account);
+            auto &d = db();
+            FC_ASSERT(d.get(op.witness).witness_account == op.witness_account);
+            if (!op.work_status)
+            {
+                  auto on_the_job = d.get_index_type<witness_index>().indices().get<by_work_status>().equal_range(true);
+                  FC_ASSERT(d.get_chain_properties().immutable_parameters.min_witness_count < boost::distance(on_the_job));
+            }
             return void_result();
       }
       FC_CAPTURE_AND_RETHROW((op))
@@ -80,14 +108,51 @@ void_result witness_update_evaluator::do_apply(const witness_update_operation &o
       try
       {
             database &_db = db();
-            _db.modify(
-                _db.get(op.witness),
-                [&](witness_object &wit) {
-                      if (op.new_url.valid())
-                            wit.url = *op.new_url;
-                      if (op.new_signing_key.valid())
-                            wit.signing_key = *op.new_signing_key;
-                });
+            const auto &witness = _db.get(op.witness);
+            auto candidate_freeze = _db.get_global_properties().parameters.committee_candidate_freeze;
+            auto next_maintenance_time = _db.get_dynamic_global_properties().next_maintenance_time;
+            auto &witness_account = op.witness_account(_db);
+            FC_ASSERT(witness.next_maintenance_time != next_maintenance_time);
+            bool change_status = witness.work_status != op.work_status;
+            _db.modify(witness, [&](witness_object &wit) {
+                  if (change_status)
+                  {
+                        wit.work_status = op.work_status;
+                        wit.next_maintenance_time = next_maintenance_time;
+                        wit.work_status ? wit.total_votes += candidate_freeze.value :
+                        wit.total_votes -= witness_account.asset_locked.candidate_freeze->amount.value;
+                  }
+                  if (op.new_url.valid())
+                        wit.url = *op.new_url;
+                  if (op.new_signing_key.valid())
+                        wit.signing_key = *op.new_signing_key;
+            });
+            if (change_status)
+                  _db.modify(witness_account, [&](account_object &account) {
+                        bool status = op.work_status;
+                        account.witness_status->second = op.work_status;
+                        if (account.committee_status.valid())
+                              status = account.committee_status->second || op.work_status;
+                        if (!status)
+                        {
+                              if (account.asset_locked.candidate_freeze.valid())
+                              {
+                                    FC_ASSERT(*account.asset_locked.candidate_freeze >= asset() &&
+                                              account.asset_locked.locked_total[asset_id_type()] >= account.asset_locked.candidate_freeze->amount);
+                                    account.asset_locked.locked_total[asset_id_type()] -= account.asset_locked.candidate_freeze->amount;
+                                    account.asset_locked.candidate_freeze = {};
+                              }
+                        }
+                        else
+                        {
+                              if (!account.asset_locked.candidate_freeze.valid())
+                              {
+                                    account.asset_locked.candidate_freeze = candidate_freeze;
+                                    FC_ASSERT(*account.asset_locked.candidate_freeze >= asset());
+                                    account.asset_locked.locked_total[asset_id_type()] += candidate_freeze;
+                              }
+                        }
+                  });
             return void_result();
       }
       FC_CAPTURE_AND_RETHROW((op))

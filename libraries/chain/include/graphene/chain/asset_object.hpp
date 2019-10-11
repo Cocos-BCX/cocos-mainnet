@@ -61,9 +61,8 @@ namespace graphene { namespace chain {
 
          /// The number of shares currently in existence
          share_type current_supply;
-         share_type confidential_supply; ///< total asset held in confidential balances
          share_type accumulated_fees; ///< fees accumulate to be paid out over time
-         share_type fee_pool;         ///< in core asset
+         //share_type fee_pool;         ///< in core asset
    };
 
    /**
@@ -96,7 +95,6 @@ namespace graphene { namespace chain {
          bool is_transfer_restricted()const { return options.flags & transfer_restricted; }
          bool is_white_list()const{return options.flags & white_list;}
          bool can_override()const { return options.flags & override_authority; }
-         bool allow_confidential()const { return !(options.flags & asset_issuer_permission_flags::disable_confidential); }
 
          /// Helper function to get an asset object with the given amount in this asset's type
          asset amount(share_type a)const { return asset(a, id); }
@@ -146,7 +144,10 @@ namespace graphene { namespace chain {
 
          template<class DB>
          const asset_bitasset_data_object& bitasset_data(const DB& db)const
-         { assert(bitasset_data_id); return db.get(*bitasset_data_id); }
+         {
+             FC_ASSERT(bitasset_data_id.valid(),"is not a market asset");  
+             return db.get(*bitasset_data_id); 
+         }
 
          template<class DB>
          const asset_dynamic_data_object& dynamic_data(const DB& db)const
@@ -284,7 +285,7 @@ namespace graphene { namespace chain {
 
 FC_REFLECT_DERIVED(graphene::chain::asset_restricted_object,(graphene::db::object),(asset)(restricted_type)(restricted_id))
 FC_REFLECT_DERIVED( graphene::chain::asset_dynamic_data_object, (graphene::db::object),
-                    (current_supply)(confidential_supply)(accumulated_fees)(fee_pool) )
+                    (current_supply)(accumulated_fees) )
 
 FC_REFLECT_DERIVED( graphene::chain::asset_bitasset_data_object, (graphene::db::object),
                     (feeds)

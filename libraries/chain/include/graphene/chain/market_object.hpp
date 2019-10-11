@@ -48,12 +48,11 @@ class limit_order_object : public abstract_object<limit_order_object>
       static const uint8_t space_id = protocol_ids;
       static const uint8_t type_id  = limit_order_object_type;
 
-      time_point_sec   expiration;
-      account_id_type  seller;
-      share_type       for_sale; ///< asset id is sell_price.base.asset_id
-      price            sell_price;
-      share_type       deferred_fee;
-
+      time_point_sec             expiration;
+      account_id_type            seller;
+      share_type                 for_sale; ///< asset id is sell_price.base.asset_id
+      price                      sell_price;
+      optional<share_type>       deferred_fee;
       pair<asset_id_type,asset_id_type> get_market()const
       {
          auto tmp = std::make_pair( sell_price.base.asset_id, sell_price.quote.asset_id );
@@ -247,6 +246,41 @@ typedef generic_index<call_order_object, call_order_multi_index_type>           
 typedef generic_index<force_settlement_object, force_settlement_object_multi_index_type>   force_settlement_index;
 typedef generic_index<collateral_bid_object, collateral_bid_object_multi_index_type>       collateral_bid_index;
 
+
+class collateral_for_gas_object : public abstract_object<collateral_for_gas_object>
+{
+
+   public:
+      static const uint8_t space_id = extension_id_for_nico;
+      static const uint8_t type_id  = collateral_for_gas_type;
+
+      account_id_type  mortgager;
+      account_id_type  beneficiary;
+      share_type       collateral;  
+      share_type       debt;
+
+};
+
+struct  by_mortgager_and_beneficiary{};
+struct  by_mortgager{};
+typedef multi_index_container<
+   collateral_for_gas_object,
+   indexed_by<
+      ordered_unique< tag<by_id>, member< object, object_id_type, &object::id > >,
+      ordered_unique<
+                     tag<by_mortgager_and_beneficiary>,
+                     composite_key< collateral_for_gas_object,
+                                    member< collateral_for_gas_object, account_id_type, &collateral_for_gas_object::mortgager >,
+                                    member< collateral_for_gas_object, account_id_type, &collateral_for_gas_object::beneficiary >
+                                    >
+                  >,
+      ordered_non_unique< tag<by_mortgager>,member< collateral_for_gas_object, account_id_type, &collateral_for_gas_object::mortgager > >
+      >
+> collateral_for_gas_index_type;
+
+typedef generic_index<collateral_for_gas_object, collateral_for_gas_index_type>       collateral_for_gas_index;
+
+
 } } // graphene::chain
 
 FC_REFLECT_DERIVED( graphene::chain::limit_order_object,
@@ -264,3 +298,5 @@ FC_REFLECT_DERIVED( graphene::chain::force_settlement_object,
 
 FC_REFLECT_DERIVED( graphene::chain::collateral_bid_object, (graphene::db::object),
                     (bidder)(inv_swan_price) )
+
+FC_REFLECT_DERIVED( graphene::chain::collateral_for_gas_object,(graphene::db::object),(mortgager)(beneficiary)(collateral)(debt))

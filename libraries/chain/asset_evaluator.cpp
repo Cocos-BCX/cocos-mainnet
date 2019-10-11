@@ -143,20 +143,10 @@ object_id_result asset_create_evaluator::do_apply(const asset_create_operation &
 {
       try
       {
-            //bool hf_429 = fee_is_odd && db().head_block_time() > HARDFORK_CORE_429_TIME;
-            fee_is_odd = core_fee_paid.value & 1;
-            core_fee_paid -= core_fee_paid.value / 2;
             const asset_dynamic_data_object &dyn_asset =
                 db().create<asset_dynamic_data_object>([&](asset_dynamic_data_object &a) {
                       a.current_supply = 0;
-                      a.fee_pool = core_fee_paid - (fee_is_odd ? 1 : 0); //del fee_is_odd??
                 });
-            if (fee_is_odd)
-            {
-                  const auto &core_dd = db().get<asset_object>(asset_id_type()).dynamic_data(db());
-                  db().modify(core_dd, [=](asset_dynamic_data_object &dd) { dd.current_supply++; });
-            }
-
             asset_bitasset_data_id_type bit_asset_id;
             if (op.bitasset_opts.valid())
                   bit_asset_id = db().create<asset_bitasset_data_object>([&](asset_bitasset_data_object &a) {
@@ -171,10 +161,11 @@ object_id_result asset_create_evaluator::do_apply(const asset_create_operation &
                   a.symbol = op.symbol;
                   a.precision = op.precision;
                   a.options = op.common_options;
-                  if (a.options.core_exchange_rate.base.asset_id.instance.value == 0)
-                        a.options.core_exchange_rate.quote.asset_id = next_asset_id;
-                  else
-                        a.options.core_exchange_rate.base.asset_id = next_asset_id;
+                  if(a.options.core_exchange_rate.valid())
+                  {
+                        a.options.core_exchange_rate->validate();
+                        a.options.core_exchange_rate->base.asset_id = next_asset_id;
+                  }
                   a.dynamic_asset_data_id = dyn_asset.id;
                   if (op.bitasset_opts.valid())
                         a.bitasset_data_id = bit_asset_id; });
@@ -194,7 +185,7 @@ void_result asset_issue_evaluator::do_evaluate(const asset_issue_operation &o)
             const asset_object &a = o.asset_to_issue.asset_id(d);
             FC_ASSERT(o.issuer == a.issuer);
             FC_ASSERT(!a.is_market_issued(), "Cannot manually issue a market-issued asset.");
-
+            FC_ASSERT(!(a.options.issuer_permissions&disable_issuer)&&!(a.options.flags&disable_issuer));
             to_account = &o.issue_to_account(d);
             FC_ASSERT(is_authorized_asset(d, *to_account, a));
 
@@ -255,36 +246,6 @@ void_result asset_reserve_evaluator::do_apply(const asset_reserve_operation &o)
       FC_CAPTURE_AND_RETHROW((o))
 }
 
-void_result asset_fund_fee_pool_evaluator::do_evaluate(const asset_fund_fee_pool_operation &o)
-{
-      try
-      {
-            database &d = db();
-
-            const asset_object &a = o.asset_id(d);
-
-            asset_dyn_data = &a.dynamic_asset_data_id(d);
-
-            return void_result();
-      }
-      FC_CAPTURE_AND_RETHROW((o))
-}
-
-void_result asset_fund_fee_pool_evaluator::do_apply(const asset_fund_fee_pool_operation &o)
-{
-      try
-      {
-            db().adjust_balance(o.from_account, -o.amount);
-
-            db().modify(*asset_dyn_data, [&](asset_dynamic_data_object &data) {
-                  data.fee_pool += o.amount;
-            });
-
-            return void_result();
-      }
-      FC_CAPTURE_AND_RETHROW((o))
-}
-
 void_result asset_update_evaluator::do_evaluate(const asset_update_operation &o)
 {
       try
@@ -296,7 +257,8 @@ void_result asset_update_evaluator::do_evaluate(const asset_update_operation &o)
             auto a_copy = a;
             a_copy.options = o.new_options;
             a_copy.validate();
-
+            if(a_copy.options.core_exchange_rate)
+                  FC_ASSERT(a_copy.options.core_exchange_rate->base.asset_id==a_copy.id);
             if (o.new_issuer)
             {
                   FC_ASSERT(d.find_object(*o.new_issuer));
@@ -315,8 +277,7 @@ void_result asset_update_evaluator::do_evaluate(const asset_update_operation &o)
                   }
             }
 
-            if ( //(d.head_block_time() < HARDFORK_572_TIME) ||
-                (a.dynamic_asset_data_id(d).current_supply != 0))
+            if (a.dynamic_asset_data_id(d).current_supply != 0)
             {
                   // new issuer_permissions must be subset of old issuer permissions
                   FC_ASSERT(!(o.new_options.issuer_permissions & ~a.options.issuer_permissions),
@@ -330,7 +291,7 @@ void_result asset_update_evaluator::do_evaluate(const asset_update_operation &o)
             asset_to_update = &a;
             FC_ASSERT(o.issuer == a.issuer, "", ("o.issuer", o.issuer)("a.issuer", a.issuer));
 
-            const auto &chain_parameters = d.get_global_properties().parameters;
+            //const auto &chain_parameters = d.get_global_properties().parameters;
 
             //FC_ASSERT(o.new_options.whitelist_authorities.size() <= chain_parameters.maximum_asset_whitelist_authorities);
             //for (auto id : o.new_options.whitelist_authorities)
@@ -618,11 +579,6 @@ void_result asset_publish_feeds_evaluator::do_evaluate(const asset_publish_feed_
             }
             */
             FC_ASSERT(o.feed.settlement_price.quote.asset_id == bitasset.options.short_backing_asset);
-
-            if (!o.feed.core_exchange_rate.is_null())
-            {
-                  FC_ASSERT(o.feed.core_exchange_rate.quote.asset_id == asset_id_type());
-            }
 
             //Verify that the publisher is authoritative to publish a feed
             if (base.options.flags & witness_fed_asset)

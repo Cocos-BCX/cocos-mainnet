@@ -157,9 +157,6 @@ namespace graphene { namespace chain {
          {
             if( !settlement_price.is_null() )
                return (settlement_price.base.asset_id == asset_id);
-            if( !core_exchange_rate.is_null() )
-               return (core_exchange_rate.base.asset_id == asset_id);
-            // (null, null) is valid for any feed
             return true;
          }
          FC_CAPTURE_AND_RETHROW( (*this) )

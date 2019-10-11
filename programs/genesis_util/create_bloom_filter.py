@@ -30,7 +30,7 @@ def main():
         for cr in asset.get("collateral_records", []):
             keys.add(cr["owner"])
 
-    for balance in genesis["initial_balances"]:
+    for balance in genesis["initial_address_balances"]:
         keys.add(balance["owner"])
 
     for vb in genesis["initial_vesting_balances"]:

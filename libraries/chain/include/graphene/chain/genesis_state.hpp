@@ -98,6 +98,12 @@ struct genesis_state_type {
       string owner_name;
       share_type daily_pay;
    };
+   struct initial_account_balances_type
+   {
+      string owner_name;
+      string asset_symbol;
+      share_type amount;
+   };
 
    time_point_sec                           initial_timestamp;
    share_type                               max_core_supply = GRAPHENE_MAX_SHARE_SUPPLY;
@@ -105,12 +111,12 @@ struct genesis_state_type {
    immutable_chain_parameters               immutable_parameters;
    vector<initial_account_type>             initial_accounts;
    vector<initial_asset_type>               initial_assets;
-   vector<initial_balance_type>             initial_balances;
+   vector<initial_balance_type>             initial_address_balances;
+   vector<initial_account_balances_type>    initial_account_balances;
    vector<initial_vesting_balance_type>     initial_vesting_balances;
    uint64_t                                 initial_active_witnesses = GRAPHENE_DEFAULT_MIN_WITNESS_COUNT;
    vector<initial_witness_type>             initial_witness_candidates;
    vector<initial_committee_member_type>    initial_committee_candidates;
-   vector<initial_worker_type>              initial_worker_candidates;
    std::string			                       initial_contract_base = CONTRACT_BASE_ENV;
 
    /**
@@ -148,9 +154,11 @@ FC_REFLECT(graphene::chain::genesis_state_type::initial_committee_member_type, (
 
 FC_REFLECT(graphene::chain::genesis_state_type::initial_worker_type, (owner_name)(daily_pay))
 
+FC_REFLECT(graphene::chain::genesis_state_type::initial_account_balances_type,(owner_name)(asset_symbol)(amount))
+
 FC_REFLECT(graphene::chain::genesis_state_type,
-           (initial_timestamp)(max_core_supply)(initial_parameters)(initial_accounts)(initial_assets)(initial_balances)
+           (initial_timestamp)(max_core_supply)(initial_parameters)(initial_accounts)(initial_assets)(initial_address_balances)(initial_account_balances)
            (initial_vesting_balances)(initial_active_witnesses)(initial_witness_candidates)
-           (initial_committee_candidates)(initial_worker_candidates)(initial_contract_base)
+           (initial_committee_candidates)(initial_contract_base)
            (initial_chain_id)
            (immutable_parameters))

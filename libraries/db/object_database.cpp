@@ -26,11 +26,10 @@
 #include <fc/io/raw.hpp>
 #include <fc/container/flat.hpp>
 #include <fc/uint128.hpp>
-
+#include <graphene/chain/protocol/types.hpp>
 namespace graphene { namespace db {
-
-object_database::object_database()
-:_undo_db(*this)
+using namespace graphene::chain;
+object_database::object_database():_undo_db(*this)
 {
    _index.resize(255);
    _undo_db.enable();
@@ -71,8 +70,8 @@ index& object_database::get_mutable_index(uint8_t space_id, uint8_t type_id)
 void object_database::flush()
 {
 //  ilog("Save object_database in ${d}", ("d", _data_dir));//  内存到文件系统的存储过程
-   fc::create_directories( _data_dir / "object_database.tmp" / "lock" );
-   for( uint32_t space = 0; space < _index.size(); ++space )
+   fc::create_directories( _data_dir/ "object_database.tmp" / "lock" );
+   for( uint32_t space = 1; space <graphene::chain::reserved_spaces::RESERVED_SPACES_COUNT; ++space )
    {
       fc::create_directories( _data_dir / "object_database.tmp" / fc::to_string(space) );
       const auto types = _index[space].size();
@@ -104,7 +103,7 @@ void object_database::open(const fc::path& data_dir)
        return;
    }
    ilog("Opening object database from ${d} ...", ("d", data_dir));
-   for( uint32_t space = 0; space < _index.size(); ++space )
+   for( uint32_t space = 1; space < graphene::chain::reserved_spaces::RESERVED_SPACES_COUNT; ++space )
       for( uint32_t type = 0; type  < _index[space].size(); ++type )
          if( _index[space][type] )
             _index[space][type]->open( _data_dir / "object_database" / fc::to_string(space)/fc::to_string(type) );

@@ -42,7 +42,7 @@ def main():
         for cr in asset.get("collateral_records", []):
             cr["owner"] = convert(cr["owner"])
 
-    for balance in genesis["initial_balances"]:
+    for balance in genesis["initial_address_balances"]:
         balance["owner"] = convert(balance["owner"])
 
     for vb in genesis["initial_vesting_balances"]:

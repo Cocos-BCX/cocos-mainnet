@@ -98,7 +98,7 @@ void database::globally_settle_asset(const asset_object &mia, const price &settl
    }
    FC_CAPTURE_AND_RETHROW((mia)(settlement_price))
 }
-
+//nico log::在清算之后重新开启智能资产
 void database::revive_bitasset(const asset_object &bitasset)
 {
    try
@@ -220,8 +220,8 @@ void database::cancel_order(const limit_order_object &order, bool create_virtual
       }
    });
    adjust_balance(order.seller, refunded);
-   adjust_balance(order.seller, order.deferred_fee);
-
+   if(order.deferred_fee)
+      adjust_balance(order.seller, *order.deferred_fee);
    if (create_virtual_op)
    {
       limit_order_cancel_operation vop;
@@ -416,16 +416,9 @@ bool database::fill_order(const limit_order_object &order, const asset &pays, co
       pay_order(seller, receives - issuer_fees, pays);
 
       assert(pays.asset_id != receives.asset_id);
-      auto op_id=push_applied_operation(fill_order_operation(order.id, order.seller, pays, receives, issuer_fees, fill_price, is_maker));
+      auto op_id=push_applied_operation(fill_order_operation(order.id, order.seller, pays, receives, fill_price, is_maker));
       set_applied_operation_result(op_id,object_id_result(operation_history_id_type(op_id)));
       // conditional because cheap integer comparison may allow us to avoid two expensive modify() and object lookups
-      if (order.deferred_fee > 0)
-      {
-         modify(seller.statistics(*this), [&](account_statistics_object &statistics) {
-            statistics.pay_fee(order.deferred_fee, get_global_properties().parameters.cashback_vesting_threshold);
-         });
-      }
-
       if (pays == order.amount_for_sale())
       {
          remove(order);
@@ -435,7 +428,6 @@ bool database::fill_order(const limit_order_object &order, const asset &pays, co
       {
          modify(order, [&](limit_order_object &b) {
             b.for_sale -= pays.amount;
-            b.deferred_fee = 0;
          });
          if (cull_if_small)
             return maybe_cull_small_order(*this, order);
@@ -493,8 +485,7 @@ bool database::fill_order(const call_order_object &order, const asset &pays, con
       }
 
       assert(pays.asset_id != receives.asset_id);
-      auto op_id= push_applied_operation(fill_order_operation(order.id, order.borrower, pays, receives,
-                                                  asset(0, pays.asset_id), fill_price, is_maker));
+      auto op_id= push_applied_operation(fill_order_operation(order.id, order.borrower, pays, receives, fill_price, is_maker));
       set_applied_operation_result(op_id,object_id_result(operation_history_id_type(op_id)));
 
       if (collateral_freed)
@@ -528,7 +519,7 @@ bool database::fill_order(const force_settlement_object &settle, const asset &pa
       adjust_balance(settle.owner, receives - issuer_fees);
 
       assert(pays.asset_id != receives.asset_id);
-      auto op_id=push_applied_operation(fill_order_operation(settle.id, settle.owner, pays, receives, issuer_fees, fill_price, is_maker));
+      auto op_id=push_applied_operation(fill_order_operation(settle.id, settle.owner, pays, receives, fill_price, is_maker));
       set_applied_operation_result(op_id,object_id_result(operation_history_id_type(op_id)));
       if (filled)
          remove(settle);
@@ -724,19 +715,28 @@ asset database::pay_market_fees(const asset_object &recv_asset, const asset &rec
 {
    auto issuer_fees = calculate_market_fee(recv_asset, receives);
    assert(issuer_fees <= receives);
-
    //Don't dirty undo state if not actually collecting any fees
    if (issuer_fees.amount > 0)
    {
       const auto &recv_dyn_data = recv_asset.dynamic_asset_data_id(*this);
       modify(recv_dyn_data, [&](asset_dynamic_data_object &obj) {
-         //idump((issuer_fees));
          obj.accumulated_fees += issuer_fees.amount;
       });
    }
-
    return issuer_fees;
 }
+asset database::estimation_gas(const asset& delta_collateral)
+{
+   FC_ASSERT(delta_collateral.asset_id==asset_id_type()&&delta_collateral.amount>=0);
+   auto gas_reserved=GRAPHENE_ASSET_GAS(*this).reserved(*this);
+   auto core_current_supply = asset_id_type(0)(*this).dynamic_asset_data_id(*this).current_supply;
+   auto asset_to_real = [&](const asset &a, int p=0) { return double(a.amount.value) / pow(10, p); };
+   double scale=asset_to_real(delta_collateral)/asset_to_real(asset(core_current_supply));
+   auto scale0=std::pow(1+scale,0.4)-1;
+   share_type amount=double(gas_reserved.value)*scale0;
+   return asset(amount,GRAPHENE_ASSET_GAS);
+}
+
 
 } // namespace chain
 } // namespace graphene

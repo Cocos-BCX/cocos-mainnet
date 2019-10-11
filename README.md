@@ -21,3 +21,7 @@
     使用write_list注册表中各个目标的值(true\false)描述是否清理指定对象
     修复合约递归调用时，出现的chainhelper被覆盖的问题；
     添加静态函数注册方式并实现get_account_contract_data静态函数用于在合约内部查看其他人的用户数据
+
+2019-6-19:
+    move project  on line
+    url = ssh://nico.tang@39.104.66.114:8009/walker.git

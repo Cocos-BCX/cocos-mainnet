@@ -315,8 +315,6 @@ block_production_condition::block_production_condition_enum witness_plugin::mayb
       );                           
    capture("n", block.block_num())("t", block.timestamp)("c", now);
    fc::async( [this,block](){ p2p_node().broadcast(net::block_message(block)); } );  //  广播新生产的区块
-   //db.push_block(block);
-   //fc::async( [this](){ p2p_node().broadcast(net::my_test_message("xiaoming，你好"+string(fc::time_point::now()))); } );
    if( prate < _required_witness_participation )
    {
       db.allowe_continue_transaction(prate,false);

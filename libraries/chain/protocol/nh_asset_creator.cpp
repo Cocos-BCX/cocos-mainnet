@@ -9,7 +9,7 @@ namespace graphene { namespace chain {
 
 void register_nh_asset_creator_operation::validate() const 
 {
-   FC_ASSERT( fee.amount >= share_type(0) );
+
    return;
 }
 

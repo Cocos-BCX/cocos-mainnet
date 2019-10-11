@@ -35,7 +35,6 @@ namespace graphene { namespace chain {
     *  Fees are paid by the "from" account
     *
     *  @pre amount.amount > 0
-    *  @pre fee.amount >= share_type(0)
     *  @pre from != to
     *  @post from account's balance will be reduced by fee and amount
     *  @post to account's balance will be increased by amount
@@ -47,8 +46,6 @@ namespace graphene { namespace chain {
          uint64_t fee       = 20 * GRAPHENE_BLOCKCHAIN_PRECISION;
          uint32_t price_per_kbyte = 10 * GRAPHENE_BLOCKCHAIN_PRECISION; /// only required for large memos.
       };
-
-      asset            fee;
       /// Account to transfer asset from
       account_id_type  from;
       /// Account to transfer asset to
@@ -79,8 +76,6 @@ namespace graphene { namespace chain {
          uint64_t fee       = 20 * GRAPHENE_BLOCKCHAIN_PRECISION;
          uint32_t price_per_kbyte = 10; /// only required for large memos.
       };
-
-      asset           fee;
       account_id_type issuer;
       /// Account to transfer asset from
       account_id_type from;
@@ -103,5 +98,5 @@ namespace graphene { namespace chain {
 FC_REFLECT( graphene::chain::transfer_operation::fee_parameters_type, (fee)(price_per_kbyte) )
 FC_REFLECT( graphene::chain::override_transfer_operation::fee_parameters_type, (fee)(price_per_kbyte) )
 
-FC_REFLECT( graphene::chain::override_transfer_operation, (fee)(issuer)(from)(to)(amount)(memo)(extensions) )
-FC_REFLECT( graphene::chain::transfer_operation, (fee)(from)(to)(amount)(memo)(extensions) )
+FC_REFLECT( graphene::chain::override_transfer_operation, (issuer)(from)(to)(amount)(memo)(extensions) )
+FC_REFLECT( graphene::chain::transfer_operation, (from)(to)(amount)(memo)(extensions) )

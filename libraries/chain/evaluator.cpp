@@ -30,7 +30,6 @@
 
 #include <graphene/chain/asset_object.hpp>
 #include <graphene/chain/account_object.hpp>
-#include <graphene/chain/fba_object.hpp>
 #include <graphene/chain/committee_member_object.hpp>
 #include <graphene/chain/market_evaluator.hpp>
 #include <graphene/chain/contract_evaluator.hpp>
@@ -68,7 +67,6 @@ operation_result generic_evaluator::start_evaluate(transaction_evaluation_state 
     uint16_t maximum_run_time_ratio = db().get_global_properties().parameters.maximum_run_time_ratio;
     auto magnification = 10000ll * std::min(maximum_run_time_ratio / GRAPHENE_1_PERCENT, 50); //单次op最大时间占比不能超过50%
     uint64_t block_interval = eval_state.db().block_interval() * magnification;
-    operation_result result;
     fc::microseconds now, start = fc::time_point::now().time_since_epoch();
     if (trx_state->run_mode != transaction_apply_mode::apply_block_mode)
     {
@@ -131,7 +129,7 @@ operation_result generic_evaluator::start_evaluate(transaction_evaluation_state 
         FC_ASSERT(core_fee_paid.value < db().get_global_properties().parameters.current_fees->maximun_handling_fee);
       }
     }
-    pay_fee_for_operation(op, result);
+    pay_fee_for_operation(op);
     return result;
   }
   FC_CAPTURE_AND_RETHROW()
@@ -147,83 +145,63 @@ operation_result generic_evaluator::start_evaluate(transaction_evaluation_state 
     } FC_CAPTURE_AND_RETHROW() */
 } // namespace chain
 
-void generic_evaluator::prepare_fee(account_id_type account_id, asset fee)
+void generic_evaluator::prepare_fee(const account_id_type &account_id, const operation &op)
 {
-  const database &d = db();
-  fee_from_account = fee;
-  FC_ASSERT(fee.amount >= share_type(0));
+  database &d = db();
+  if (!d.core)
+    d.core = &asset_id_type()(d);
+  if (!d.GAS)
+    d.GAS = &GRAPHENE_ASSET_GAS(d);
   fee_paying_account = &account_id(d); //支付手续费的账户
-  fee_paying_account_statistics = &fee_paying_account->statistics(d);
-
-  fee_asset = &fee.asset_id(d);                              //资产种类
-  fee_asset_dyn_data = &fee_asset->dynamic_asset_data_id(d); //资产流通详情
-
-  //if( d.head_block_time() > HARDFORK_419_TIME )
-  //{
-  //  验证是否有权使用对应的资产用于支付手续费，资产黑名单
-  FC_ASSERT(is_authorized_asset(d, *fee_paying_account, *fee_asset), "Account ${acct} '${name}' attempted to pay fee by using asset ${a} '${sym}', which is unauthorized due to whitelist / blacklist",
-            ("acct", fee_paying_account->id)("name", fee_paying_account->name)("a", fee_asset->id)("sym", fee_asset->symbol));
-  //}
-
-  if (fee_from_account.asset_id == asset_id_type()) //asset_id_type默认指向1.3.0 核心资产
-    core_fee_paid = fee_from_account.amount;
-  else
-  { //如资产不是1.3.0核心资产，则执行核心汇率计算
-    asset fee_from_pool = fee_from_account * fee_asset->options.core_exchange_rate;
-    FC_ASSERT(fee_from_pool.asset_id == asset_id_type());
-    core_fee_paid = fee_from_pool.amount;
-    FC_ASSERT(core_fee_paid <= fee_asset_dyn_data->fee_pool, "Fee pool balance of '${b}' is less than the ${r} required to convert ${c}",
-              ("r", db().to_pretty_string(fee_from_pool))("b", db().to_pretty_string(fee_asset_dyn_data->fee_pool))("c", db().to_pretty_string(fee)));
-  }
-}
-
-void generic_evaluator::convert_fee()
-{
-  if (!trx_state->skip_fee)
-  {
-    if (fee_asset->get_id() != asset_id_type())
-    {
-      db().modify(*fee_asset_dyn_data, [this](asset_dynamic_data_object &d) {
-        d.accumulated_fees += fee_from_account.amount;
-        d.fee_pool -= core_fee_paid;
-      });
-    }
-  }
+  //////////////////////////////////////// 手续费预算是否足够//////////////////////////////////
+  core_fee_paid = calculate_fee_for_operation(op).amount; //计算手续费
 }
 
 void generic_evaluator::pay_fee()
 {
   try
   {
-    if (!trx_state->skip_fee)
+    auto &d = db();
+    fee_visitor.fees.clear();
+    FC_ASSERT(d.GAS->options.core_exchange_rate,"GAS->options.core_exchange_rate is null");
+    if ((!trx_state->skip_fee) && core_fee_paid > 0)
     {
-      database &d = db();
-      /// TODO: db().pay_fee( account_id, core_fee );
-      d.modify(*fee_paying_account_statistics, [&](account_statistics_object &s) {
-        s.pay_fee(core_fee_paid, d.get_global_properties().parameters.cashback_vesting_threshold);
-      });
+      const auto &total_gas = d.get_balance(*fee_paying_account, *d.GAS);
+      asset require_gas(double(core_fee_paid.value) * (*d.GAS->options.core_exchange_rate).to_real(), d.GAS->id);
+      if (total_gas >= require_gas)
+      {
+        fee_paying_account->pay_fee(d, require_gas);
+        db_adjust_balance(fee_paying_account->id, -require_gas);
+        fee_visitor.add_fee(require_gas);
+        result.visit(fee_visitor);
+      }
+      else
+      {
+        asset require_core = asset();
+        if (total_gas.amount.value > 0)
+        {
+          fee_paying_account->pay_fee(d, total_gas);
+          db_adjust_balance(fee_paying_account->id, -total_gas);
+          fee_visitor.add_fee(total_gas);
+          require_core = (require_gas - total_gas) * (*d.GAS->options.core_exchange_rate);
+        }
+        else
+        {
+          require_core = core_fee_paid;
+        }
+        fee_paying_account->pay_fee(d, require_core);
+        db_adjust_balance(fee_paying_account->id, -require_core);
+        fee_visitor.add_fee(require_core);
+        result.visit(fee_visitor);
+      }
     }
   }
   FC_CAPTURE_AND_RETHROW()
 }
 
-void generic_evaluator::pay_fba_fee(uint64_t fba_id)
+asset generic_evaluator::calculate_fee_for_operation(const operation &op, const price &core_exchange_rate) const
 {
-  database &d = db();
-  const fba_accumulator_object &fba = d.get<fba_accumulator_object>(fba_accumulator_id_type(fba_id));
-  if (fba.is_configured(d))
-  {
-    d.modify(fba, [&](fba_accumulator_object &_fba) {
-      _fba.accumulated_fba_fees += core_fee_paid;
-    });
-  }
-  else
-    generic_evaluator::pay_fee();
-}
-
-share_type generic_evaluator::calculate_fee_for_operation(const operation &op) const
-{
-  return db().current_fee_schedule().calculate_fee(op).amount; // ： 计算手续费
+  return db().current_fee_schedule().calculate_fee(op, core_exchange_rate); // ： 计算手续费
 }
 void generic_evaluator::db_adjust_balance(const account_id_type &fee_payer, asset fee_from_account)
 {

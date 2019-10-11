@@ -26,7 +26,6 @@
 #include <graphene/app/database_api.hpp>
 
 #include <graphene/chain/protocol/types.hpp>
-#include <graphene/chain/protocol/confidential.hpp>
 
 #include <graphene/market_history/market_history_plugin.hpp>
 
@@ -275,43 +274,6 @@ private:
   application &_app;
   bool enable_set;
 };
-
-class crypto_api
-{
-public:
-  crypto_api();
-
-  fc::ecc::blind_signature blind_sign(const extended_private_key_type &key, const fc::ecc::blinded_hash &hash, int i);
-
-  signature_type unblind_signature(const extended_private_key_type &key,
-                                   const extended_public_key_type &bob,
-                                   const fc::ecc::blind_signature &sig,
-                                   const fc::sha256 &hash,
-                                   int i);
-
-  fc::ecc::commitment_type blind(const fc::ecc::blind_factor_type &blind, uint64_t value);
-
-  fc::ecc::blind_factor_type blind_sum(const std::vector<blind_factor_type> &blinds_in, uint32_t non_neg);
-
-  bool verify_sum(const std::vector<commitment_type> &commits_in, const std::vector<commitment_type> &neg_commits_in, int64_t excess);
-
-  verify_range_result verify_range(const fc::ecc::commitment_type &commit, const std::vector<char> &proof);
-
-  std::vector<char> range_proof_sign(uint64_t min_value,
-                                     const commitment_type &commit,
-                                     const blind_factor_type &commit_blind,
-                                     const blind_factor_type &nonce,
-                                     int8_t base10_exp,
-                                     uint8_t min_bits,
-                                     uint64_t actual_value);
-
-  verify_range_proof_rewind_result verify_range_proof_rewind(const blind_factor_type &nonce,
-                                                             const fc::ecc::commitment_type &commit,
-                                                             const std::vector<char> &proof);
-
-  range_proof_info range_get_info(const std::vector<char> &proof);
-};
-
 /**
     * @brief
     */
@@ -407,8 +369,6 @@ FC_API(graphene::app::network_broadcast_api,
        (broadcast_transaction)(broadcast_transaction_with_callback)(broadcast_transaction_synchronous)(broadcast_block))
 FC_API(graphene::app::network_node_api,
        (get_info)(add_node)(get_connected_peers)(get_potential_peers)(get_advanced_node_parameters)(set_advanced_node_parameters)(set_message_send_cache_size)(set_deduce_in_verification_mode))
-FC_API(graphene::app::crypto_api,
-       (blind_sign)(unblind_signature)(blind)(blind_sum)(verify_sum)(verify_range)(range_proof_sign)(verify_range_proof_rewind)(range_get_info))
 FC_API(graphene::app::asset_api,
        (get_asset_holders)(get_asset_holders_count)(get_all_asset_holders))
 FC_API(graphene::app::login_api,

@@ -36,6 +36,23 @@ class database;
 struct signed_transaction;
 class generic_evaluator;
 class transaction_evaluation_state;
+struct operation_fee_visitor
+{
+  typedef void result_type;
+  operation_fee_visitor(){}
+  operation_fee_visitor(vector<asset>& fees):fees(fees){}
+  void add_fee(const asset & fee)
+  {
+    fees.push_back(fee);
+  }
+  template <typename operation_result_type>
+  result_type operator()(operation_result_type &op_re)
+  {
+    op_re.fees=fees;
+  }
+  vector<asset> fees;
+  
+};
 class generic_evaluator
 {
   public:
@@ -65,15 +82,14 @@ class generic_evaluator
        *
        * Therefore, when pay_fee() is called, the fee only exists in this->core_fee_paid.
        * So pay_fee() need only increment the receiving balance.
-       *
-       * The default implementation simply calls account_statistics_object->pay_fee() to
-       * increment pending_fees or pending_vested_fees.
        */
     virtual void pay_fee();
-    virtual void pay_fee_for_operation(const operation &o, operation_result &result)=0;
+    virtual void pay_fee_for_operation(const operation &o)=0;
 
     database &db() const;
     transaction_evaluation_state *trx_state;
+    operation_result result;
+    operation_fee_visitor fee_visitor;
 
     //void check_required_authorities(const operation& op);
   protected:
@@ -87,41 +103,24 @@ class generic_evaluator
        *
        * In particular, core_fee_paid field is set by prepare_fee().
        */
-    void prepare_fee(account_id_type account_id, asset fee);
+    void prepare_fee(const account_id_type& account_id,const operation &op);
 
-    /**
-       * Convert the fee into BTS through the exchange pool.
-       *
-       * Reads core_fee_paid field for how much CORE is deducted from the exchange pool,
-       * and fee_from_account for how much USD is added to the pool.
-       *
-       * Since prepare_fee() does the validation checks ensuring the account and fee pool
-       * have sufficient balance and the exchange rate is correct,
-       * those validation checks are not replicated here.
-       *
-       * Rather than returning a value, this method fills in core_fee_paid field.
-       */
-    void convert_fee();
 
     object_id_type get_relative_id(object_id_type rel_id) const;
 
-    /**
-       * pay_fee() for FBA subclass should simply call this method
-       */
-    void pay_fba_fee(uint64_t fba_id);
 
     // the next two functions are helpers that allow template functions declared in this
     // header to call db() without including database.hpp, which would
     // cause a circular dependency
-    share_type calculate_fee_for_operation(const operation &op) const;
+    asset calculate_fee_for_operation(const operation &op,const price& core_exchange_rate=price::unit_price())const;
     void db_adjust_balance(const account_id_type &fee_payer, asset fee_from_account);
 
-    asset fee_from_account;
+    //asset fee_from_account;
     share_type core_fee_paid;
     const account_object *fee_paying_account = nullptr;
-    const account_statistics_object *fee_paying_account_statistics = nullptr;
-    const asset_object *fee_asset = nullptr;
-    const asset_dynamic_data_object *fee_asset_dyn_data = nullptr;
+    //const account_statistics_object *fee_paying_account_statistics = nullptr;
+    //const asset_object *fee_asset = nullptr;
+    //const asset_dynamic_data_object *fee_asset_dyn_data = nullptr;
 };
 
 class op_evaluator
@@ -152,16 +151,7 @@ class evaluator : public generic_evaluator
     {
         auto *eval = static_cast<DerivedEvaluator *>(this);                  //从通用类型转为指定的验证类型
         const auto &op = o.get<typename DerivedEvaluator::operation_type>(); //获取对应的operation参数
-       //////////////////////////////////////// 手续费预算是否足够//////////////////////////////////
-        prepare_fee(op.fee_payer(), op.fee);                                 //预算费
-        if (!trx_state->skip_fee_schedule_check)
-        {
-            share_type required_fee = calculate_fee_for_operation(op); //计算手续费
-            GRAPHENE_ASSERT(core_fee_paid >= required_fee,
-                            insufficient_fee,
-                            "Insufficient Fee Paid",
-                            ("core_fee_paid", core_fee_paid)("required", required_fee));
-        }
+        prepare_fee(op.fee_payer(), op); 
         /////////////////////////////////////////////////////////////////////////////////////////////////////
         return eval->do_evaluate(op);
     }
@@ -174,13 +164,10 @@ class evaluator : public generic_evaluator
         return result;
     }
 
-    virtual void pay_fee_for_operation(const operation &o, operation_result &result) final override
+    virtual void pay_fee_for_operation(const operation &o) final override
     {
         auto *eval = static_cast<DerivedEvaluator *>(this); // 从通用类型转为指定的验证类型
-        const auto &op = o.get<typename DerivedEvaluator::operation_type>();
-        convert_fee();
         eval->pay_fee();
-        db_adjust_balance(op.fee_payer(), -fee_from_account); //扣除手续费
     }
 };
 } // namespace chain

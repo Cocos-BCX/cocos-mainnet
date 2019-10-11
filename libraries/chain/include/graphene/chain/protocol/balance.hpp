@@ -36,8 +36,6 @@ namespace graphene { namespace chain {
    struct balance_claim_operation : public base_operation
    {
       struct fee_parameters_type {};
-
-      asset             fee;
       account_id_type   deposit_to_account;
       balance_id_type   balance_to_claim;
       public_key_type   balance_owner_key;
@@ -56,4 +54,4 @@ namespace graphene { namespace chain {
 
 FC_REFLECT( graphene::chain::balance_claim_operation::fee_parameters_type,  )
 FC_REFLECT( graphene::chain::balance_claim_operation,
-            (fee)(deposit_to_account)(balance_to_claim)(balance_owner_key)(total_claimed) )
+            (deposit_to_account)(balance_to_claim)(balance_owner_key)(total_claimed) )

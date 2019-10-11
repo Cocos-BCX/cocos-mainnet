@@ -54,6 +54,7 @@ class crontab_object : public abstract_object<crontab_object>
       tx_hash_type trx_hash;
       uint32_t continuous_failure_times = 0;
       bool is_suspended = false; // If the task execution fails consecutively 3 times, it will be suspended
+      bool allow_execution=false;
       time_point_sec expiration_time;
 
       bool is_authorized_to_execute(database &db) const;
@@ -92,4 +93,4 @@ typedef generic_index<crontab_object, crontab_multi_index_container> crontab_ind
 
 FC_REFLECT_DERIVED(graphene::chain::crontab_object, (graphene::chain::object),
                    (task_owner)(timed_transaction)(execute_interval)(scheduled_execute_times)(already_execute_times)(last_execte_time)
-                   (next_execte_time)(trx_hash)(continuous_failure_times)(is_suspended)(expiration_time))
+                   (next_execte_time)(trx_hash)(continuous_failure_times)(is_suspended)(allow_execution)(expiration_time))

@@ -65,7 +65,7 @@ class database : public db::object_database
   public:
     //////////////////// db_management.cpp ////////////////////
 
-    database();
+    database(const fc::path& data_dir);
     ~database();
 
     enum validation_steps
@@ -199,6 +199,7 @@ class database : public db::object_database
     void clear_expired_active();
     void clear_expired_timed_task();
     bool log_pending_size();
+    asset estimation_gas(const asset& delta_collateral);
     void set_message_cache_size_limit(uint16_t message_cache_size_limit);
     void set_deduce_in_verification_mode(bool flag){deduce_in_verification_mode=flag;}
 
@@ -221,6 +222,7 @@ class database : public db::object_database
         }
         return optional<T>();
     }
+    const account_object& get_account(const string &name_or_id);
     const transaction_in_block_info &get_transaction_in_block_info(const string &trx_id) const;
     void try_apply_block(signed_block &next_block, uint32_t skip = skip_nothing);
     void _try_apply_block(signed_block &next_block);
@@ -345,7 +347,7 @@ class database : public db::object_database
           * @param account ID of account whose balance should be adjusted
           * @param delta Asset ID and amount to adjust balance by
           */
-    void adjust_balance(account_id_type account, asset delta);
+    void adjust_balance(account_id_type account, asset delta,bool allow_gas_negative=false);
 
     /**
           * @brief Helper to make lazy deposit to CDD VBO.
@@ -362,15 +364,16 @@ class database : public db::object_database
           */
     optional<vesting_balance_id_type> deposit_lazy_vesting(
         const optional<vesting_balance_id_type> &ovbid,
-        share_type amount,
+        asset amount,
         uint32_t req_vesting_seconds,
         account_id_type req_owner,
+        string describe,
         bool require_vesting);
 
     // helper to handle cashback rewards
-    void deposit_cashback(const account_object &acct, share_type amount, bool require_vesting = true);
+    void deposit_cashback(const account_object &acct, asset amount,string describe, bool require_vesting = true);
     // helper to handle witness pay
-    void deposit_witness_pay(const witness_object &wit, share_type amount);
+    void deposit_witness_pay(const witness_object &wit, asset amount);
 
     //////////////////// db_debug.cpp ////////////////////
 
@@ -463,8 +466,10 @@ class database : public db::object_database
     optional<undo_database::session> _pending_tx_session;
     vector<unique_ptr<op_evaluator>> _operation_evaluators;
     uint64_t _pending_size=0;
-    template <class Index>
-    vector<std::reference_wrapper<const typename Index::object_type>> sort_votable_objects(size_t count) const;
+    map<account_id_type,bool> vote_result;
+    template <typename ObjectType>
+    vector<std::reference_wrapper<const ObjectType>> sort_votable_objects(vector<std::reference_wrapper<const ObjectType>> &refs,size_t count) const;
+
 
     //////////////////// db_block.cpp ////////////////////
 
@@ -496,7 +501,6 @@ class database : public db::object_database
     void clear_expired_orders();
     void update_expired_feeds();
     void update_maintenance_flag(bool new_maintenance_flag);
-    void update_withdraw_permissions();
     bool check_for_blackswan(const asset_object &mia, bool enable_black_swan = true);
 
     ///Steps performed only at maintenance intervals
@@ -505,12 +509,12 @@ class database : public db::object_database
     //////////////////// db_maint.cpp ////////////////////
 
     void initialize_budget_record(fc::time_point_sec now, budget_record &rec) const;
-    void process_budget();
+    void process_budget(const global_property_object old_gpo);
     void pay_workers(share_type &budget);
+    void pay_candidates(share_type &budget,const uint16_t&committee_percent_of_candidate_award,const uint16_t&unsuccessful_candidates_percent);
     void perform_chain_maintenance(const signed_block &next_block, const global_property_object &global_props);
     void update_active_witnesses();
     void update_active_committee_members();
-    void update_worker_votes();
     void process_bids(const asset_bitasset_data_object &bad);
 
     template <class... Types>
@@ -545,11 +549,6 @@ class database : public db::object_database
     uint16_t _current_op_in_trx = 0;
     uint16_t _current_virtual_op = 0;
 
-    vector<uint64_t> _vote_tally_buffer;
-    vector<uint64_t> _witness_count_histogram_buffer;
-    vector<uint64_t> _committee_count_histogram_buffer;
-    uint64_t _total_voting_stake;
-
     flat_map<uint32_t, block_id_type> _checkpoints;
 
     node_property_object _node_property_object;
@@ -557,6 +556,9 @@ class database : public db::object_database
     boost::recursive_mutex _db_lock;
 
     graphene::chain::lua_scheduler luaVM;
+    public:
+     const asset_object *core=nullptr;
+     const asset_object *GAS=nullptr;
 };
 
 namespace detail

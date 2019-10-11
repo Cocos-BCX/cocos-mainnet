@@ -21,14 +21,12 @@ void delete_nh_asset_operation::validate() const
 }
 void transfer_nh_asset_operation::validate() const
 {
-    FC_ASSERT(fee.amount >= 0);
     FC_ASSERT(from != to);
     return;
 }
 
 void relate_nh_asset_operation::validate() const
 {
-    FC_ASSERT(fee.amount >= share_type(0));
     FC_ASSERT( parent != child );
     return;
 }

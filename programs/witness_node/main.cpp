@@ -197,7 +197,7 @@ int main(int argc, char** argv)
       bpo::options_description cfg_options("Graphene Witness Node");
       app_options.add_options()
             ("help,h", "Print this help message and exit.")
-            ("data-dir,d", bpo::value<boost::filesystem::path>()->default_value("witness_node_data_dir"), "Directory containing databases, configuration file, etc.")
+            ("data-dir,d", bpo::value<boost::filesystem::path>()->default_value("COCOS_BCX_DATABASE"), "Directory containing databases, configuration file, etc.")
             ;
 
       bpo::variables_map options;
@@ -236,8 +236,9 @@ int main(int argc, char** argv)
          data_dir = options["data-dir"].as<boost::filesystem::path>();
          if( data_dir.is_relative() )
             data_dir = fc::current_path() / data_dir;
+         
       }
-
+      node->initialize_db(data_dir);
       fc::path config_ini_path = data_dir / "config.ini";
       if( !fc::exists(config_ini_path) )
          create_new_config_file( config_ini_path, data_dir, cfg_options );
@@ -246,7 +247,7 @@ int main(int argc, char** argv)
       load_log_config_file( log_cfg_ini_path );
 
       bpo::notify(options);
-      node->initialize(data_dir, options);
+      node->initialize(options);
       node->initialize_plugins( options );
 
       node->startup();   //节点网络初始化

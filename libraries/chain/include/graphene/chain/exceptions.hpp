@@ -137,10 +137,7 @@ namespace graphene { namespace chain {
 
    //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( proposal_update );
    //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( proposal_delete );
-   //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( withdraw_permission_create );
-   //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( withdraw_permission_update );
-   //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( withdraw_permission_claim );
-   //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( withdraw_permission_delete );
+ 
    //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( fill_order );
    //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( global_parameters_update );
    //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( vesting_balance_create );
@@ -153,12 +150,6 @@ namespace graphene { namespace chain {
    GRAPHENE_DECLARE_OP_EVALUATE_EXCEPTION( claimed_too_often, balance_claim, 1, "balance claimed too often" )
    GRAPHENE_DECLARE_OP_EVALUATE_EXCEPTION( invalid_claim_amount, balance_claim, 2, "invalid claim amount" )
    GRAPHENE_DECLARE_OP_EVALUATE_EXCEPTION( owner_mismatch, balance_claim, 3, "owner mismatch" )
-
-   //GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( override_transfer );
-   //GRAPHENE_DECLARE_OP_EVALUATE_EXCEPTION( not_permitted, override_transfer, 1, "not permitted" )
-
-   GRAPHENE_DECLARE_OP_BASE_EXCEPTIONS( blind_transfer );
-   GRAPHENE_DECLARE_OP_EVALUATE_EXCEPTION( unknown_commitment, blind_transfer, 1, "Attempting to claim an unknown prior commitment" );
 
    /*
    FC_DECLARE_DERIVED_EXCEPTION( addition_overflow,                 graphene::chain::chain_exception, 30002, "addition overflow" )

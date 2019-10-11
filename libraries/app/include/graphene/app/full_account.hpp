@@ -26,7 +26,6 @@
 #include <graphene/chain/account_object.hpp>
 #include <graphene/chain/vesting_balance_object.hpp>
 #include <graphene/chain/market_evaluator.hpp>
-#include <graphene/chain/withdraw_permission_object.hpp>
 
 namespace graphene { namespace app {
    using namespace graphene::chain;
@@ -36,8 +35,6 @@ namespace graphene { namespace app {
       account_object                   account;
       account_statistics_object        statistics;
       string                           registrar_name;
-      string                           referrer_name;
-      string                           lifetime_referrer_name;
       vector<variant>                  votes;
       optional<vesting_balance_object> cashback_balance;
       vector<account_balance_object>   balances;
@@ -47,7 +44,6 @@ namespace graphene { namespace app {
       vector<force_settlement_object>  settle_orders;
       vector<proposal_object>          proposals;
       vector<asset_id_type>            assets;
-      vector<withdraw_permission_object> withdraws;
    };
 
 } }
@@ -56,8 +52,6 @@ FC_REFLECT( graphene::app::full_account,
             (account)
             (statistics)
             (registrar_name)
-            (referrer_name)
-            (lifetime_referrer_name)
             (votes)
             (cashback_balance)
             (balances)
@@ -67,5 +61,4 @@ FC_REFLECT( graphene::app::full_account,
             (settle_orders)
             (proposals)
             (assets)
-            (withdraws)
           )

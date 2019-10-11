@@ -29,7 +29,7 @@ def main():
         accounts = json.load(f)
 
     initial_accounts = []
-    initial_balances = []
+    initial_address_balances = []
     for e in accounts:
         name = e["name"]
         owner_str = subprocess.check_output(["programs/genesis_util/get_dev_key", opts.secret, "owner-"+name]).decode("utf-8")
@@ -45,13 +45,13 @@ def main():
         for bal in e.get("balances", []):
             bal = dict(bal)
             bal["owner"] = active[0]["address"]
-            initial_balances.append(bal)
+            initial_address_balances.append(bal)
     result = {
        "append" : {
        "initial_accounts" : initial_accounts },
     }
-    if len(initial_balances) > 0:
-        result["append"]["initial_balances"] = initial_balances
+    if len(initial_address_balances) > 0:
+        result["append"]["initial_address_balances"] = initial_address_balances
 
     if opts.output == "-":
         dump_json( result, sys.stdout, opts.pretty )

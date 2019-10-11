@@ -57,6 +57,7 @@ struct register_scheduler
     memo_data make_memo(string receiver_id_or_name, string key, string value, uint64_t ss,bool enable_logger=false);
     void invoke_contract_function(string contract_id_or_name,string function_name,string value_list_json);
     const contract_object& get_contract(string name_or_id);
+    void make_release();
 	// transfer of non homogeneous asset's use rights
 	void transfer_nht_active(account_id_type from,account_id_type account_to,const nh_asset_object& token ,bool enable_logger=false);
 	// transfer of non homogeneous asset's ownership

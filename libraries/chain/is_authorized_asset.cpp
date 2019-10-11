@@ -41,31 +41,6 @@ bool _is_authorized_asset(
     const account_object &acct,
     const asset_object &asset_obj)
 {
-   //const account_object&  issuer=asset_obj.issuer(d);
-   /********************************2017-2-1 Nico ： 账户主观上不应该拒绝任何资产*********************
-   if( acct.allowed_assets.valid() )//验证acct账户中allowed_assets(optional<>对象允许不存在)是否存在
-   {
-      if( acct.allowed_assets->find( asset_obj.id ) == acct.allowed_assets->end() )
-         return false;
-      // must still pass other checks even if it is in allowed_assets
-   }
-   ********************************************************************************/
-   //for( const auto id : acct.blacklisting_accounts ) // 黑名单主要适用于资产发行人
-   //{
-   //if( asset_obj.options.blacklist_authorities.find(acct.id) != asset_obj.options.blacklist_authorities.end() )
-   //  return false;
-   //}
-
-   //if( d.head_block_time() > HARDFORK_415_TIME )
-   //{
-   //if( asset_obj.options.whitelist_authorities.size() == 0 )
-   //  return true;
-   //}
-   //for( const auto id : acct.whitelisting_accounts )
-   //{
-   //if( asset_obj.options.whitelist_authorities.find(acct.id) != asset_obj.options.whitelist_authorities.end() )
-   //  return true;
-   //}
    const auto &index = d.get_index_type<asset_restricted_index>().indices().get<by_asset_and_restricted_enum>();
    if (!asset_obj.is_transfer_restricted())
    {

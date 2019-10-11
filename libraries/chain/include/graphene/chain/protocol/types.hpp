@@ -101,12 +101,12 @@ enum asset_issuer_permission_flags
     transfer_restricted = 0x08,  /**< require the issuer to be one party to every transfer */
     disable_force_settle = 0x10, /**< disable force settling */
     global_settle = 0x20,        /**< allow the bitasset issuer to force a global settling -- this may be set in permissions, but not flags */
-    disable_confidential = 0x40, /**< allow the asset to be used with confidential transactions */
+    disable_issuer = 0x40, /**< allow the asset to be used with confidential transactions */
     witness_fed_asset = 0x80,    /**< allow the asset to be fed by witnesses */
     committee_fed_asset = 0x100  /**< allow the asset to be fed by the committee */
 };
-const static uint32_t ASSET_ISSUER_PERMISSION_MASK = charge_market_fee | white_list | override_authority | transfer_restricted | disable_force_settle | global_settle | disable_confidential | witness_fed_asset | committee_fed_asset;
-const static uint32_t UIA_ASSET_ISSUER_PERMISSION_MASK = charge_market_fee | white_list | override_authority | transfer_restricted | disable_confidential;
+const static uint32_t ASSET_ISSUER_PERMISSION_MASK = charge_market_fee | white_list | override_authority | transfer_restricted | disable_force_settle | global_settle| disable_issuer | witness_fed_asset | committee_fed_asset;
+const static uint32_t UIA_ASSET_ISSUER_PERMISSION_MASK = charge_market_fee | white_list | override_authority | transfer_restricted ;
 
 enum reserved_spaces
 {
@@ -116,7 +116,7 @@ enum reserved_spaces
     extension_id_for_nico = 3,
     nh_asset_protocol_ids = 4,
     MARKET_HISTORY_SPACE_ID=5,
-    file_protocol_ids = 6
+    RESERVED_SPACES_COUNT=6
 };
 
 inline bool is_relative(object_id_type o) { return o.space() == 0; }
@@ -142,7 +142,7 @@ enum object_type
     custom_object_type = 9,
     proposal_object_type = 10,
     operation_history_object_type = 11,
-    withdraw_permission_object_type = 12,
+    crontab_object_type = 12,
     vesting_balance_object_type = 13,
     worker_object_type = 14,
     balance_object_type = 15,
@@ -150,7 +150,6 @@ enum object_type
     contract_object_type = 16,
     contract_data_type = 17,
     file_object_type = 18,
-    crontab_object_type = 19,
 #endif
     OBJECT_TYPE_COUNT ///< Sentry value which contains the number of different object types
 };
@@ -191,7 +190,9 @@ enum extension_type_for_nico
 {
     temporary_authority = 0,
     transaction_in_block_info_type = 1,
-    asset_restricted_object_type
+    asset_restricted_object_type=2,
+    unsuccessful_candidates_type=3,
+    collateral_for_gas_type=4
 };
 enum nh_object_type
 {
@@ -207,6 +208,7 @@ class nh_asset_object;
 class nh_asset_order_object;
 class file_object;
 class crontab_object;
+class collateral_for_gas_object;
 typedef object_id<nh_asset_protocol_ids, nh_asset_creator_object_type, nh_asset_creator_object> nh_asset_creator_id_type;
 typedef object_id<nh_asset_protocol_ids, world_view_object_type, world_view_object> world_view_id_type;
 typedef object_id<nh_asset_protocol_ids, nh_asset_object_type, nh_asset_object> nh_asset_id_type;
@@ -226,14 +228,11 @@ enum impl_object_type
     impl_transaction_object_type = 7,
     impl_block_summary_object_type = 8,
     impl_account_transaction_history_object_type = 9,
-    impl_blinded_balance_object_type = 10,
+    impl_collateral_bid_object_type = 10,
     impl_chain_property_object_type = 11,
     impl_witness_schedule_object_type = 12,
     impl_budget_record_object_type = 13,
-    impl_special_authority_object_type = 14,
-    impl_buyback_object_type = 15,
-    impl_fba_accumulator_object_type = 16,
-    impl_collateral_bid_object_type = 17
+    impl_special_authority_object_type = 14
 };
 
 //typedef fc::unsigned_int            object_id_type;
@@ -248,7 +247,6 @@ class call_order_object;
 class custom_object;
 class proposal_object;
 class operation_history_object;
-class withdraw_permission_object;
 class vesting_balance_object;
 class worker_object;
 class balance_object;
@@ -265,7 +263,6 @@ typedef object_id<protocol_ids, call_order_object_type, call_order_object> call_
 typedef object_id<protocol_ids, custom_object_type, custom_object> custom_id_type;
 typedef object_id<protocol_ids, proposal_object_type, proposal_object> proposal_id_type;
 typedef object_id<protocol_ids, operation_history_object_type, operation_history_object> operation_history_id_type;
-typedef object_id<protocol_ids, withdraw_permission_object_type, withdraw_permission_object> withdraw_permission_id_type;
 typedef object_id<protocol_ids, vesting_balance_object_type, vesting_balance_object> vesting_balance_id_type;
 typedef object_id<protocol_ids, worker_object_type, worker_object> worker_id_type;
 typedef object_id<protocol_ids, balance_object_type, balance_object> balance_id_type;
@@ -277,6 +274,7 @@ typedef object_id<protocol_ids, contract_object_type, contract_object> contract_
 typedef object_id<protocol_ids, contract_data_type, account_contract_data> contract_data_id_type;
 typedef object_id<extension_id_for_nico, temporary_authority, temporary_active_object> temporary_active_object_id_tyep;
 typedef object_id<extension_id_for_nico, transaction_in_block_info_type, transaction_in_block_info> transaction_in_block_info_id_type;
+typedef object_id<extension_id_for_nico, collateral_for_gas_type , collateral_for_gas_object> collateral_for_gas_id_type;
 #endif
 
 // implementation types
@@ -293,12 +291,11 @@ class chain_property_object;
 class witness_schedule_object;
 class budget_record_object;
 class special_authority_object;
-class buyback_object;
-class fba_accumulator_object;
 class collateral_bid_object;
 struct by_greater_id{};
 struct asset_restricted_object;
 class contract_bin_code_object;
+class unsuccessful_candidates_object;
 
 typedef object_id<implementation_ids, impl_global_property_object_type, global_property_object> global_property_id_type;
 typedef object_id<implementation_ids, impl_dynamic_global_property_object_type, dynamic_global_property_object> dynamic_global_property_id_type;
@@ -318,12 +315,10 @@ typedef object_id<implementation_ids,
 typedef object_id<implementation_ids, impl_chain_property_object_type, chain_property_object> chain_property_id_type;
 typedef object_id<implementation_ids, impl_witness_schedule_object_type, witness_schedule_object> witness_schedule_id_type;
 typedef object_id<implementation_ids, impl_budget_record_object_type, budget_record_object> budget_record_id_type;
-typedef object_id<implementation_ids, impl_blinded_balance_object_type, blinded_balance_object> blinded_balance_id_type;
 typedef object_id<implementation_ids, impl_special_authority_object_type, special_authority_object> special_authority_id_type;
-typedef object_id<implementation_ids, impl_buyback_object_type, buyback_object> buyback_id_type;
-typedef object_id<implementation_ids, impl_fba_accumulator_object_type, fba_accumulator_object> fba_accumulator_id_type;
 typedef object_id<implementation_ids, impl_collateral_bid_object_type, collateral_bid_object> collateral_bid_id_type;
 typedef object_id<extension_id_for_nico, asset_restricted_object_type, asset_restricted_object> asset_restricted_id_type;
+typedef object_id<extension_id_for_nico, unsuccessful_candidates_type,unsuccessful_candidates_object>unsuccessful_candidates_id_type;
 
 typedef fc::array<char, GRAPHENE_MAX_ASSET_SYMBOL_LENGTH> symbol_type;
 typedef fc::ripemd160 block_id_type;
@@ -424,17 +419,17 @@ FC_REFLECT(graphene::chain::extended_private_key_type, (key_data))
 FC_REFLECT(graphene::chain::extended_private_key_type::binary_key, (check)(data))
 
 FC_REFLECT_ENUM(graphene::chain::object_type,
-                (null_object_type)(base_object_type)(account_object_type)(force_settlement_object_type)(asset_object_type)(committee_member_object_type)(witness_object_type)(limit_order_object_type)(call_order_object_type)(custom_object_type)(proposal_object_type)(operation_history_object_type)(withdraw_permission_object_type)(vesting_balance_object_type)(worker_object_type)(balance_object_type)
+                (null_object_type)(base_object_type)(account_object_type)(force_settlement_object_type)(asset_object_type)(committee_member_object_type)(witness_object_type)(limit_order_object_type)(call_order_object_type)(custom_object_type)(proposal_object_type)(operation_history_object_type)(vesting_balance_object_type)(worker_object_type)(balance_object_type)
 #ifdef INCREASE_CONTRACT
                     (contract_object_type)(contract_data_type)(file_object_type)(crontab_object_type)
 #endif
                         (OBJECT_TYPE_COUNT))
 FC_REFLECT_ENUM(graphene::chain::impl_object_type,
                 (impl_global_property_object_type)(impl_dynamic_global_property_object_type)(impl_contract_bin_code_type)(impl_asset_dynamic_data_type)(impl_asset_bitasset_data_type)(impl_account_balance_object_type)(impl_account_statistics_object_type)(impl_transaction_object_type)
-                (impl_block_summary_object_type)(impl_account_transaction_history_object_type)(impl_blinded_balance_object_type)(impl_chain_property_object_type)(impl_witness_schedule_object_type)(impl_budget_record_object_type)(impl_special_authority_object_type)(impl_buyback_object_type)
-                (impl_fba_accumulator_object_type)(impl_collateral_bid_object_type))
+                (impl_block_summary_object_type)(impl_account_transaction_history_object_type)(impl_chain_property_object_type)(impl_witness_schedule_object_type)(impl_budget_record_object_type)(impl_special_authority_object_type)
+                (impl_collateral_bid_object_type))
 FC_REFLECT_ENUM(graphene::chain::extension_type_for_nico,
-                (temporary_authority)(transaction_in_block_info_type)(asset_restricted_object_type))
+                (temporary_authority)(transaction_in_block_info_type)(asset_restricted_object_type)(unsuccessful_candidates_type)(collateral_for_gas_type))
 FC_REFLECT_ENUM(graphene::chain::nh_object_type,
                 (nh_asset_creator_object_type)(world_view_object_type)(nh_asset_object_type)(nh_asset_order_object_type))
 FC_REFLECT_ENUM(graphene::chain::transaction_apply_mode,
@@ -449,7 +444,7 @@ FC_REFLECT_TYPENAME(graphene::chain::contract_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::contract_data_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::temporary_active_object_id_tyep)
 FC_REFLECT_TYPENAME(graphene::chain::transaction_in_block_info_id_type)
-
+FC_REFLECT_TYPENAME(graphene::chain::collateral_for_gas_id_type)
 FC_REFLECT_TYPENAME( graphene::chain::nh_asset_creator_id_type )
 FC_REFLECT_TYPENAME( graphene::chain::world_view_id_type )
 FC_REFLECT_TYPENAME( graphene::chain::nh_asset_id_type )
@@ -469,7 +464,6 @@ FC_REFLECT_TYPENAME(graphene::chain::call_order_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::custom_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::proposal_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::operation_history_id_type)
-FC_REFLECT_TYPENAME(graphene::chain::withdraw_permission_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::vesting_balance_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::worker_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::balance_id_type)
@@ -484,11 +478,9 @@ FC_REFLECT_TYPENAME(graphene::chain::block_summary_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::account_transaction_history_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::budget_record_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::special_authority_id_type)
-FC_REFLECT_TYPENAME(graphene::chain::buyback_id_type)
-FC_REFLECT_TYPENAME(graphene::chain::fba_accumulator_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::collateral_bid_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::asset_restricted_id_type)
 FC_REFLECT(graphene::chain::void_t, )
 
 FC_REFLECT_ENUM(graphene::chain::asset_issuer_permission_flags,
-                (charge_market_fee)(white_list)(transfer_restricted)(override_authority)(disable_force_settle)(global_settle)(disable_confidential)(witness_fed_asset)(committee_fed_asset))
+                (charge_market_fee)(white_list)(transfer_restricted)(override_authority)(disable_force_settle)(global_settle)(disable_issuer)(witness_fed_asset)(committee_fed_asset))

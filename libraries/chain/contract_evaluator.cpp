@@ -44,9 +44,11 @@ void_result revise_contract_evaluator::do_evaluate(const operation_type &o)
         database &d = db();
         auto &contract = o.contract_id(d);
         auto &contract_owner = contract.owner(d);
-        FC_ASSERT(contract_owner.contract_asset_locked.lock_details.find(o.contract_id) == contract_owner.contract_asset_locked.lock_details.end());
+        FC_ASSERT(!contract.is_release," The current contract is  release version cannot be change ");
+        FC_ASSERT(contract_owner.asset_locked.contract_lock_details.find(o.contract_id) == contract_owner.asset_locked.contract_lock_details.end());
         FC_ASSERT(contract_owner.get_id() == o.reviser, "You do not have the authority to modify the contract,the contract owner is ${owner}",
                   ("owner", contract_owner.get_id()));
+        return void_result();
     }
     FC_CAPTURE_AND_RETHROW((o))
 }
@@ -76,8 +78,6 @@ void_result call_contract_function_evaluator::do_evaluate(const operation_type &
 {
     try
     {
-        //TODO: add verification in future
-        database &d = db();
         this->op = &o;
         FC_ASSERT(o.contract_id!=contract_id_type());
         evaluate_contract_authority(o.contract_id, trx_state->sigkeys);
@@ -123,25 +123,10 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
 
     auto &fee_schedule_ob = db().current_fee_schedule();
     auto &op_fee = fee_schedule_ob.get<operation_type>();
-    share_type temp = op->calculate_data_fee(fc::raw::pack_size(result.contract_affecteds), op_fee.price_per_kbyte);
+    share_type temp = op->calculate_data_fee(result.relevant_datasize, op_fee.price_per_kbyte);
     temp += op->calculate_run_time_fee(*result.real_running_time, op_fee.price_per_millisecond);
     auto additional_cost = fc::uint128(temp.value) * fee_schedule_ob.scale / GRAPHENE_100_PERCENT;
     core_fee_paid += share_type(fc::to_int64(additional_cost));
-    auto temp_fee_from_account = fee_from_account;
-    if (fee_from_account.asset_id == asset_id_type()) //asset_id_type默认指向1.3.0 核心资产
-        fee_from_account.amount = core_fee_paid;
-    else
-    { //如资产不是1.3.0核心资产，则执行核心汇率计算
-        auto fee_from_pool = core_fee_paid / fee_asset->options.core_exchange_rate.to_real();
-        fee_from_account.amount = fee_from_pool;
-        FC_ASSERT(core_fee_paid <= fee_asset_dyn_data->fee_pool, "Fee pool balance of '${b}' is less than the ${r} required to convert ${c}",
-                  ("r", db().to_pretty_string(fee_from_pool))("b", db().to_pretty_string(fee_asset_dyn_data->fee_pool))("c", db().to_pretty_string(fee_from_account)));
-    }
-    if (this->trx_state->run_mode != transaction_apply_mode::apply_block_mode)
-    {
-        result.additional_cost = fee_from_account - temp_fee_from_account;
-        FC_ASSERT(result.additional_cost->amount > share_type(0));
-    }
 }
 
 contract_result call_contract_function_evaluator::apply(account_id_type caller, string function_name,
@@ -157,7 +142,7 @@ contract_result call_contract_function_evaluator::apply(account_id_type caller, 
         contract_object contract = *contract_pir;
         contract.set_code(contract_code_pir->lua_code_b);
         contract.set_mode(run_mode);
-        contract.set_sha512_key(fc::sha512::hash(_db.get_chain_id().str() + string(_db.head_block_time()) + string(CONTRACT_PROCESS_CIPHER)));
+        contract.set_process_encryption_helper(process_encryption_helper(_db.get_chain_id().str() ,string(CONTRACT_PROCESS_CIPHER), _db.head_block_time()));
         if (run_mode == transaction_apply_mode::apply_block_mode && _contract_result->existed_pv)
         {
             contract.set_process_value(_contract_result->process_value);
@@ -169,8 +154,7 @@ contract_result call_contract_function_evaluator::apply(account_id_type caller, 
             op_acd = *old_account_contract_data_itr;
         else
             op_acd = account_contract_data();
-        //wdump(("get_data")(fc::time_point::now().time_since_epoch() - start));
-        //start = fc::time_point::now().time_since_epoch();
+        
         contract.do_contract_function(caller, function_name, value_list, op_acd->contract_data, _db, sigkeys, *_contract_result);
         // wdump(("do_contract_function")(fc::time_point::now().time_since_epoch() - start));
         //start = fc::time_point::now().time_since_epoch();
@@ -181,7 +165,7 @@ contract_result call_contract_function_evaluator::apply(account_id_type caller, 
                 a.contract_data = op_acd->contract_data;
             });
         else
-            _db.modify(*old_account_contract_data_itr, [&](account_contract_data &a) {
+           _db.modify(*old_account_contract_data_itr, [&](account_contract_data &a) {
                 a.contract_data = op_acd->contract_data;
             });
         _db.modify(*contract_pir, [&](contract_object &co) {

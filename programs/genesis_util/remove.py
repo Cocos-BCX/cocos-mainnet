@@ -41,18 +41,18 @@ def main():
 
     removed_balance_entries = {aname : [] for aname in opts.asset}
     new_initial_balances = []
-    for balance in genesis["initial_balances"]:
+    for balance in genesis["initial_address_balances"]:
         symbol = balance["asset_symbol"]
         if symbol not in rm_asset_set:
             new_initial_balances.append(balance)
         else:
             removed_balance_entries[symbol].append(balance)
-    genesis["initial_balances"] = new_initial_balances
+    genesis["initial_address_balances"] = new_initial_balances
     # TODO:  Remove from initial_vesting_balances
 
     for aname in opts.asset:
         sys.stderr.write(
-           "Asset {sym} removed {acount} initial_assets, {bcount} initial_balances totaling {btotal}\n".format(
+           "Asset {sym} removed {acount} initial_assets, {bcount} initial_address_balances totaling {btotal}\n".format(
               sym=aname,
               acount=removed_asset_entries[aname],
               bcount=len(removed_balance_entries[aname]),

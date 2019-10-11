@@ -21,20 +21,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <cstdlib>
-#include <iostream>
-#include <boost/test/included/unit_test.hpp>
+#pragma once
+#include <graphene/chain/protocol/base.hpp>
+#include <graphene/chain/protocol/chain_parameters.hpp>
 
-extern uint32_t GRAPHENE_TESTING_GENESIS_TIMESTAMP;
+namespace graphene { namespace chain { 
 
-boost::unit_test::test_suite* init_unit_test_suite(int argc, char* argv[]) {
-   std::srand(time(NULL));
-   std::cout << "Random number generator seeded to " << time(NULL) << std::endl;
-   const char* genesis_timestamp_str = getenv("GRAPHENE_TESTING_GENESIS_TIMESTAMP");
-   if( genesis_timestamp_str != nullptr )
+   struct update_collateral_for_gas_operation : public base_operation
    {
-      GRAPHENE_TESTING_GENESIS_TIMESTAMP = std::stoul( genesis_timestamp_str );
-   }
-   std::cout << "GRAPHENE_TESTING_GENESIS_TIMESTAMP is " << GRAPHENE_TESTING_GENESIS_TIMESTAMP << std::endl;
-   return nullptr;
-}
+      struct fee_parameters_type { uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION; };
+      account_id_type  mortgager;
+      account_id_type  beneficiary;
+      share_type       collateral; 
+      account_id_type fee_payer()const { return mortgager; }
+   };
+
+  
+} } // graphene::chain
+FC_REFLECT( graphene::chain::update_collateral_for_gas_operation::fee_parameters_type, (fee) )
+FC_REFLECT( graphene::chain::update_collateral_for_gas_operation,(mortgager)(beneficiary)(collateral))

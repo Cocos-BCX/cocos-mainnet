@@ -52,15 +52,22 @@ namespace graphene { namespace chain {
          vote_id_type     vote_id;
          uint64_t         total_votes = 0;
          string           url;
+         bool             work_status;
+         time_point_sec next_maintenance_time;
+         map<account_id_type,asset> supporters;
    };
 
    struct by_account;
    struct by_vote_id;
+   struct by_work_status;
    using committee_member_multi_index_type = multi_index_container<
       committee_member_object,
       indexed_by<
          ordered_unique< tag<by_id>,
             member<object, object_id_type, &object::id>
+         >,
+         ordered_non_unique< tag<by_work_status>,
+            member<committee_member_object, bool, &committee_member_object::work_status>
          >,
          ordered_unique< tag<by_account>,
             member<committee_member_object, account_id_type, &committee_member_object::committee_member_account>
@@ -74,4 +81,4 @@ namespace graphene { namespace chain {
 } } // graphene::chain
 
 FC_REFLECT_DERIVED( graphene::chain::committee_member_object, (graphene::db::object),
-                    (committee_member_account)(vote_id)(total_votes)(url) )
+                    (committee_member_account)(vote_id)(total_votes)(url)(work_status)(next_maintenance_time)(supporters) )

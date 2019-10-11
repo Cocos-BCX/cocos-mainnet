@@ -26,7 +26,7 @@
 #include <graphene/chain/exceptions.hpp>
 #include <graphene/chain/hardfork.hpp>
 #include <graphene/chain/is_authorized_asset.hpp>
-#include <graphene/chain/OperateItem.hpp>
+//#include <graphene/chain/OperateItem.hpp>
 
 #ifdef INCREASE_CONTRACT
 #include <graphene/chain/contract_object.hpp>
@@ -49,6 +49,7 @@ void_result transfer_evaluator::do_evaluate(const transfer_operation &op)
 
     try
     {
+      FC_ASSERT(op.amount.asset_id!=GRAPHENE_ASSET_GAS);
       /********************************2017-2-1 nico ********************************************/
       if (from_account.id != asset_type.issuer && to_account.id != asset_type.issuer)
       /********************************2017-2-1 nico ********************************************/
@@ -127,7 +128,7 @@ void_result override_transfer_evaluator::do_evaluate(const override_transfer_ope
   try
   {
     const database &d = db();
-
+    FC_ASSERT(op.amount.asset_id!=GRAPHENE_ASSET_GAS);
     const asset_object &asset_type = op.amount.asset_id(d);
     FC_ASSERT(
         asset_type.can_override(),

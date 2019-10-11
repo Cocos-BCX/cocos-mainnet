@@ -55,19 +55,23 @@ namespace graphene { namespace chain {
    {
       vesting_balance_worker_initializer(uint16_t days=0):pay_vesting_period_days(days){}
       uint16_t pay_vesting_period_days = 0;
+      fc::optional<string> describe;
    };
 
    struct burn_worker_initializer
    {};
 
-   struct refund_worker_initializer
+   struct destroy_worker_initializer
+   {};
+   struct issuance_worker_initializer
    {};
 
-
    typedef static_variant< 
-      refund_worker_initializer,
+      destroy_worker_initializer,
       vesting_balance_worker_initializer,
-      burn_worker_initializer > worker_initializer;
+      burn_worker_initializer,
+      issuance_worker_initializer
+      > worker_initializer;
 
 
    /**
@@ -76,31 +80,30 @@ namespace graphene { namespace chain {
     */
    struct worker_create_operation : public base_operation
    {
-      struct fee_parameters_type { uint64_t fee = 5000*GRAPHENE_BLOCKCHAIN_PRECISION; };
-
-      asset                fee;
-      account_id_type      owner;
+      struct fee_parameters_type { uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION; };
+      fc::optional<account_id_type>      beneficiary;
       time_point_sec       work_begin_date;
       time_point_sec       work_end_date;
       share_type           daily_pay;
       string               name;
-      string               url;
+      string               describe;
       /// This should be set to the initializer appropriate for the type of worker to be created.
       worker_initializer   initializer;
 
-      account_id_type   fee_payer()const { return owner; }
+      account_id_type   fee_payer()const { return account_id_type(); }//nico log::将创建工作的权限限定于理事会账户，其他账户只能进行提议
       void              validate()const;
    };
    ///@}
 
 } }
 
-FC_REFLECT( graphene::chain::vesting_balance_worker_initializer, (pay_vesting_period_days) )
+FC_REFLECT( graphene::chain::vesting_balance_worker_initializer, (pay_vesting_period_days)(describe))
 FC_REFLECT( graphene::chain::burn_worker_initializer, )
-FC_REFLECT( graphene::chain::refund_worker_initializer, )
+FC_REFLECT( graphene::chain::destroy_worker_initializer, )
+FC_REFLECT( graphene::chain::issuance_worker_initializer, )
 FC_REFLECT_TYPENAME( graphene::chain::worker_initializer )
 
 FC_REFLECT( graphene::chain::worker_create_operation::fee_parameters_type, (fee) )
 FC_REFLECT( graphene::chain::worker_create_operation,
-            (fee)(owner)(work_begin_date)(work_end_date)(daily_pay)(name)(url)(initializer) )
+         (beneficiary)(work_begin_date)(work_end_date)(daily_pay)(name)(describe)(initializer) )
 

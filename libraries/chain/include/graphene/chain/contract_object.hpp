@@ -10,31 +10,13 @@
 #include <graphene/chain/protocol/memo.hpp>
 #include <graphene/utilities/words.hpp>
 #include <fc/crypto/aes.hpp>
+#include <graphene/process_encryption/process_encryption_helper.hpp>
 namespace graphene
 {
 namespace chain
 {
+using namespace process_encryption;
 struct register_scheduler;
-struct process_variable
-{
-    vector<uint64_t> random;
-    vector<uint64_t> timetable;
-    int16_t next_random_index()
-    {
-        auto temp=random_index++;
-        return temp;
-    }
-    int16_t next_time_index()
-    {
-        auto temp=time_index++;
-        return temp;
-    }
-    void reset_index() { random_index = 0;time_index=0; }
-
-private:
-    uint16_t random_index = 0;
-    uint16_t time_index = 0;
-};
 //nico lua Key_Special
 static const std::string Key_Special[] = {"table", "_G", "_VERSION", "coroutine", "debug", "math", "io",
                                           "utf8", "bit", "package", "string", "os", "cjson","baseENV"
@@ -52,7 +34,7 @@ class contract_object : public graphene::db::abstract_object<contract_object>
     time_point_sec creation_date;
     account_id_type owner;
     string name;
-    //transaction_id_type previous_version;
+    bool is_release=false;
     tx_hash_type current_version;
     bool check_contract_authority = false;
     public_key_type contract_authority;
@@ -75,8 +57,8 @@ class contract_object : public graphene::db::abstract_object<contract_object>
     void set_process_value(vector<char> process_value);
     vector<char> set_result_process_value();
     bool check_contract_authority_falg() { return check_contract_authority; }
-    void set_sha512_key(fc::sha512 key) { this->key = key; }
-    void register_function(lua_scheduler &context, register_scheduler *fc_register,graphene::chain::contract_base_info*base_info);
+    void set_process_encryption_helper(const process_encryption_helper helper) {encryption_helper=helper;  }
+    void register_function(lua_scheduler &context, register_scheduler *fc_register,graphene::chain::contract_base_info*base_info)const;
     optional<lua_types> get_lua_data(lua_scheduler &context, int index, bool check_fc = false);
     void push_global_parameters(lua_scheduler &context, lua_map &global_variable_list, string tablename = "");
     void push_table_parameters(lua_scheduler &context, lua_map &table_variable, string tablename);
@@ -84,7 +66,7 @@ class contract_object : public graphene::db::abstract_object<contract_object>
     void get_code(vector<char>&target){target=lua_code_b;lua_code_b.clear();}
     void set_code(vector<char>source){FC_ASSERT(source.size()>0); lua_code_b=source;}
   private:
-    fc::sha512 key;
+    process_encryption_helper encryption_helper; 
     vector<char> lua_code_b;
     contract_result result;
     transaction_apply_mode mode;
@@ -116,7 +98,7 @@ struct contract_base_info
     string caller;
     string creation_date;
     string contract_authority;
-    contract_base_info(contract_object &co, account_id_type caller)
+    contract_base_info(const contract_object &co, account_id_type caller)
     {
         this->name = co.name;
         this->id = string(co.id);
@@ -139,6 +121,7 @@ class contract_runing_stata : public graphene::db::abstract_object<contract_runi
 #ifdef INCREASE_CONTRACT
 /*********************************************合约索引�?**********************************************/
 struct by_name;
+struct by_owner;
 typedef multi_index_container<
     contract_object,
     indexed_by<
@@ -147,8 +130,11 @@ typedef multi_index_container<
             member<object, object_id_type, &object::id>>,
         ordered_unique<
             tag<by_name>,
-            member<contract_object, string, &contract_object::name>>>>
-    contract_multi_index_type;
+            member<contract_object, string, &contract_object::name>>,
+        ordered_non_unique<
+            tag<by_owner>,member<contract_object,account_id_type,&contract_object::owner>>
+        >
+    > contract_multi_index_type;
 
 /**
     * @ingroup object_index
@@ -203,12 +189,9 @@ typedef generic_index<contract_bin_code_object, contract_bin_code_multi_index_ty
 } // namespace chain
 } // namespace graphene
 
-FC_REFLECT(graphene::chain::process_variable,
-           (random)(timetable))
-
 FC_REFLECT_DERIVED(graphene::chain::contract_object,
                    (graphene::db::object),
-                   (creation_date)(owner)(name)(current_version)(contract_authority)(check_contract_authority)(contract_data)(contract_ABI)(lua_code_b_id))
+                   (creation_date)(owner)(name)(current_version)(contract_authority)(is_release)(check_contract_authority)(contract_data)(contract_ABI)(lua_code_b_id))
 FC_REFLECT_DERIVED(graphene::chain::account_contract_data,
                    (graphene::db::object),
                    (owner)(contract_id)(contract_data))

@@ -63,7 +63,7 @@ void_result proposal_create_evaluator::do_evaluate(const proposal_create_operati
                 operation_get_required_authorities(op.op, auths, auths, other);
             }
 
-            FC_ASSERT(other.size() == 0); // TODO: what about other???
+            FC_ASSERT(other.size() == 0,"required other authorities:${other}",("other",other)); // TODO: what about other???
 
             if (auths.find(GRAPHENE_COMMITTEE_ACCOUNT) != auths.end())
             {
@@ -136,7 +136,7 @@ object_id_result proposal_create_evaluator::do_apply(const proposal_create_opera
         auto next_id = d.get_index_type<proposal_index>().get_next_id();
         const proposal_object &proposal = d.create<proposal_object>([&](proposal_object &proposal) {
             _proposed_trx.expiration = o.expiration_time;
-            _proposed_trx.extensions.push_back(string(next_id));
+            _proposed_trx.extensions=vector<string>{string(next_id)};
             proposal.proposed_transaction = _proposed_trx;
             proposal.expiration_time = o.expiration_time;
             proposal.trx_hash = trx_state->_trx->hash();
@@ -236,7 +236,9 @@ void_result proposal_update_evaluator::do_apply(const proposal_update_operation 
             temp.proposed_transaction.set_reference_block(d.get_dynamic_global_properties().head_block_id);
             temp.proposed_transaction.set_expiration(temp.expiration_time +std::min<uint32_t>(d.get_global_properties().parameters.assigned_task_life_cycle,7200));
             temp.proposed_transaction.validate();
+            temp.allow_execution = true;
         }
+        else temp.allow_execution = false;
         d.modify(*_proposal, [&temp](proposal_object &p) { p = temp; });
         return void_result();
     }

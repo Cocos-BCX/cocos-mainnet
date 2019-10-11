@@ -23,7 +23,6 @@
  */
 #pragma once
 #include <graphene/chain/protocol/base.hpp>
-#include <graphene/chain/protocol/buyback.hpp>
 #include <graphene/chain/protocol/ext.hpp>
 #include <graphene/chain/protocol/special_authority.hpp>
 #include <graphene/chain/protocol/types.hpp>
@@ -44,17 +43,6 @@ struct account_options
   /// validated account activities. This field is here to prevent confusion if the active authority has zero or
   /// multiple keys in it.
   public_key_type memo_key;
-  /// If this field is set to an account ID other than GRAPHENE_PROXY_TO_SELF_ACCOUNT,
-  /// then this account's votes will be ignored; its stake
-  /// will be counted as voting for the referenced account's selected votes instead.
-  account_id_type voting_account = GRAPHENE_NULL_ACCOUNT;
-
-  /// The number of active witnesses this account votes the blockchain should appoint
-  /// Must not exceed the actual number of witnesses voted for in @ref votes
-  uint16_t num_witness = 0;
-  /// The number of active committee members this account votes the blockchain should appoint
-  /// Must not exceed the actual number of committee members voted for in @ref votes
-  uint16_t num_committee = 0;
   /// This is the list of vote IDs this account votes for. The weight of these votes is determined by this
   /// account's balance of core asset.
   flat_set<vote_id_type> votes;
@@ -62,11 +50,14 @@ struct account_options
   //flat_set<std::string>   extensions;
   void validate() const;
 };
-struct contract_asset_locked_object
+struct asset_locked_object
 {
   map<asset_id_type,share_type> locked_total;
-  map<contract_id_type,map<asset_id_type,share_type>> lock_details;
-};
+  map<contract_id_type,map<asset_id_type,share_type>> contract_lock_details;
+  optional<asset> candidate_freeze;
+  optional<asset> vote_locked;
+  optional<price> pledge_for_gas;
+  };
 /**
     *  @ingroup operations
     */
@@ -77,7 +68,6 @@ struct account_create_operation : public base_operation
     optional<void_t> null_ext;
     optional<special_authority> owner_special_authority;
     optional<special_authority> active_special_authority;
-    optional<buyback_account_options> buyback_options;
   };
 
   struct fee_parameters_type
@@ -86,16 +76,8 @@ struct account_create_operation : public base_operation
     uint64_t premium_fee = 2000 * GRAPHENE_BLOCKCHAIN_PRECISION; ///< the cost to register the cheapest non-free account
     uint32_t price_per_kbyte = GRAPHENE_BLOCKCHAIN_PRECISION;
   };
-
-  asset fee;
   /// This account pays the fee. Must be a lifetime member.
   account_id_type registrar;
-
-  /// This account receives a portion of the fee split between registrar and referrer. Must be a member.
-  account_id_type referrer;
-  /// Of the fee split between registrar and referrer, this percentage goes to the referrer. The rest goes to the
-  /// registrar.
-  uint16_t referrer_percent = 0;
 
   string name;
   authority owner;
@@ -112,8 +94,6 @@ struct account_create_operation : public base_operation
   {
     // registrar should be required anyway as it is the fee_payer(), but we insert it here just to be sure
     a.insert(registrar);
-    if (extensions.value.buyback_options.valid())
-      a.insert(extensions.value.buyback_options->asset_to_buy_issuer);
   }
 };
 
@@ -139,7 +119,7 @@ struct account_update_operation : public base_operation
     uint32_t price_per_kbyte = GRAPHENE_BLOCKCHAIN_PRECISION;
   };
 
-  asset fee;
+  asset lock_with_vote;
   /// The account to update
   account_id_type account;
 
@@ -222,7 +202,6 @@ struct account_whitelist_operation : public base_operation
   account_id_type fee_payer() const { return authorizing_account; }
   void validate() const
   {
-    FC_ASSERT(fee.amount >= share_type(0));
     FC_ASSERT(new_listing < 0x4);
   }
 };
@@ -248,8 +227,6 @@ struct account_upgrade_operation : public base_operation
     uint64_t membership_annual_fee = 2000 * GRAPHENE_BLOCKCHAIN_PRECISION;
     uint64_t membership_lifetime_fee = 10000 * GRAPHENE_BLOCKCHAIN_PRECISION; ///< the cost to upgrade to a lifetime member
   };
-
-  asset fee;
   /// The account to upgrade; must not already be a lifetime member
   account_id_type account_to_upgrade;
   /// If true, the account will be upgraded to a lifetime member; otherwise, it will add a year to the subscription
@@ -280,8 +257,6 @@ struct account_transfer_operation : public base_operation
   {
     uint64_t fee = 500 * GRAPHENE_BLOCKCHAIN_PRECISION;
   };
-
-  asset fee;
   account_id_type account_id;
   account_id_type new_owner;
   extensions_type extensions;
@@ -290,25 +265,44 @@ struct account_transfer_operation : public base_operation
   void validate() const;
 };
 
+struct account_authentication_operation : public base_operation
+{
+  struct fee_parameters_type
+  {
+    uint64_t fee = 500 * GRAPHENE_BLOCKCHAIN_PRECISION;
+  };
+  account_id_type account_id;
+  string data;
+  extensions_type extensions;
+  account_id_type fee_payer() const { return account_id; }
+  void validate() const
+  {
+    FC_ASSERT(fc::raw::pack_size(*this)<=102400);
+  };
+
+};
+
 } // namespace chain
 } // namespace graphene
 
-FC_REFLECT(graphene::chain::account_options, (memo_key)(voting_account)(num_witness)(num_committee)(votes)(extensions))
-FC_REFLECT(graphene::chain::contract_asset_locked_object, (locked_total)(lock_details))
+FC_REFLECT(graphene::chain::account_options, (memo_key)(votes)(extensions))
+FC_REFLECT(graphene::chain::account_authentication_operation::fee_parameters_type, (fee))
+FC_REFLECT(graphene::chain::account_authentication_operation, (account_id)(data)(extensions))
+FC_REFLECT(graphene::chain::asset_locked_object, (locked_total)(contract_lock_details)(candidate_freeze)(vote_locked)(pledge_for_gas))
 /*
 FC_REFLECT_ENUM(graphene::chain::account_whitelist_operation::account_listing,
                 (no_listing)(white_listed)(black_listed)(white_and_black_listed))
 */
-FC_REFLECT(graphene::chain::account_create_operation::ext, (null_ext)(owner_special_authority)(active_special_authority)(buyback_options))
+FC_REFLECT(graphene::chain::account_create_operation::ext, (null_ext)(owner_special_authority)(active_special_authority))
 FC_REFLECT(graphene::chain::account_create_operation,
-           (fee)(registrar)(referrer)(referrer_percent)(name)(owner)(active)(options)(extensions))
+           (registrar)(name)(owner)(active)(options)(extensions))
 
 FC_REFLECT(graphene::chain::account_update_operation::ext, (null_ext)(owner_special_authority)(active_special_authority))
 FC_REFLECT(graphene::chain::account_update_operation,
-           (fee)(account)(owner)(active)(new_options)(extensions))
+           (lock_with_vote)(account)(owner)(active)(new_options)(extensions))
 
 FC_REFLECT(graphene::chain::account_upgrade_operation,
-           (fee)(account_to_upgrade)(upgrade_to_lifetime_member)(extensions))
+           (account_to_upgrade)(upgrade_to_lifetime_member)(extensions))
 /*
 FC_REFLECT(graphene::chain::account_whitelist_operation, (fee)(authorizing_account)(account_to_list)(new_listing)(extensions))
 */
@@ -320,4 +314,4 @@ FC_REFLECT(graphene::chain::account_update_operation::fee_parameters_type, (fee)
 FC_REFLECT(graphene::chain::account_upgrade_operation::fee_parameters_type, (membership_annual_fee)(membership_lifetime_fee))
 FC_REFLECT(graphene::chain::account_transfer_operation::fee_parameters_type, (fee))
 
-FC_REFLECT(graphene::chain::account_transfer_operation, (fee)(account_id)(new_owner)(extensions))
+FC_REFLECT(graphene::chain::account_transfer_operation, (account_id)(new_owner)(extensions))

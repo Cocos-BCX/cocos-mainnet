@@ -80,7 +80,6 @@ bool database::_validate_block(signed_block &new_block, const fc::ecc::private_k
             clear_expired_orders();
             clear_expired_timed_task();
             update_expired_feeds();
-            update_withdraw_permissions();   
             clear_expired_active();
             update_maintenance_flag(maint_needed);
             update_witness_schedule();

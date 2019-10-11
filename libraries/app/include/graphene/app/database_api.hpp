@@ -34,7 +34,6 @@
 #include <graphene/chain/balance_object.hpp>
 #include <graphene/chain/chain_property_object.hpp>
 #include <graphene/chain/committee_member_object.hpp>
-#include <graphene/chain/confidential_object.hpp>
 #include <graphene/chain/market_object.hpp>
 #include <graphene/chain/operation_history_object.hpp>
 #include <graphene/chain/proposal_object.hpp>
@@ -550,13 +549,6 @@ class database_api
       vector<worker_object> get_all_workers() const;
 
       /**
-       * @brief Get the workers owned by a given account
-       * @param account The ID of the account whose worker should be retrieved
-       * @return The worker object, or null if the account does not have a worker
-       */
-      vector<optional<worker_object>> get_workers_by_account(account_id_type account) const;
-
-      /**
        * @brief Get the total number of workers registered with the blockchain
       */
       uint64_t get_worker_count() const;
@@ -573,7 +565,7 @@ class database_api
        *  The results will be in the same order as the votes.  Null will be returned for
        *  any vote ids that are not found.
        */
-      vector<variant> lookup_vote_ids(const vector<vote_id_type> &votes) const;
+      vector<variant> lookup_vote_ids(const flat_set<vote_id_type>&votes) const;
 
       ////////////////////////////
       // Authority / validation //
@@ -615,7 +607,7 @@ class database_api
        *  For each operation calculate the required fee in the specified asset type.  If the asset type does
        *  not have a valid core_exchange_rate
        */
-      vector<fc::variant> get_required_fees(const vector<operation> &ops, asset_id_type id) const;
+      //vector<fc::variant> get_required_fees(const vector<operation> &ops, asset_id_type id) const;
 
       ///////////////////////////
       // Proposed transactions //
@@ -630,22 +622,18 @@ class database_api
       // Blinded balances //
       //////////////////////
 
-      /**
-       *  @return the set of blinded balance objects by commitment ID
-       */
-      vector<blinded_balance_object> get_blinded_balances(const flat_set<commitment_type> &commitments) const;
 
       /*additional members declaration START*/
       operation get_prototype_operation_by_idx(uint index);
       fc::variant get_account_contract_data(account_id_type account_id, const contract_id_type contract_id) const;
       lua_map get_contract_public_data(string contract_id_or_name, lua_map filter) const;
       optional<processed_transaction> get_transaction_by_id(const string &id) const;
-      //optional<account_contract_data> call_contract_function(account_id_type account_id,contract_id_type contract_id,string function_name, vector<lua_types> value_list);
+      vector<contract_id_type> list_account_contracts(const account_id_type& owner)const;
       optional<contract_object> get_contract(string contract_id_or_name);
       optional<transaction_in_block_info> get_transaction_in_block_info(const string &id) const;
       vector<optional<world_view_object>> lookup_world_view(const vector<string> &world_view_name_or_ids) const;
       vector<optional<nh_asset_object>> lookup_nh_asset(const vector<string> &nh_asset_hash_or_ids) const;
-      std::pair<vector<nh_asset_object>, uint32_t> list_nh_asset_by_creator(const account_id_type &nh_asset_creator,
+      std::pair<vector<nh_asset_object>, uint32_t> list_nh_asset_by_creator(const account_id_type &nh_asset_creator,const string& world_view,
           uint32_t pagesize,uint32_t page);
       std::pair<vector<nh_asset_object>, uint32_t> list_account_nh_asset(const account_id_type &nh_asset_owner,
           const vector<string> &world_view_name_or_ids,uint32_t pagesize,uint32_t page, nh_asset_list_type list_type = nh_asset_list_type::all_owner);
@@ -657,6 +645,7 @@ class database_api
           uint32_t pagesize,uint32_t page);
       optional<file_object> lookup_file(const string &file_name_or_ids) const;
       map<string, file_id_type> list_account_created_file(const account_id_type &file_creater) const;
+      asset estimation_gas(const asset& delta_collateral);
       // list crontabs that created by the account
       // crontab_creator:crontab creator
       vector<crontab_object> list_account_crontab(const account_id_type &crontab_creator, bool contain_normal = true, bool contain_suspended = true) const;
@@ -699,7 +688,7 @@ FC_API(graphene::app::database_api,
        // Balances
        (get_account_balances)(get_named_account_balances)(get_balance_objects)(get_vested_balances)(get_vesting_balances)(get_prototype_operation_by_idx)
        // Lua contract
-       (get_account_contract_data)(get_contract_public_data)(get_contract)(get_transaction_by_id)(get_transaction_in_block_info)
+       (list_account_contracts)(get_account_contract_data)(get_contract_public_data)(get_contract)(get_transaction_by_id)(get_transaction_in_block_info)
        //nh asset
        (lookup_world_view)(lookup_nh_asset)(list_nh_asset_by_creator)(list_account_nh_asset)(get_nh_creator)(list_nh_asset_order)(list_new_nh_asset_order)(list_account_nh_asset_order)
        //file
@@ -710,7 +699,7 @@ FC_API(graphene::app::database_api,
        (get_assets)(list_assets)(lookup_asset_symbols)(list_asset_restricted_objects)
 
        // Markets / feeds
-       (get_order_book)(get_limit_orders)(get_call_orders)(get_settle_orders)(get_margin_positions)(get_collateral_bids)(subscribe_to_market)(unsubscribe_from_market)(get_ticker)(get_24_volume)(get_trade_history)(get_trade_history_by_sequence)
+       (get_order_book)(estimation_gas)(get_limit_orders)(get_call_orders)(get_settle_orders)(get_margin_positions)(get_collateral_bids)(subscribe_to_market)(unsubscribe_from_market)(get_ticker)(get_24_volume)(get_trade_history)(get_trade_history_by_sequence)
 
        // Witnesses
        (get_witnesses)(get_witness_by_account)(lookup_witness_accounts)(get_witness_count)
@@ -719,16 +708,13 @@ FC_API(graphene::app::database_api,
        (get_committee_members)(get_committee_member_by_account)(lookup_committee_member_accounts)(get_committee_count)
 
        // workers
-       (get_all_workers)(get_workers_by_account)(get_worker_count)
+       (get_all_workers)
 
        // Votes
        (lookup_vote_ids)
 
        // Authority / validation
-       (get_transaction_hex)(get_required_signatures)(get_potential_signatures)(get_potential_address_signatures)(verify_authority)(verify_account_authority)(validate_transaction)(get_required_fees)
+       (get_transaction_hex)(get_required_signatures)(get_potential_signatures)(get_potential_address_signatures)(verify_authority)(verify_account_authority)(validate_transaction)
 
        // Proposed transactions
-       (get_proposed_transactions)
-
-       // Blinded balances
-       (get_blinded_balances))
+       (get_proposed_transactions))

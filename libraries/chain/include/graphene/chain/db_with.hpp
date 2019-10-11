@@ -118,13 +118,13 @@ struct pending_transactions_restorer
             }
         }
         //预计加入约定事件  
-        const auto &proposal_expiration_index = _db.get_index_type<proposal_index>().indices().get<by_expiration_and_isruning>().equal_range(boost::make_tuple(false));
+        const auto &proposal_expiration_index = _db.get_index_type<proposal_index>().indices().get<by_expiration_and_isruning>().equal_range(boost::make_tuple(true));
         //while (!proposal_expiration_index.empty() && proposal_expiration_index.begin()->expiration_time <= _db.head_block_time())
         for (auto itr = proposal_expiration_index.first; itr != proposal_expiration_index.second && itr->expiration_time <= _db.head_block_time(); itr++)
         {
             try
             {
-                if (!_db.is_known_transaction(itr->proposed_transaction.id()) && itr->is_authorized_to_execute(_db))
+                if (!_db.is_known_transaction(itr->proposed_transaction.id()))
                 {
                     auto tx = signed_transaction(itr->proposed_transaction);
                     tx.agreed_task = std::make_pair(itr->trx_hash, itr->id);
@@ -135,7 +135,6 @@ struct pending_transactions_restorer
             {
                 elog("Failed to apply proposed transaction on its expiration. Deleting it.\n${proposal}\n${error}",
                      ("proposal", *itr)("error", e.to_detail_string()));
-                _db.modify(*itr, [](proposal_object &p) { p.permitted_clean = true; });
             }
         }
 
@@ -146,7 +145,7 @@ struct pending_transactions_restorer
         {
             try
             {
-                if (!_db.is_known_transaction(itr->timed_transaction.id()) && itr->is_authorized_to_execute(_db))
+                if (!_db.is_known_transaction(itr->timed_transaction.id()) && itr->allow_execution)
                 {
                     auto tx = signed_transaction(itr->timed_transaction);
                     tx.agreed_task = std::make_pair(itr->trx_hash, itr->id);
@@ -161,16 +160,6 @@ struct pending_transactions_restorer
             {
                 elog("Failed to apply timed transaction on its scheduled execute times.\n${crontab}\n${error}",
                      ("crontab", *itr)("error", e.to_detail_string()));
-                auto &chain_parameters = _db.get_global_properties().parameters;
-                _db.modify(*itr, [&](crontab_object &c) {
-                    c.continuous_failure_times++;
-                    if(chain_parameters.crontab_suspend_threshold == c.continuous_failure_times) // the task execution fails consecutively 3 times, it will be suspended
-                    {
-                        c.next_execte_time = fc::time_point_sec::maximum();
-                        c.is_suspended = true;
-                        c.expiration_time = _db.head_block_time() + chain_parameters.crontab_suspend_expiration; // the task is suspended, modify its expiration time to be 3 days later
-                    }
-                });
             }
         }
     }

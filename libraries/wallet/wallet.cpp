@@ -127,9 +127,6 @@ struct operation_printer
       template <typename T>
       std::string operator()(const T &op) const;
 
-      std::string operator()(const transfer_operation &op) const;
-      std::string operator()(const transfer_from_blind_operation &op) const;
-      std::string operator()(const transfer_to_blind_operation &op) const;
       std::string operator()(const account_create_operation &op) const;
       std::string operator()(const account_update_operation &op) const;
       std::string operator()(const asset_create_operation &op) const;
@@ -570,12 +567,6 @@ class wallet_api_impl
             return ob.template as<T>();
       }
 
-      void set_operation_fees(signed_transaction &tx, const fee_schedule &s)
-      {
-            for (auto &op : tx.operations)
-                  s.set_fee(op);
-      }
-
       variant info() const
       {
             auto chain_props = get_chain_properties();
@@ -912,32 +903,6 @@ class wallet_api_impl
             FC_ASSERT(operation_index < trx.operations.size());
             trx.operations[operation_index] = new_op;
       }
-      asset set_fees_on_builder_transaction(transaction_handle_type handle, string fee_asset = GRAPHENE_SYMBOL)
-      {
-            FC_ASSERT(_builder_transactions.count(handle));
-
-            auto fee_asset_obj = get_asset(fee_asset);
-            asset total_fee = fee_asset_obj.amount(0);
-
-            auto gprops = _remote_db->get_global_properties().parameters;
-            if (fee_asset_obj.get_id() != asset_id_type())
-            {
-                  for (auto &op : _builder_transactions[handle].operations)
-                        total_fee += gprops.current_fees->set_fee(op, fee_asset_obj.options.core_exchange_rate);
-
-                  FC_ASSERT((total_fee * fee_asset_obj.options.core_exchange_rate).amount <=
-                                get_object<asset_dynamic_data_object>(fee_asset_obj.dynamic_asset_data_id).fee_pool,
-                            "Cannot pay fees in ${asset}, as this asset's fee pool is insufficiently funded.",
-                            ("asset", fee_asset_obj.symbol));
-            }
-            else
-            {
-                  for (auto &op : _builder_transactions[handle].operations)
-                        total_fee += gprops.current_fees->set_fee(op);
-            }
-
-            return total_fee;
-      }
       transaction preview_builder_transaction(transaction_handle_type handle)
       {
             FC_ASSERT(_builder_transactions.count(handle));
@@ -948,26 +913,8 @@ class wallet_api_impl
             FC_ASSERT(_builder_transactions.count(transaction_handle));
             return _builder_transactions[transaction_handle] = sign_transaction(_builder_transactions[transaction_handle], broadcast);
       }
+
       signed_transaction propose_builder_transaction(
-          transaction_handle_type handle,
-          time_point_sec expiration = time_point::now() + fc::minutes(1),
-          uint32_t review_period_seconds = 0, bool broadcast = true)
-      {
-            FC_ASSERT(_builder_transactions.count(handle));
-            proposal_create_operation op;
-            op.expiration_time = expiration;
-            signed_transaction trx = _builder_transactions[handle];
-            std::transform(trx.operations.begin(), trx.operations.end(), std::back_inserter(op.proposed_ops),
-                           [](const operation &op) -> op_wrapper { return op; });
-            if (review_period_seconds)
-                  op.review_period_seconds = review_period_seconds;
-            trx.operations = {op};
-            _remote_db->get_global_properties().parameters.current_fees->set_fee(trx.operations.front());
-
-            return trx = sign_transaction(trx, broadcast);
-      }
-
-      signed_transaction propose_builder_transaction2(
           transaction_handle_type handle,
           string account_name_or_id,
           time_point_sec expiration = time_point::now() + fc::minutes(1),
@@ -983,7 +930,6 @@ class wallet_api_impl
             if (review_period_seconds)
                   op.review_period_seconds = review_period_seconds;
             trx.operations = {op};
-            _remote_db->get_global_properties().parameters.current_fees->set_fee(trx.operations.front());
 
             return trx = sign_transaction(trx, broadcast);
       }
@@ -997,8 +943,6 @@ class wallet_api_impl
                                           public_key_type owner,
                                           public_key_type active,
                                           string registrar_account,
-                                          string referrer_account,
-                                          uint32_t referrer_percent,
                                           bool broadcast = false)
       {
             try
@@ -1007,10 +951,6 @@ class wallet_api_impl
                   FC_ASSERT(is_valid_name(name));
                   account_create_operation account_create_op;
 
-                  // #449 referrer_percent is on 0-100 scale, if user has larger
-                  // number it means their script is using GRAPHENE_100_PERCENT scale
-                  // instead of 0-100 scale.
-                  FC_ASSERT(referrer_percent <= 100);
                   // TODO:  process when pay_from_account is ID
 
                   account_object registrar_account_object =
@@ -1018,11 +958,6 @@ class wallet_api_impl
                   FC_ASSERT(registrar_account_object.is_lifetime_member());
 
                   account_id_type registrar_account_id = registrar_account_object.id;
-
-                  account_object referrer_account_object =
-                      this->get_account(referrer_account);
-                  account_create_op.referrer = referrer_account_object.id;
-                  account_create_op.referrer_percent = uint16_t(referrer_percent * GRAPHENE_1_PERCENT);
 
                   account_create_op.registrar = registrar_account_id;
                   account_create_op.name = name;
@@ -1034,8 +969,6 @@ class wallet_api_impl
                   tx.operations.push_back(account_create_op);
 
                   auto current_fees = _remote_db->get_global_properties().parameters.current_fees;
-                  set_operation_fees(tx, current_fees);
-
                   vector<public_key_type> paying_keys = registrar_account_object.active.get_keys();
 
                   auto dyn_props = get_dynamic_global_properties();
@@ -1061,7 +994,7 @@ class wallet_api_impl
                         _remote_net_broadcast->broadcast_transaction(tx);
                   return tx;
             }
-            FC_CAPTURE_AND_RETHROW((name)(owner)(active)(registrar_account)(referrer_account)(referrer_percent)(broadcast))
+            FC_CAPTURE_AND_RETHROW((name)(owner)(active)(registrar_account)(broadcast))
       }
 
       signed_transaction upgrade_account(string name, bool broadcast)
@@ -1077,7 +1010,6 @@ class wallet_api_impl
                   op.account_to_upgrade = account_obj.get_id();
                   op.upgrade_to_lifetime_member = true;
                   tx.operations = {op};
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -1123,7 +1055,6 @@ class wallet_api_impl
       signed_transaction create_account_with_private_key(fc::ecc::private_key owner_privkey,
                                                          string account_name,
                                                          string registrar_account,
-                                                         string referrer_account,
                                                          bool broadcast = false,
                                                          bool save_wallet = true)
       {
@@ -1147,10 +1078,6 @@ class wallet_api_impl
 
                   account_id_type registrar_account_id = registrar_account_object.id;
 
-                  account_object referrer_account_object = get_account(referrer_account);
-                  account_create_op.referrer = referrer_account_object.id;
-                  account_create_op.referrer_percent = referrer_account_object.referrer_rewards_percentage;
-
                   account_create_op.registrar = registrar_account_id;
                   account_create_op.name = account_name;
                   account_create_op.owner = authority(1, owner_pubkey, 1);
@@ -1165,8 +1092,6 @@ class wallet_api_impl
                   signed_transaction tx;
 
                   tx.operations.push_back(account_create_op);
-
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
 
                   vector<public_key_type> paying_keys = registrar_account_object.active.get_keys();
 
@@ -1196,13 +1121,12 @@ class wallet_api_impl
                         _remote_net_broadcast->broadcast_transaction(tx);
                   return tx;
             }
-            FC_CAPTURE_AND_RETHROW((account_name)(registrar_account)(referrer_account)(broadcast))
+            FC_CAPTURE_AND_RETHROW((account_name)(registrar_account)(broadcast))
       }
 
       signed_transaction create_account_with_brain_key(string brain_key,
                                                        string account_name,
                                                        string registrar_account,
-                                                       string referrer_account,
                                                        bool broadcast = false,
                                                        bool save_wallet = true)
       {
@@ -1212,9 +1136,9 @@ class wallet_api_impl
                   string normalized_brain_key = normalize_brain_key(brain_key);
                   // TODO:  scan blockchain for accounts that exist with same brain key
                   fc::ecc::private_key owner_privkey = derive_private_key(normalized_brain_key, 0);
-                  return create_account_with_private_key(owner_privkey, account_name, registrar_account, referrer_account, broadcast, save_wallet);
+                  return create_account_with_private_key(owner_privkey, account_name, registrar_account, broadcast, save_wallet);
             }
-            FC_CAPTURE_AND_RETHROW((account_name)(registrar_account)(referrer_account))
+            FC_CAPTURE_AND_RETHROW((account_name)(registrar_account))
       }
 
       signed_transaction create_asset(string issuer,
@@ -1238,7 +1162,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(create_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -1271,7 +1194,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(update_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -1296,7 +1218,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(update_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -1324,7 +1245,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(update_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -1350,42 +1270,12 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(publish_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
             }
             FC_CAPTURE_AND_RETHROW((publishing_account)(symbol)(feed)(broadcast))
       }
-
-      signed_transaction fund_asset_fee_pool(string from,
-                                             string symbol,
-                                             string amount,
-                                             bool broadcast /* = false */)
-      {
-            try
-            {
-                  account_object from_account = get_account(from);
-                  fc::optional<asset_object> asset_to_fund = find_asset(symbol);
-                  if (!asset_to_fund)
-                        FC_THROW("No asset with that symbol exists!");
-                  asset_object core_asset = get_asset(asset_id_type());
-
-                  asset_fund_fee_pool_operation fund_op;
-                  fund_op.from_account = from_account.id;
-                  fund_op.asset_id = asset_to_fund->id;
-                  fund_op.amount = core_asset.amount_from_string(amount).amount;
-
-                  signed_transaction tx;
-                  tx.operations.push_back(fund_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
-                  tx.validate();
-
-                  return sign_transaction(tx, broadcast);
-            }
-            FC_CAPTURE_AND_RETHROW((from)(symbol)(amount)(broadcast))
-      }
-
       signed_transaction reserve_asset(string from,
                                        string amount,
                                        string symbol,
@@ -1404,7 +1294,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(reserve_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -1429,7 +1318,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(settle_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -1454,7 +1342,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(settle_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -1482,7 +1369,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -1504,7 +1390,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(whitelist_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -1526,14 +1411,26 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(committee_member_create_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
             }
             FC_CAPTURE_AND_RETHROW((owner_account)(broadcast))
       }
+      
+      signed_transaction update_committee_member(string committee_name,string url,bool work_status,bool broadcast /*= false*/)
+      {
+                  committee_member_update_operation  committee_member_update_op;
+                  committee_member_update_op.work_status=work_status;
+                  committee_member_update_op.new_url=url;
+                  committee_member_update_op.committee_member_account=get_account_id(committee_name);
+                  committee_member_update_op.committee_member=get_committee_member(committee_name).id;
+                  signed_transaction tx;
+                  tx.operations.push_back(committee_member_update_op);
+                  tx.validate();
+                  return sign_transaction(tx, broadcast);
 
+      }
       witness_object get_witness(string owner_account)
       {
             try
@@ -1613,9 +1510,9 @@ class wallet_api_impl
                   account_object witness_account = get_account(owner_account);
                   fc::ecc::private_key active_private_key = get_private_key_for_account(witness_account);
                   int witness_key_index = find_first_unused_derived_key_index(active_private_key);
-                  fc::ecc::private_key witness_private_key = derive_private_key(key_to_wif(active_private_key), witness_key_index);
+                  fc::ecc::private_key witness_private_key = derive_private_key(key_to_wif(active_private_key)+fc::sha224::hash(witness_account.name).str(), witness_key_index);
                   graphene::chain::public_key_type witness_public_key = witness_private_key.get_public_key();
-
+                  wdump((witness_public_key)(witness_private_key));
                   witness_create_operation witness_create_op;
                   witness_create_op.witness_account = witness_account.id;
                   witness_create_op.block_signing_key = witness_public_key;
@@ -1626,9 +1523,8 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(witness_create_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
-
+                  _keys.insert(make_pair(witness_public_key,key_to_wif(witness_private_key)));
                   _wallet.pending_witness_registrations[owner_account] = key_to_wif(witness_private_key);
 
                   return sign_transaction(tx, broadcast);
@@ -1639,6 +1535,7 @@ class wallet_api_impl
       signed_transaction update_witness(string witness_name,
                                         string url,
                                         string block_signing_key,
+                                        bool work_status,
                                         bool broadcast /* = false */)
       {
             try
@@ -1650,6 +1547,7 @@ class wallet_api_impl
                   witness_update_operation witness_update_op;
                   witness_update_op.witness = witness.id;
                   witness_update_op.witness_account = witness_account.id;
+                  witness_update_op.work_status=work_status;
                   if (url != "")
                         witness_update_op.new_url = url;
                   if (block_signing_key != "")
@@ -1657,126 +1555,11 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(witness_update_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
             }
             FC_CAPTURE_AND_RETHROW((witness_name)(url)(block_signing_key)(broadcast))
-      }
-
-      template <typename WorkerInit>
-      static WorkerInit _create_worker_initializer(const variant &worker_settings)
-      {
-            WorkerInit result;
-            from_variant(worker_settings, result);
-            return result;
-      }
-
-      signed_transaction create_worker(
-          string owner_account,
-          time_point_sec work_begin_date,
-          time_point_sec work_end_date,
-          share_type daily_pay,
-          string name,
-          string url,
-          variant worker_settings,
-          bool broadcast)
-      {
-            worker_initializer init;
-            std::string wtype = worker_settings["type"].get_string();
-
-            // TODO:  Use introspection to do this dispatch
-            if (wtype == "burn")
-                  init = _create_worker_initializer<burn_worker_initializer>(worker_settings);
-            else if (wtype == "refund")
-                  init = _create_worker_initializer<refund_worker_initializer>(worker_settings);
-            else if (wtype == "vesting")
-                  init = _create_worker_initializer<vesting_balance_worker_initializer>(worker_settings);
-            else
-            {
-                  FC_ASSERT(false, "unknown worker[\"type\"] value");
-            }
-
-            worker_create_operation op;
-            op.owner = get_account(owner_account).id;
-            op.work_begin_date = work_begin_date;
-            op.work_end_date = work_end_date;
-            op.daily_pay = daily_pay;
-            op.name = name;
-            op.url = url;
-            op.initializer = init;
-
-            signed_transaction tx;
-            tx.operations.push_back(op);
-            set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
-            tx.validate();
-
-            return sign_transaction(tx, broadcast);
-      }
-
-      signed_transaction update_worker_votes(
-          string account,
-          worker_vote_delta delta,
-          bool broadcast)
-      {
-            account_object acct = get_account(account);
-            account_update_operation op;
-
-            // you could probably use a faster algorithm for this, but flat_set is fast enough :)
-            flat_set<worker_id_type> merged;
-            merged.reserve(delta.vote_for.size() + delta.vote_against.size() + delta.vote_abstain.size());
-            for (const worker_id_type &wid : delta.vote_for)
-            {
-                  bool inserted = merged.insert(wid).second;
-                  FC_ASSERT(inserted, "worker ${wid} specified multiple times", ("wid", wid));
-            }
-            for (const worker_id_type &wid : delta.vote_against)
-            {
-                  bool inserted = merged.insert(wid).second;
-                  FC_ASSERT(inserted, "worker ${wid} specified multiple times", ("wid", wid));
-            }
-            for (const worker_id_type &wid : delta.vote_abstain)
-            {
-                  bool inserted = merged.insert(wid).second;
-                  FC_ASSERT(inserted, "worker ${wid} specified multiple times", ("wid", wid));
-            }
-
-            // should be enforced by FC_ASSERT's above
-            assert(merged.size() == delta.vote_for.size() + delta.vote_against.size() + delta.vote_abstain.size());
-
-            vector<object_id_type> query_ids;
-            for (const worker_id_type &wid : merged)
-                  query_ids.push_back(wid);
-
-            flat_set<vote_id_type> new_votes(acct.options.votes);
-
-            fc::variants objects = _remote_db->get_objects(query_ids);
-            for (const variant &obj : objects)
-            {
-                  worker_object wo;
-                  from_variant(obj, wo);
-                  new_votes.erase(wo.vote_for);
-                  new_votes.erase(wo.vote_against);
-                  if (delta.vote_for.find(wo.id) != delta.vote_for.end())
-                        new_votes.insert(wo.vote_for);
-                  else if (delta.vote_against.find(wo.id) != delta.vote_against.end())
-                        new_votes.insert(wo.vote_against);
-                  else
-                        assert(delta.vote_abstain.find(wo.id) != delta.vote_abstain.end());
-            }
-
-            account_update_operation update_op;
-            update_op.account = acct.id;
-            update_op.new_options = acct.options;
-            update_op.new_options->votes = new_votes;
-
-            signed_transaction tx;
-            tx.operations.push_back(update_op);
-            set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
-            tx.validate();
-
-            return sign_transaction(tx, broadcast);
       }
 
       vector<vesting_balance_object_with_info> get_vesting_balances(string account_name)
@@ -1836,7 +1619,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(vesting_balance_withdraw_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -1846,7 +1628,7 @@ class wallet_api_impl
 
       signed_transaction vote_for_committee_member(string voting_account,
                                                    string committee_member,
-                                                   bool approve,
+                                                   uint64_t approve,
                                                    bool broadcast /* = false */)
       {
             try
@@ -1858,23 +1640,18 @@ class wallet_api_impl
                         FC_THROW("Account ${committee_member} is not registered as a committee_member", ("committee_member", committee_member));
                   if (approve)
                   {
-                        auto insert_result = voting_account_object.options.votes.insert(committee_member_obj->vote_id);
-                        if (!insert_result.second)
-                              FC_THROW("Account ${account} was already voting for committee_member ${committee_member}", ("account", voting_account)("committee_member", committee_member));
+                        voting_account_object.options.votes.insert(committee_member_obj->vote_id);
                   }
                   else
                   {
-                        unsigned votes_removed = voting_account_object.options.votes.erase(committee_member_obj->vote_id);
-                        if (!votes_removed)
-                              FC_THROW("Account ${account} is already not voting for committee_member ${committee_member}", ("account", voting_account)("committee_member", committee_member));
+                        voting_account_object.options.votes.clear();
                   }
                   account_update_operation account_update_op;
                   account_update_op.account = voting_account_object.id;
                   account_update_op.new_options = voting_account_object.options;
-
+                  account_update_op.lock_with_vote=asset(approve);
                   signed_transaction tx;
                   tx.operations.push_back(account_update_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -1884,7 +1661,7 @@ class wallet_api_impl
 
       signed_transaction vote_for_witness(string voting_account,
                                           string witness,
-                                          bool approve,
+                                          int64_t approve,
                                           bool broadcast /* = false */)
       {
             try
@@ -1897,93 +1674,23 @@ class wallet_api_impl
                         FC_THROW("Account ${witness} is not registered as a witness", ("witness", witness));
                   if (approve)
                   {
-                        auto insert_result = voting_account_object.options.votes.insert(witness_obj->vote_id);
-                        if (!insert_result.second)
-                              FC_THROW("Account ${account} was already voting for witness ${witness}", ("account", voting_account)("witness", witness));
+                       voting_account_object.options.votes.insert(witness_obj->vote_id);
                   }
                   else
                   {
-                        unsigned votes_removed = voting_account_object.options.votes.erase(witness_obj->vote_id);
-                        if (!votes_removed)
-                              FC_THROW("Account ${account} is already not voting for witness ${witness}", ("account", voting_account)("witness", witness));
+                        voting_account_object.options.votes.clear();
                   }
                   account_update_operation account_update_op;
                   account_update_op.account = voting_account_object.id;
                   account_update_op.new_options = voting_account_object.options;
-
+                  account_update_op.lock_with_vote=asset(approve);
                   signed_transaction tx;
                   tx.operations.push_back(account_update_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
             }
             FC_CAPTURE_AND_RETHROW((voting_account)(witness)(approve)(broadcast))
-      }
-
-      signed_transaction set_voting_proxy(string account_to_modify,
-                                          fc::optional<string> voting_account,
-                                          bool broadcast /* = false */)
-      {
-            try
-            {
-                  account_object account_object_to_modify = get_account(account_to_modify);
-                  if (voting_account)
-                  {
-                        account_id_type new_voting_account_id = get_account_id(*voting_account);
-                        if (account_object_to_modify.options.voting_account == new_voting_account_id)
-                              FC_THROW("Voting proxy for ${account} is already set to ${voter}", ("account", account_to_modify)("voter", *voting_account));
-                        account_object_to_modify.options.voting_account = new_voting_account_id;
-                  }
-                  else
-                  {
-                        if (account_object_to_modify.options.voting_account == GRAPHENE_NULL_ACCOUNT)
-                              FC_THROW("Account ${account} is already voting for itself", ("account", account_to_modify));
-                        account_object_to_modify.options.voting_account = GRAPHENE_NULL_ACCOUNT;
-                  }
-
-                  account_update_operation account_update_op;
-                  account_update_op.account = account_object_to_modify.id;
-                  account_update_op.new_options = account_object_to_modify.options;
-
-                  signed_transaction tx;
-                  tx.operations.push_back(account_update_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
-                  tx.validate();
-
-                  return sign_transaction(tx, broadcast);
-            }
-            FC_CAPTURE_AND_RETHROW((account_to_modify)(voting_account)(broadcast))
-      }
-
-      signed_transaction set_desired_witness_and_committee_member_count(string account_to_modify,
-                                                                        uint16_t desired_number_of_witnesses,
-                                                                        uint16_t desired_number_of_committee_members,
-                                                                        bool broadcast /* = false */)
-      {
-            try
-            {
-                  account_object account_object_to_modify = get_account(account_to_modify);
-
-                  if (account_object_to_modify.options.num_witness == desired_number_of_witnesses &&
-                      account_object_to_modify.options.num_committee == desired_number_of_committee_members)
-                        FC_THROW("Account ${account} is already voting for ${witnesses} witnesses and ${committee_members} committee_members",
-                                 ("account", account_to_modify)("witnesses", desired_number_of_witnesses)("committee_members", desired_number_of_witnesses));
-                  account_object_to_modify.options.num_witness = desired_number_of_witnesses;
-                  account_object_to_modify.options.num_committee = desired_number_of_committee_members;
-
-                  account_update_operation account_update_op;
-                  account_update_op.account = account_object_to_modify.id;
-                  account_update_op.new_options = account_object_to_modify.options;
-
-                  signed_transaction tx;
-                  tx.operations.push_back(account_update_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
-                  tx.validate();
-
-                  return sign_transaction(tx, broadcast);
-            }
-            FC_CAPTURE_AND_RETHROW((account_to_modify)(desired_number_of_witnesses)(desired_number_of_committee_members)(broadcast))
       }
 
       signed_transaction sign_transaction(signed_transaction tx, bool broadcast = false)
@@ -2137,7 +1844,6 @@ class wallet_api_impl
 
             signed_transaction tx;
             tx.operations.push_back(op);
-            set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
             tx.validate();
 
             return sign_transaction(tx, broadcast);
@@ -2158,7 +1864,6 @@ class wallet_api_impl
 
             signed_transaction trx;
             trx.operations = {op};
-            set_operation_fees(trx, _remote_db->get_global_properties().parameters.current_fees);
             trx.validate();
             idump((broadcast));
 
@@ -2177,7 +1882,6 @@ class wallet_api_impl
                   op.fee_paying_account = get_object<limit_order_object>(order_id).seller;
                   op.order = order_id;
                   trx.operations = {op};
-                  set_operation_fees(trx, _remote_db->get_global_properties().parameters.current_fees);
 
                   trx.validate();
                   return sign_transaction(trx, broadcast);
@@ -2216,7 +1920,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(xfer_op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -2225,6 +1928,25 @@ class wallet_api_impl
       }
 
       /************************************************nico add**********************************************************************************/
+      signed_transaction update_collateral_for_gas( account_id_type  mortgager,account_id_type  beneficiary,share_type  collateral,bool broadcast=false)
+      {
+
+            try
+            {
+                  FC_ASSERT(!self.is_locked());
+                  FC_ASSERT(collateral>=0);
+                  update_collateral_for_gas_operation op;
+                  op.mortgager=mortgager;
+                  op.beneficiary=beneficiary;
+                  op.collateral=collateral;
+                  signed_transaction tx;
+                  tx.operations.push_back(op);
+                  tx.validate();
+                  return sign_transaction(tx, broadcast);
+            }
+            FC_CAPTURE_AND_RETHROW((mortgager)(beneficiary)(collateral)(broadcast))
+
+      }
 
       signed_transaction create_contract(string owner, string name, public_key_type contract_authority, string data, bool broadcast = false) // wallet 合约 API
       {
@@ -2244,7 +1966,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -2270,7 +1991,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -2297,7 +2017,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -2323,7 +2042,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -2343,7 +2061,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(regi_op);
-                  set_operation_fees(tx, current_params.current_fees);
                   tx.validate();
                   return sign_transaction(tx, broadcast);
             }
@@ -2363,7 +2080,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(cr_op);
-                  set_operation_fees(tx, current_params.current_fees);
                   tx.validate();
                   return sign_transaction(tx, broadcast);
             }
@@ -2393,11 +2109,9 @@ class wallet_api_impl
                   prop_op.fee_paying_account = get_account(proposing_account).id;
 
                   prop_op.proposed_ops.emplace_back(relate_op);
-                  current_params.current_fees->set_fee(prop_op.proposed_ops.back().op);
 
                   signed_transaction tx;
                   tx.operations.push_back(prop_op);
-                  set_operation_fees(tx, current_params.current_fees);
                   tx.validate();
                   return sign_transaction(tx, broadcast);
             }
@@ -2428,7 +2142,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(create_op);
-                  set_operation_fees(tx, current_params.current_fees);
                   tx.validate();
                   return sign_transaction(tx, broadcast);
             }
@@ -2452,7 +2165,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(tr_op);
-                  set_operation_fees(tx, current_params.current_fees);
                   tx.validate();
                   return sign_transaction(tx, broadcast);
             }
@@ -2479,7 +2191,6 @@ class wallet_api_impl
                   op.contract = contract.id;
                   op.relate = relate;
                   trx.operations = {op};
-                  set_operation_fees(trx, _remote_db->get_global_properties().parameters.current_fees);
                   trx.validate();
                   return sign_transaction(trx, broadcast);
             }
@@ -2505,7 +2216,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(del_op);
-                  set_operation_fees(tx, current_params.current_fees);
                   tx.validate();
                   return sign_transaction(tx, broadcast);
             }
@@ -2542,7 +2252,6 @@ class wallet_api_impl
 
                   signed_transaction tx;
                   tx.operations.push_back(cr_op);
-                  set_operation_fees(tx, current_params.current_fees);
                   tx.validate();
                   return sign_transaction(tx, broadcast);
             }
@@ -2561,7 +2270,6 @@ class wallet_api_impl
                   op.fee_paying_account = get_object<nh_asset_order_object>(order_id).seller;
                   op.order = order_id;
                   trx.operations = {op};
-                  set_operation_fees(trx, _remote_db->get_global_properties().parameters.current_fees);
 
                   trx.validate();
                   return sign_transaction(trx, broadcast);
@@ -2586,7 +2294,6 @@ class wallet_api_impl
                   op.price_asset_id = order_obj.price.asset_id;
                   op.price_asset_symbol = get_asset(order_obj.price.asset_id).symbol;
                   trx.operations = {op};
-                  set_operation_fees(trx, _remote_db->get_global_properties().parameters.current_fees);
 
                   trx.validate();
                   return sign_transaction(trx, broadcast);
@@ -2609,7 +2316,6 @@ class wallet_api_impl
                   op.file_content = file_content;
 
                   trx.operations = {op};
-                  set_operation_fees(trx, _remote_db->get_global_properties().parameters.current_fees);
 
                   trx.validate();
                   return sign_transaction(trx, broadcast);
@@ -2635,7 +2341,6 @@ class wallet_api_impl
 
                   trx.operations = {op};
                   trx.validate();
-                  set_operation_fees(trx, _remote_db->get_global_properties().parameters.current_fees);
 
                   return sign_transaction(trx, broadcast);
             }
@@ -2659,7 +2364,6 @@ class wallet_api_impl
 
                   trx.operations = {op};
                   trx.validate();
-                  set_operation_fees(trx, _remote_db->get_global_properties().parameters.current_fees);
 
                   return sign_transaction(trx, broadcast);
             }
@@ -2692,9 +2396,7 @@ class wallet_api_impl
                   prop_op.fee_paying_account = get_account(file_creator).id;
 
                   prop_op.proposed_ops.emplace_back(op);
-                  current_params.current_fees->set_fee(prop_op.proposed_ops.back().op);
                   trx.operations = {prop_op};
-                  set_operation_fees(trx, _remote_db->get_global_properties().parameters.current_fees);
 
                   trx.validate();
                   return sign_transaction(trx, broadcast);
@@ -2721,11 +2423,9 @@ class wallet_api_impl
                   for (auto iter = crontab_ops.begin(); iter != crontab_ops.end(); iter++)
                   {
                         op.crontab_ops.emplace_back(*iter);
-                        current_params.current_fees->set_fee(op.crontab_ops.back().op);
                   }
                   trx.operations = {op};
                   trx.validate();
-                  set_operation_fees(trx, current_params.current_fees);
 
                   return sign_transaction(trx, broadcast);
             }
@@ -2745,7 +2445,6 @@ class wallet_api_impl
             std::transform(trx.operations.begin(), trx.operations.end(), std::back_inserter(op.crontab_ops),
                            [](const operation &op) -> op_wrapper { return op; });
             trx.operations = {op};
-            _remote_db->get_global_properties().parameters.current_fees->set_fee(trx.operations.front());
             return trx = sign_transaction(trx, broadcast);
       }
 
@@ -2764,7 +2463,6 @@ class wallet_api_impl
 
                   trx.operations = {op};
                   trx.validate();
-                  set_operation_fees(trx, current_params.current_fees);
 
                   return sign_transaction(trx, broadcast);
             }
@@ -2787,7 +2485,6 @@ class wallet_api_impl
 
                   trx.operations = {op};
                   trx.validate();
-                  set_operation_fees(trx, current_params.current_fees);
 
                   return sign_transaction(trx, broadcast);
             }
@@ -2808,7 +2505,6 @@ class wallet_api_impl
                   op.isadd=isadd;
                   trx.operations = {op};
                   trx.validate();
-                  set_operation_fees(trx, get_global_properties().parameters.current_fees);
                   return sign_transaction(trx, broadcast);
 
             }
@@ -2839,7 +2535,6 @@ class wallet_api_impl
 
             signed_transaction tx;
             tx.operations.push_back(issue_op);
-            set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
             tx.validate();
 
             return sign_transaction(tx, broadcast);
@@ -2900,73 +2595,6 @@ class wallet_api_impl
                   for (unsigned i = 0; i < asset_recs.size(); ++i)
                         ss << asset_recs[i].amount_to_pretty_string(r[i]) << "\n";
 
-                  return ss.str();
-            };
-
-            m["get_blind_balances"] = [this](variant result, const fc::variants &a) {
-                  auto r = result.as<vector<asset>>();
-                  vector<asset_object> asset_recs;
-                  std::transform(r.begin(), r.end(), std::back_inserter(asset_recs), [this](const asset &a) {
-                        return get_asset(a.asset_id);
-                  });
-
-                  std::stringstream ss;
-                  for (unsigned i = 0; i < asset_recs.size(); ++i)
-                        ss << asset_recs[i].amount_to_pretty_string(r[i]) << "\n";
-
-                  return ss.str();
-            };
-            m["transfer_to_blind"] = [this](variant result, const fc::variants &a) {
-                  auto r = result.as<blind_confirmation>();
-                  std::stringstream ss;
-                  r.trx.operations[0].visit(operation_printer(ss, *this, operation_result()));
-                  ss << "\n";
-                  for (const auto &out : r.outputs)
-                  {
-                        asset_object a = get_asset(out.decrypted_memo.amount.asset_id);
-                        ss << a.amount_to_pretty_string(out.decrypted_memo.amount) << " to  " << out.label << "\n\t  receipt: " << out.confirmation_receipt << "\n\n";
-                  }
-                  return ss.str();
-            };
-            m["blind_transfer"] = [this](variant result, const fc::variants &a) {
-                  auto r = result.as<blind_confirmation>();
-                  std::stringstream ss;
-                  r.trx.operations[0].visit(operation_printer(ss, *this, operation_result()));
-                  ss << "\n";
-                  for (const auto &out : r.outputs)
-                  {
-                        asset_object a = get_asset(out.decrypted_memo.amount.asset_id);
-                        ss << a.amount_to_pretty_string(out.decrypted_memo.amount) << " to  " << out.label << "\n\t  receipt: " << out.confirmation_receipt << "\n\n";
-                  }
-                  return ss.str();
-            };
-            m["receive_blind_transfer"] = [this](variant result, const fc::variants &a) {
-                  auto r = result.as<blind_receipt>();
-                  std::stringstream ss;
-                  asset_object as = get_asset(r.amount.asset_id);
-                  ss << as.amount_to_pretty_string(r.amount) << "  " << r.from_label << "  =>  " << r.to_label << "  " << r.memo << "\n";
-                  return ss.str();
-            };
-            m["blind_history"] = [this](variant result, const fc::variants &a) {
-                  auto records = result.as<vector<blind_receipt>>();
-                  std::stringstream ss;
-                  ss << "WHEN         "
-                     << "  "
-                     << "AMOUNT"
-                     << "  "
-                     << "FROM"
-                     << "  =>  "
-                     << "TO"
-                     << "  "
-                     << "MEMO"
-                     << "\n";
-                  ss << "====================================================================================\n";
-                  for (auto &r : records)
-                  {
-                        asset_object as = get_asset(r.amount.asset_id);
-                        ss << fc::get_approximate_relative_time_string(r.date)
-                           << "  " << as.amount_to_pretty_string(r.amount) << "  " << r.from_label << "  =>  " << r.to_label << "  " << r.memo << "\n";
-                  }
                   return ss.str();
             };
             m["get_order_book"] = [this](variant result, const fc::variants &a) {
@@ -3057,11 +2685,27 @@ class wallet_api_impl
       }
 
       signed_transaction propose_parameter_change(const string &proposing_account, fc::time_point_sec expiration_time,
-                                                  const variant_object &changed_values, bool broadcast = false)
+                                                  const variant_object &changed_values,fc::optional<proposal_id_type> proposal_base, bool broadcast = false)
       {
             FC_ASSERT(!changed_values.contains("current_fees"));
-
-            const chain_parameters &current_params = get_global_properties().parameters;
+            chain_parameters current_params;
+            bool on_proposal=false;
+            if(proposal_base.valid())
+            {
+                  const proposal_object proposal_base_ob=get_object(*proposal_base);
+                  for(auto&temp_op:proposal_base_ob.proposed_transaction.operations)
+                  {
+                        if(temp_op.which()==operation::tag<committee_member_update_global_parameters_operation>::value)
+                        {
+                              current_params=temp_op.get<committee_member_update_global_parameters_operation>().new_parameters;
+                              on_proposal=true;
+                              break;
+                        }
+                  }
+            
+            }
+            if(!on_proposal)
+             current_params=get_global_properties().parameters;
             chain_parameters new_params = current_params;
             fc::reflector<chain_parameters>::visit(
                 fc::from_variant_visitor<chain_parameters>(changed_values, new_params));
@@ -3076,20 +2720,36 @@ class wallet_api_impl
             prop_op.fee_paying_account = get_account(proposing_account).id;
 
             prop_op.proposed_ops.emplace_back(update_op);
-            current_params.current_fees->set_fee(prop_op.proposed_ops.back().op);
 
             signed_transaction tx;
             tx.operations.push_back(prop_op);
-            set_operation_fees(tx, current_params.current_fees);
             tx.validate();
 
             return sign_transaction(tx, broadcast);
       }
 
       signed_transaction propose_fee_change(const string &proposing_account, fc::time_point_sec expiration_time,
-                                            const variant_object &changed_fees, bool broadcast = false)
+                                            const variant_object &changed_fees,fc::optional<proposal_id_type> proposal_base, bool broadcast = false)
       {
-            const chain_parameters &current_params = get_global_properties().parameters;
+            
+            chain_parameters current_params;
+            bool on_proposal=false;
+            if(proposal_base.valid())
+            {
+                  const proposal_object proposal_base_ob=get_object(*proposal_base);
+                  for(auto&temp_op:proposal_base_ob.proposed_transaction.operations)
+                  {
+                        if(temp_op.which()==operation::tag<committee_member_update_global_parameters_operation>::value)
+                        {
+                              current_params=temp_op.get<committee_member_update_global_parameters_operation>().new_parameters;
+                              on_proposal=true;
+                              break;
+                        }
+                  }
+            
+            }
+            if(!on_proposal)
+             current_params=get_global_properties().parameters;
             const fee_schedule_type &current_fees = *(current_params.current_fees);
 
             flat_map<int, fee_parameters> fee_map;
@@ -3163,11 +2823,9 @@ class wallet_api_impl
             prop_op.fee_paying_account = get_account(proposing_account).id;
 
             prop_op.proposed_ops.emplace_back(update_op);
-            current_params.current_fees->set_fee(prop_op.proposed_ops.back().op);
 
             signed_transaction tx;
             tx.operations.push_back(prop_op);
-            set_operation_fees(tx, current_params.current_fees);
             tx.validate();
 
             return sign_transaction(tx, broadcast);
@@ -3197,29 +2855,10 @@ class wallet_api_impl
 
             signed_transaction tx;
             tx.operations.push_back(update_op);
-            set_operation_fees(tx, get_global_properties().parameters.current_fees);
             tx.validate();
             return sign_transaction(tx, broadcast);
       }
 
-      void dbg_make_uia(string creator, string symbol)
-      {
-            asset_options opts;
-            opts.flags &= ~(white_list | disable_force_settle | global_settle);
-            opts.issuer_permissions = opts.flags;
-            opts.core_exchange_rate = price(asset(1), asset(1, asset_id_type(1)));
-            create_asset(get_account(creator).name, symbol, 2, opts, {}, true);
-      }
-
-      void dbg_make_mia(string creator, string symbol)
-      {
-            asset_options opts;
-            opts.flags &= ~white_list;
-            opts.issuer_permissions = opts.flags;
-            opts.core_exchange_rate = price(asset(1), asset(1, asset_id_type(1)));
-            bitasset_options bopts;
-            create_asset(get_account(creator).name, symbol, 2, opts, bopts, true);
-      }
 
       void dbg_push_blocks(const std::string &src_filename, uint32_t count)
       {
@@ -3311,58 +2950,6 @@ class wallet_api_impl
             return result;
       }
 
-      void flood_network(string prefix, uint32_t number_of_transactions)
-      {
-            try
-            {
-                  const account_object &master = *_wallet.my_accounts.get<by_name>().lower_bound("import");
-                  int number_of_accounts = number_of_transactions / 3;
-                  number_of_transactions -= number_of_accounts;
-                  //auto key = derive_private_key("floodshill", 0);
-                  try
-                  {
-                        dbg_make_uia(master.name, "SHILL");
-                  }
-                  catch (...)
-                  { /* Ignore; the asset probably already exists.*/
-                  }
-
-                  fc::time_point start = fc::time_point::now();
-                  for (int i = 0; i < number_of_accounts; ++i)
-                  {
-                        std::ostringstream brain_key;
-                        brain_key << "brain key for account " << prefix << i;
-                        signed_transaction trx = create_account_with_brain_key(brain_key.str(), prefix + fc::to_string(i), master.name, master.name, /* broadcast = */ true, /* save wallet = */ false);
-                  }
-                  fc::time_point end = fc::time_point::now();
-                  ilog("Created ${n} accounts in ${time} milliseconds",
-                       ("n", number_of_accounts)("time", (end - start).count() / 1000));
-
-                  start = fc::time_point::now();
-                  for (int i = 0; i < number_of_accounts; ++i)
-                  {
-                        signed_transaction trx = transfer(master.name, prefix + fc::to_string(i), "10", "CORE", "", true);
-                        trx = transfer(master.name, prefix + fc::to_string(i), "1", "CORE", "", true);
-                  }
-                  end = fc::time_point::now();
-                  ilog("Transferred to ${n} accounts in ${time} milliseconds",
-                       ("n", number_of_accounts * 2)("time", (end - start).count() / 1000));
-
-                  start = fc::time_point::now();
-                  for (int i = 0; i < number_of_accounts; ++i)
-                  {
-                        signed_transaction trx = issue_asset(prefix + fc::to_string(i), "1000", "SHILL", "", true);
-                  }
-                  end = fc::time_point::now();
-                  ilog("Issued to ${n} accounts in ${time} milliseconds",
-                       ("n", number_of_accounts)("time", (end - start).count() / 1000));
-            }
-            catch (...)
-            {
-                  throw;
-            }
-      }
-
       operation get_prototype_operation_by_name(string operation_name)
       {
             auto it = _prototype_ops.find(operation_name);
@@ -3412,15 +2999,12 @@ std::string operation_printer::operator()(const T &op) const
 {
       //balance_accumulator acc;
       //op.get_balance_delta( acc, result );
-      auto a = wallet.get_asset(op.fee.asset_id);
       auto payer = wallet.get_account(op.fee_payer());
 
       string op_name = fc::get_typename<T>::name();
       if (op_name.find_last_of(':') != string::npos)
             op_name.erase(0, op_name.find_last_of(':') + 1);
       out << op_name << " ";
-      // out << "balance delta: " << fc::json::to_string(acc.balance) <<"   ";
-      out << payer.name << " fee: " << a.amount_to_pretty_string(op.fee);
       operation_result_printer rprinter(wallet);
       std::string str_result = result.visit(rprinter);
       if (str_result != "")
@@ -3429,78 +3013,15 @@ std::string operation_printer::operator()(const T &op) const
       }
       return "";
 }
-std::string operation_printer::operator()(const transfer_from_blind_operation &op) const
-{
-      auto a = wallet.get_asset(op.fee.asset_id);
-      auto receiver = wallet.get_account(op.to);
-
-      out << receiver.name
-          << " received " << a.amount_to_pretty_string(op.amount) << " from blinded balance";
-      return "";
-}
-std::string operation_printer::operator()(const transfer_to_blind_operation &op) const
-{
-      auto fa = wallet.get_asset(op.fee.asset_id);
-      auto a = wallet.get_asset(op.amount.asset_id);
-      auto sender = wallet.get_account(op.from);
-
-      out << sender.name
-          << " sent " << a.amount_to_pretty_string(op.amount) << " to " << op.outputs.size() << " blinded balance" << (op.outputs.size() > 1 ? "s" : "")
-          << " fee: " << fa.amount_to_pretty_string(op.fee);
-      return "";
-}
-string operation_printer::operator()(const transfer_operation &op) const
-{
-      out << "Transfer " << wallet.get_asset(op.amount.asset_id).amount_to_pretty_string(op.amount)
-          << " from " << wallet.get_account(op.from).name << " to " << wallet.get_account(op.to).name;
-      std::string memo;
-      if (op.memo)
-      {
-            if (wallet.is_locked())
-            {
-                  out << " -- Unlock wallet to see memo.";
-            }
-            else
-            {
-                  try
-                  {
-                        FC_ASSERT(wallet._keys.count(op.memo->to) || wallet._keys.count(op.memo->from), "Memo is encrypted to a key ${to} or ${from} not in this wallet.", ("to", op.memo->to)("from", op.memo->from));
-                        if (wallet._keys.count(op.memo->to))
-                        {
-                              auto my_key = wif_to_key(wallet._keys.at(op.memo->to));
-                              FC_ASSERT(my_key, "Unable to recover private key to decrypt memo. Wallet may be corrupted.");
-                              memo = op.memo->get_message(*my_key, op.memo->from);
-                              out << " -- Memo: " << memo;
-                        }
-                        else
-                        {
-                              auto my_key = wif_to_key(wallet._keys.at(op.memo->from));
-                              FC_ASSERT(my_key, "Unable to recover private key to decrypt memo. Wallet may be corrupted.");
-                              memo = op.memo->get_message(*my_key, op.memo->to);
-                              out << " -- Memo: " << memo;
-                        }
-                  }
-                  catch (const fc::exception &e)
-                  {
-                        out << " -- could not decrypt memo";
-                        elog("Error when decrypting memo: ${e}", ("e", e.to_detail_string()));
-                  }
-            }
-      }
-      fee(op.fee);
-      return memo;
-}
 
 std::string operation_printer::operator()(const account_create_operation &op) const
 {
       out << "Create Account '" << op.name << "'";
-      return fee(op.fee);
 }
 
 std::string operation_printer::operator()(const account_update_operation &op) const
 {
       out << "Update Account '" << wallet.get_account(op.account).name << "'";
-      return fee(op.fee);
 }
 
 std::string operation_printer::operator()(const asset_create_operation &op) const
@@ -3511,7 +3032,6 @@ std::string operation_printer::operator()(const asset_create_operation &op) cons
       else
             out << "User-Issue Asset ";
       out << "'" << op.symbol << "' with issuer " << wallet.get_account(op.issuer).name;
-      return fee(op.fee);
 }
 
 std::string operation_result_printer::operator()(const void_result &x) const
@@ -3784,11 +3304,6 @@ void wallet_api::replace_operation_in_builder_transaction(transaction_handle_typ
       my->replace_operation_in_builder_transaction(handle, operation_index, new_op);
 }
 
-asset wallet_api::set_fees_on_builder_transaction(transaction_handle_type handle, string fee_asset)
-{
-      return my->set_fees_on_builder_transaction(handle, fee_asset);
-}
-
 transaction wallet_api::preview_builder_transaction(transaction_handle_type handle)
 {
       return my->preview_builder_transaction(handle);
@@ -3800,24 +3315,16 @@ pair<tx_hash_type, signed_transaction> wallet_api::sign_builder_transaction(tran
       return std::make_pair(tx.hash(), tx);
 }
 
-pair<tx_hash_type, signed_transaction> wallet_api::propose_builder_transaction(
-    transaction_handle_type handle,
-    time_point_sec expiration,
-    uint32_t review_period_seconds,
-    bool broadcast)
-{
-      auto tx = my->propose_builder_transaction(handle, expiration, review_period_seconds, broadcast);
-      return std::make_pair(tx.hash(), tx);
-}
 
-pair<tx_hash_type, signed_transaction> wallet_api::propose_builder_transaction2(
+
+pair<tx_hash_type, signed_transaction> wallet_api::propose_builder_transaction(
     transaction_handle_type handle,
     string account_name_or_id,
     time_point_sec expiration,
     uint32_t review_period_seconds,
     bool broadcast)
 {
-      auto tx = my->propose_builder_transaction2(handle, account_name_or_id, expiration, review_period_seconds, broadcast);
+      auto tx = my->propose_builder_transaction(handle, account_name_or_id, expiration, review_period_seconds, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 
@@ -3874,121 +3381,6 @@ bool wallet_api::import_key(string account_name_or_id, string wif_key)
       return false;
 }
 
-map<string, bool> wallet_api::import_accounts(string filename, string password)
-{
-      FC_ASSERT(!is_locked());
-      FC_ASSERT(fc::exists(filename));
-
-      const auto imported_keys = fc::json::from_file<exported_keys>(filename);
-
-      const auto password_hash = fc::sha512::hash(password);
-      FC_ASSERT(fc::sha512::hash(password_hash) == imported_keys.password_checksum);
-
-      map<string, bool> result;
-      for (const auto &item : imported_keys.account_keys)
-      {
-            const auto import_this_account = [&]() -> bool {
-                  try
-                  {
-                        const account_object account = get_account(item.account_name);
-                        const auto &owner_keys = account.owner.get_keys();
-                        const auto &active_keys = account.active.get_keys();
-
-                        for (const auto &public_key : item.public_keys)
-                        {
-                              if (std::find(owner_keys.begin(), owner_keys.end(), public_key) != owner_keys.end())
-                                    return true;
-
-                              if (std::find(active_keys.begin(), active_keys.end(), public_key) != active_keys.end())
-                                    return true;
-                        }
-                  }
-                  catch (...)
-                  {
-                  }
-
-                  return false;
-            };
-
-            const auto should_proceed = import_this_account();
-            result[item.account_name] = should_proceed;
-
-            if (should_proceed)
-            {
-                  uint32_t import_successes = 0;
-                  uint32_t import_failures = 0;
-                  // TODO: First check that all private keys match public keys
-                  for (const auto &encrypted_key : item.encrypted_private_keys)
-                  {
-                        try
-                        {
-                              const auto plain_text = fc::aes_decrypt(password_hash, encrypted_key);
-                              const auto private_key = fc::raw::unpack<private_key_type>(plain_text);
-
-                              import_key(item.account_name, string(graphene::utilities::key_to_wif(private_key)));
-                              ++import_successes;
-                        }
-                        catch (const fc::exception &e)
-                        {
-                              elog("Couldn't import key due to exception ${e}", ("e", e.to_detail_string()));
-                              ++import_failures;
-                        }
-                  }
-                  ilog("successfully imported ${n} keys for account ${name}", ("n", import_successes)("name", item.account_name));
-                  if (import_failures > 0)
-                        elog("failed to import ${n} keys for account ${name}", ("n", import_failures)("name", item.account_name));
-            }
-      }
-
-      return result;
-}
-
-bool wallet_api::import_account_keys(string filename, string password, string src_account_name, string dest_account_name)
-{
-      FC_ASSERT(!is_locked());
-      FC_ASSERT(fc::exists(filename));
-
-      bool is_my_account = false;
-      const auto accounts = list_my_accounts();
-      for (const auto &account : accounts)
-      {
-            if (account.name == dest_account_name)
-            {
-                  is_my_account = true;
-                  break;
-            }
-      }
-      FC_ASSERT(is_my_account);
-
-      const auto imported_keys = fc::json::from_file<exported_keys>(filename);
-
-      const auto password_hash = fc::sha512::hash(password);
-      FC_ASSERT(fc::sha512::hash(password_hash) == imported_keys.password_checksum);
-
-      bool found_account = false;
-      for (const auto &item : imported_keys.account_keys)
-      {
-            if (item.account_name != src_account_name)
-                  continue;
-
-            found_account = true;
-
-            for (const auto &encrypted_key : item.encrypted_private_keys)
-            {
-                  const auto plain_text = fc::aes_decrypt(password_hash, encrypted_key);
-                  const auto private_key = fc::raw::unpack<private_key_type>(plain_text);
-
-                  my->import_key(dest_account_name, string(graphene::utilities::key_to_wif(private_key)));
-            }
-
-            return true;
-      }
-      save_wallet_file();
-
-      FC_ASSERT(found_account);
-
-      return false;
-}
 
 string wallet_api::normalize_brain_key(string s) const
 {
@@ -4014,20 +3406,17 @@ pair<tx_hash_type, signed_transaction> wallet_api::register_account(string name,
                                                                     public_key_type owner_pubkey,
                                                                     public_key_type active_pubkey,
                                                                     string registrar_account,
-                                                                    string referrer_account,
-                                                                    uint32_t referrer_percent,
                                                                     bool broadcast)
 {
-      auto tx = my->register_account(name, owner_pubkey, active_pubkey, registrar_account, referrer_account, referrer_percent, broadcast);
+      auto tx = my->register_account(name, owner_pubkey, active_pubkey, registrar_account, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 pair<tx_hash_type, signed_transaction> wallet_api::create_account_with_brain_key(string brain_key, string account_name,
-                                                                                 string registrar_account, string referrer_account,
+                                                                                 string registrar_account,
                                                                                  bool broadcast /* = false */)
 {
       auto tx = my->create_account_with_brain_key(
-          brain_key, account_name, registrar_account,
-          referrer_account, broadcast);
+          brain_key, account_name, registrar_account, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 pair<tx_hash_type, signed_transaction> wallet_api::issue_asset(string to_account, string amount, string symbol,
@@ -4068,6 +3457,12 @@ pair<tx_hash_type, signed_transaction> wallet_api::create_contract(string owner,
 pair<tx_hash_type, signed_transaction> wallet_api::revise_contract(string reviser, string contract_id_or_name, string data, bool broadcast /*= false*/)
 {
       auto tx = my->revise_contract(reviser, contract_id_or_name, data, broadcast);
+      return std::make_pair(tx.hash(), tx);
+}
+
+pair<tx_hash_type, signed_transaction> wallet_api::update_collateral_for_gas( account_id_type  mortgager,account_id_type  beneficiary,share_type  collateral,bool broadcast)
+{
+      auto tx=my->update_collateral_for_gas(mortgager,beneficiary,collateral,broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 
@@ -4142,11 +3537,11 @@ pair<tx_hash_type, signed_transaction> wallet_api::create_nh_asset(
 }
 
 std::pair<vector<nh_asset_object>, uint32_t> wallet_api::list_nh_asset_by_creator(
-    const string &nh_asset_creator,
+    const string &nh_asset_creator,const string& world_view,
     uint32_t pagesize,
     uint32_t page)
 {
-      return (my->_remote_db->list_nh_asset_by_creator(get_account(nh_asset_creator).id, pagesize, page));
+      return (my->_remote_db->list_nh_asset_by_creator(get_account(nh_asset_creator).id,world_view, pagesize, page));
 }
 
 std::pair<vector<nh_asset_object>, uint32_t> wallet_api::list_account_nh_asset(
@@ -4407,15 +3802,6 @@ pair<tx_hash_type, signed_transaction> wallet_api::publish_asset_feed(string pub
       return std::make_pair(tx.hash(), tx);
 }
 
-pair<tx_hash_type, signed_transaction> wallet_api::fund_asset_fee_pool(string from,
-                                                                       string symbol,
-                                                                       string amount,
-                                                                       bool broadcast /* = false */)
-{
-      auto tx = my->fund_asset_fee_pool(from, symbol, amount, broadcast);
-      return std::make_pair(tx.hash(), tx);
-}
-
 pair<tx_hash_type, signed_transaction> wallet_api::reserve_asset(string from,
                                                                  string amount,
                                                                  string symbol,
@@ -4468,7 +3854,12 @@ pair<tx_hash_type, signed_transaction> wallet_api::create_committee_member(strin
       auto tx = my->create_committee_member(owner_account, url, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
-
+pair<tx_hash_type, signed_transaction> wallet_api::update_committee_member(string committee_account, string url,bool work_status,
+                                                                           bool broadcast /* = false */)
+{
+      auto tx = my->update_committee_member(committee_account, url,work_status, broadcast);
+      return std::make_pair(tx.hash(), tx);
+}
 map<string, witness_id_type> wallet_api::list_witnesses(const string &lowerbound, uint32_t limit)
 {
       return my->_remote_db->lookup_witness_accounts(lowerbound, limit);
@@ -4497,37 +3888,17 @@ pair<tx_hash_type, signed_transaction> wallet_api::create_witness(string owner_a
       return std::make_pair(tx.hash(), tx);
 }
 
-pair<tx_hash_type, signed_transaction> wallet_api::create_worker(
-    string owner_account,
-    time_point_sec work_begin_date,
-    time_point_sec work_end_date,
-    share_type daily_pay,
-    string name,
-    string url,
-    variant worker_settings,
-    bool broadcast /* = false */)
-{
-      auto tx = my->create_worker(owner_account, work_begin_date, work_end_date,
-                                  daily_pay, name, url, worker_settings, broadcast);
-      return std::make_pair(tx.hash(), tx);
-}
 
-pair<tx_hash_type, signed_transaction> wallet_api::update_worker_votes(
-    string owner_account,
-    worker_vote_delta delta,
-    bool broadcast /* = false */)
-{
-      auto tx = my->update_worker_votes(owner_account, delta, broadcast);
-      return std::make_pair(tx.hash(), tx);
-}
+
 
 pair<tx_hash_type, signed_transaction> wallet_api::update_witness(
     string witness_name,
     string url,
     string block_signing_key,
+    bool work_status,
     bool broadcast /* = false */)
 {
-      auto tx = my->update_witness(witness_name, url, block_signing_key, broadcast);
+      auto tx = my->update_witness(witness_name, url, block_signing_key, work_status,broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 
@@ -4548,7 +3919,7 @@ pair<tx_hash_type, signed_transaction> wallet_api::withdraw_vesting(
 
 pair<tx_hash_type, signed_transaction> wallet_api::vote_for_committee_member(string voting_account,
                                                                              string witness,
-                                                                             bool approve,
+                                                                             int64_t approve,
                                                                              bool broadcast /* = false */)
 {
       auto tx = my->vote_for_committee_member(voting_account, witness, approve, broadcast);
@@ -4557,28 +3928,10 @@ pair<tx_hash_type, signed_transaction> wallet_api::vote_for_committee_member(str
 
 pair<tx_hash_type, signed_transaction> wallet_api::vote_for_witness(string voting_account,
                                                                     string witness,
-                                                                    bool approve,
+                                                                    int64_t approve,
                                                                     bool broadcast /* = false */)
 {
       auto tx = my->vote_for_witness(voting_account, witness, approve, broadcast);
-      return std::make_pair(tx.hash(), tx);
-}
-
-pair<tx_hash_type, signed_transaction> wallet_api::set_voting_proxy(string account_to_modify,
-                                                                    fc::optional<string> voting_account,
-                                                                    bool broadcast /* = false */)
-{
-      auto tx = my->set_voting_proxy(account_to_modify, voting_account, broadcast);
-      return std::make_pair(tx.hash(), tx);
-}
-
-pair<tx_hash_type, signed_transaction> wallet_api::set_desired_witness_and_committee_member_count(string account_to_modify,
-                                                                                                  uint16_t desired_number_of_witnesses,
-                                                                                                  uint16_t desired_number_of_committee_members,
-                                                                                                  bool broadcast /* = false */)
-{
-      auto tx = my->set_desired_witness_and_committee_member_count(account_to_modify, desired_number_of_witnesses,
-                                                                   desired_number_of_committee_members, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 
@@ -4606,18 +3959,6 @@ operation wallet_api::get_prototype_operation_by_idx(uint index)
       return my->get_prototype_operation_by_idx(index);
 }
 
-
-void wallet_api::dbg_make_uia(string creator, string symbol)
-{
-      FC_ASSERT(!is_locked());
-      my->dbg_make_uia(creator, symbol);
-}
-
-void wallet_api::dbg_make_mia(string creator, string symbol)
-{
-      FC_ASSERT(!is_locked());
-      my->dbg_make_mia(creator, symbol);
-}
 
 void wallet_api::dbg_push_blocks(std::string src_filename, uint32_t count)
 {
@@ -4665,20 +4006,16 @@ bool wallet_api::set_node_deduce_in_verification_mode(const bool &params)
       return true;
 }
 
-void wallet_api::flood_network(string prefix, uint32_t number_of_transactions)
-{
-      FC_ASSERT(!is_locked());
-      my->flood_network(prefix, number_of_transactions);
-}
 
 pair<tx_hash_type, signed_transaction> wallet_api::propose_parameter_change(
     const string &proposing_account,
     fc::time_point_sec expiration_time,
     const variant_object &changed_values,
+    fc::optional<proposal_id_type> proposal_base,
     bool broadcast /* = false */
 )
 {
-      auto tx = my->propose_parameter_change(proposing_account, expiration_time, changed_values, broadcast);
+      auto tx = my->propose_parameter_change(proposing_account, expiration_time, changed_values,proposal_base, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 
@@ -4686,10 +4023,11 @@ pair<tx_hash_type, signed_transaction> wallet_api::propose_fee_change(
     const string &proposing_account,
     fc::time_point_sec expiration_time,
     const variant_object &changed_fees,
+    fc::optional<proposal_id_type>proposal_base,
     bool broadcast /* = false */
 )
 {
-      auto tx = my->propose_fee_change(proposing_account, expiration_time, changed_fees, broadcast);
+      auto tx = my->propose_fee_change(proposing_account, expiration_time, changed_fees,proposal_base, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 
@@ -4752,7 +4090,7 @@ string wallet_api::gethelp(const string &method) const
       }
       else if (method == "create_account_with_brain_key")
       {
-            ss << "usage: create_account_with_brain_key BRAIN_KEY ACCOUNT_NAME REGISTRAR REFERRER BROADCAST\n\n";
+            ss << "usage: create_account_with_brain_key BRAIN_KEY ACCOUNT_NAME REGISTRAR  BROADCAST\n\n";
             ss << "example: create_account_with_brain_key \"my really long brain key\" \"newaccount\" \"1.3.11\" \"1.3.11\" true\n";
             ss << "example: create_account_with_brain_key \"my really long brain key\" \"newaccount\" \"someaccount\" \"otheraccount\" true\n";
             ss << "\n";
@@ -4762,7 +4100,7 @@ string wallet_api::gethelp(const string &method) const
       }
       else if (method == "register_account")
       {
-            ss << "usage: register_account ACCOUNT_NAME OWNER_PUBLIC_KEY ACTIVE_PUBLIC_KEY REGISTRAR REFERRER REFERRER_PERCENT BROADCAST\n\n";
+            ss << "usage: register_account ACCOUNT_NAME OWNER_PUBLIC_KEY ACTIVE_PUBLIC_KEY REGISTRAR   BROADCAST\n\n";
             ss << "example: register_account \"newaccount\" \"CORE6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV\" \"CORE6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV\" \"1.3.11\" \"1.3.11\" 50 true\n";
             ss << "\n";
             ss << "Use this method to register an account for which you do not know the private keys.";
@@ -4965,7 +4303,6 @@ vector<signed_transaction> wallet_api_impl::import_balance(string name_or_id, co
                   tx.operations.reserve(ctx.ops.size());
                   for (const balance_claim_operation &op : ctx.ops)
                         tx.operations.emplace_back(op);
-                  set_operation_fees(tx, _remote_db->get_global_properties().parameters.current_fees);
                   tx.validate();
                   signed_transaction signed_tx = sign_transaction(tx, false);
                   for (const address &addr : ctx.addrs)
@@ -5106,512 +4443,6 @@ bool wallet_api::set_key_label(public_key_type key, string label)
       }
       return false;
 }
-map<string, public_key_type> wallet_api::get_blind_accounts() const
-{
-      map<string, public_key_type> result;
-      for (const auto &item : my->_wallet.labeled_keys)
-            result[item.label] = item.key;
-      return result;
-}
-map<string, public_key_type> wallet_api::get_my_blind_accounts() const
-{
-      FC_ASSERT(!is_locked());
-      map<string, public_key_type> result;
-      for (const auto &item : my->_wallet.labeled_keys)
-      {
-            if (my->_keys.find(item.key) != my->_keys.end())
-                  result[item.label] = item.key;
-      }
-      return result;
-}
-
-public_key_type wallet_api::create_blind_account(string label, string brain_key)
-{
-      FC_ASSERT(!is_locked());
-
-      auto label_itr = my->_wallet.labeled_keys.get<by_label>().find(label);
-      if (label_itr != my->_wallet.labeled_keys.get<by_label>().end())
-            FC_ASSERT(!"Key with label already exists");
-      brain_key = fc::trim_and_normalize_spaces(brain_key);
-      auto secret = fc::sha256::hash(brain_key.c_str(), brain_key.size());
-      auto priv_key = fc::ecc::private_key::regenerate(secret);
-      public_key_type pub_key = priv_key.get_public_key();
-
-      FC_ASSERT(set_key_label(pub_key, label));
-
-      my->_keys[pub_key] = graphene::utilities::key_to_wif(priv_key);
-
-      save_wallet_file();
-      return pub_key;
-}
-
-vector<asset> wallet_api::get_blind_balances(string key_or_label)
-{
-      vector<asset> result;
-      map<asset_id_type, share_type> balances;
-
-      vector<commitment_type> used;
-
-      auto pub_key = get_public_key(key_or_label);
-      auto &to_asset_used_idx = my->_wallet.blind_receipts.get<by_to_asset_used>();
-      auto start = to_asset_used_idx.lower_bound(std::make_tuple(pub_key, asset_id_type(0), false));
-      auto end = to_asset_used_idx.lower_bound(std::make_tuple(pub_key, asset_id_type(uint32_t(0xffffffff)), true));
-      while (start != end)
-      {
-            if (!start->used)
-            {
-                  auto answer = my->_remote_db->get_blinded_balances({start->commitment()});
-                  if (answer.size())
-                        balances[start->amount.asset_id] += start->amount.amount;
-                  else
-                        used.push_back(start->commitment());
-            }
-            ++start;
-      }
-      for (const auto &u : used)
-      {
-            auto itr = my->_wallet.blind_receipts.get<by_commitment>().find(u);
-            my->_wallet.blind_receipts.modify(itr, [](blind_receipt &r) { r.used = true; });
-      }
-      for (auto item : balances)
-            result.push_back(asset(item.second, item.first));
-      return result;
-}
-
-blind_confirmation wallet_api::transfer_from_blind(string from_blind_account_key_or_label,
-                                                   string to_account_id_or_name,
-                                                   string amount_in,
-                                                   string symbol,
-                                                   bool broadcast)
-{
-      try
-      {
-            transfer_from_blind_operation from_blind;
-
-            auto fees = my->_remote_db->get_global_properties().parameters.current_fees;
-            fc::optional<asset_object> asset_obj = get_asset(symbol);
-            FC_ASSERT(asset_obj.valid(), "Could not find asset matching ${asset}", ("asset", symbol));
-            auto amount = asset_obj->amount_from_string(amount_in);
-
-            from_blind.fee = fees->calculate_fee(from_blind, asset_obj->options.core_exchange_rate);
-
-            auto blind_in = asset_obj->amount_to_string(from_blind.fee + amount);
-
-            auto conf = blind_transfer_help(from_blind_account_key_or_label,
-                                            from_blind_account_key_or_label,
-                                            blind_in, symbol, false, true /*to_temp*/);
-            FC_ASSERT(conf.outputs.size() > 0);
-
-            auto to_account = my->get_account(to_account_id_or_name);
-            from_blind.to = to_account.id;
-            from_blind.amount = amount;
-            from_blind.blinding_factor = conf.outputs.back().decrypted_memo.blinding_factor;
-            from_blind.inputs.push_back({conf.outputs.back().decrypted_memo.commitment, authority()});
-            from_blind.fee = fees->calculate_fee(from_blind, asset_obj->options.core_exchange_rate);
-
-            idump((from_blind));
-            conf.trx.operations.push_back(from_blind);
-            ilog("about to validate");
-            conf.trx.validate();
-
-            ilog("about to broadcast");
-            conf.trx = sign_transaction(conf.trx, broadcast).second;
-
-            if (broadcast && conf.outputs.size() == 2)
-            {
-
-                  // Save the change
-                  blind_confirmation::output conf_output;
-                  blind_confirmation::output change_output = conf.outputs[0];
-
-                  // The wallet must have a private key for confirmation.to, this is used to decrypt the memo
-                  public_key_type from_key = get_public_key(from_blind_account_key_or_label);
-                  conf_output.confirmation.to = from_key;
-                  conf_output.confirmation.one_time_key = change_output.confirmation.one_time_key;
-                  conf_output.confirmation.encrypted_memo = change_output.confirmation.encrypted_memo;
-                  conf_output.confirmation_receipt = conf_output.confirmation;
-                  //try {
-                  receive_blind_transfer(conf_output.confirmation_receipt, from_blind_account_key_or_label, "@" + to_account.name);
-                  //} catch ( ... ){}
-            }
-
-            return conf;
-      }
-      FC_CAPTURE_AND_RETHROW((from_blind_account_key_or_label)(to_account_id_or_name)(amount_in)(symbol))
-}
-
-blind_confirmation wallet_api::blind_transfer(string from_key_or_label,
-                                              string to_key_or_label,
-                                              string amount_in,
-                                              string symbol,
-                                              bool broadcast)
-{
-      return blind_transfer_help(from_key_or_label, to_key_or_label, amount_in, symbol, broadcast, false);
-}
-blind_confirmation wallet_api::blind_transfer_help(string from_key_or_label,
-                                                   string to_key_or_label,
-                                                   string amount_in,
-                                                   string symbol,
-                                                   bool broadcast,
-                                                   bool to_temp)
-{
-      blind_confirmation confirm;
-      try
-      {
-
-            FC_ASSERT(!is_locked());
-            public_key_type from_key = get_public_key(from_key_or_label);
-            public_key_type to_key = get_public_key(to_key_or_label);
-
-            fc::optional<asset_object> asset_obj = get_asset(symbol);
-            FC_ASSERT(asset_obj.valid(), "Could not find asset matching ${asset}", ("asset", symbol));
-
-            blind_transfer_operation blind_tr;
-            blind_tr.outputs.resize(2);
-
-            auto fees = my->_remote_db->get_global_properties().parameters.current_fees;
-
-            auto amount = asset_obj->amount_from_string(amount_in);
-
-            asset total_amount = asset_obj->amount(0);
-
-            vector<fc::sha256> blinding_factors;
-
-            //auto from_priv_key = my->get_private_key( from_key );
-
-            blind_tr.fee = fees->calculate_fee(blind_tr, asset_obj->options.core_exchange_rate);
-
-            vector<commitment_type> used;
-
-            auto &to_asset_used_idx = my->_wallet.blind_receipts.get<by_to_asset_used>();
-            auto start = to_asset_used_idx.lower_bound(std::make_tuple(from_key, amount.asset_id, false));
-            auto end = to_asset_used_idx.lower_bound(std::make_tuple(from_key, amount.asset_id, true));
-            while (start != end)
-            {
-                  auto result = my->_remote_db->get_blinded_balances({start->commitment()});
-                  if (result.size() == 0)
-                  {
-                        used.push_back(start->commitment());
-                  }
-                  else
-                  {
-                        blind_tr.inputs.push_back({start->commitment(), start->control_authority});
-                        blinding_factors.push_back(start->data.blinding_factor);
-                        total_amount += start->amount;
-
-                        if (total_amount >= amount + blind_tr.fee)
-                              break;
-                  }
-                  ++start;
-            }
-            for (const auto &u : used)
-            {
-                  auto itr = my->_wallet.blind_receipts.get<by_commitment>().find(u);
-                  my->_wallet.blind_receipts.modify(itr, [](blind_receipt &r) { r.used = true; });
-            }
-
-            FC_ASSERT(total_amount >= amount + blind_tr.fee, "Insufficient Balance", ("available", total_amount)("amount", amount)("fee", blind_tr.fee));
-
-            auto one_time_key = fc::ecc::private_key::generate();
-            auto secret = one_time_key.get_shared_secret(to_key);
-            auto child = fc::sha256::hash(secret);
-            auto nonce = fc::sha256::hash(one_time_key.get_secret());
-            auto blind_factor = fc::sha256::hash(child);
-
-            auto from_secret = one_time_key.get_shared_secret(from_key);
-            auto from_child = fc::sha256::hash(from_secret);
-            auto from_nonce = fc::sha256::hash(nonce);
-
-            auto change = total_amount - amount - blind_tr.fee;
-            fc::sha256 change_blind_factor;
-            fc::sha256 to_blind_factor;
-            if (change.amount > 0)
-            {
-                  idump(("to_blind_factor")(blind_factor));
-                  blinding_factors.push_back(blind_factor);
-                  change_blind_factor = fc::ecc::blind_sum(blinding_factors, blinding_factors.size() - 1);
-                  wdump(("change_blind_factor")(change_blind_factor));
-            }
-            else // change == 0
-            {
-                  blind_tr.outputs.resize(1);
-                  blind_factor = fc::ecc::blind_sum(blinding_factors, blinding_factors.size());
-                  idump(("to_sum_blind_factor")(blind_factor));
-                  blinding_factors.push_back(blind_factor);
-                  idump(("nochange to_blind_factor")(blind_factor));
-            }
-            fc::ecc::public_key from_pub_key = from_key;
-            fc::ecc::public_key to_pub_key = to_key;
-
-            blind_output to_out;
-            to_out.owner = to_temp ? authority() : authority(1, public_key_type(to_pub_key.child(child)), 1);
-            to_out.commitment = fc::ecc::blind(blind_factor, amount.amount.value);
-            idump(("to_out.blind")(blind_factor)(to_out.commitment));
-
-            if (blind_tr.outputs.size() > 1)
-            {
-                  to_out.range_proof = fc::ecc::range_proof_sign(0, to_out.commitment, blind_factor, nonce, 0, 0, amount.amount.value);
-
-                  blind_output change_out;
-                  change_out.owner = authority(1, public_key_type(from_pub_key.child(from_child)), 1);
-                  change_out.commitment = fc::ecc::blind(change_blind_factor, change.amount.value);
-                  change_out.range_proof = fc::ecc::range_proof_sign(0, change_out.commitment, change_blind_factor, from_nonce, 0, 0, change.amount.value);
-                  blind_tr.outputs[1] = change_out;
-
-                  blind_confirmation::output conf_output;
-                  conf_output.label = from_key_or_label;
-                  conf_output.pub_key = from_key;
-                  conf_output.decrypted_memo.from = from_key;
-                  conf_output.decrypted_memo.amount = change;
-                  conf_output.decrypted_memo.blinding_factor = change_blind_factor;
-                  conf_output.decrypted_memo.commitment = change_out.commitment;
-                  conf_output.decrypted_memo.check = from_secret._hash[0];
-                  conf_output.confirmation.one_time_key = one_time_key.get_public_key();
-                  conf_output.confirmation.to = from_key;
-                  conf_output.confirmation.encrypted_memo = fc::aes_encrypt(from_secret, fc::raw::pack(conf_output.decrypted_memo));
-                  conf_output.auth = change_out.owner;
-                  conf_output.confirmation_receipt = conf_output.confirmation;
-
-                  confirm.outputs.push_back(conf_output);
-            }
-            blind_tr.outputs[0] = to_out;
-
-            blind_confirmation::output conf_output;
-            conf_output.label = to_key_or_label;
-            conf_output.pub_key = to_key;
-            conf_output.decrypted_memo.from = from_key;
-            conf_output.decrypted_memo.amount = amount;
-            conf_output.decrypted_memo.blinding_factor = blind_factor;
-            conf_output.decrypted_memo.commitment = to_out.commitment;
-            conf_output.decrypted_memo.check = secret._hash[0];
-            conf_output.confirmation.one_time_key = one_time_key.get_public_key();
-            conf_output.confirmation.to = to_key;
-            conf_output.confirmation.encrypted_memo = fc::aes_encrypt(secret, fc::raw::pack(conf_output.decrypted_memo));
-            conf_output.auth = to_out.owner;
-            conf_output.confirmation_receipt = conf_output.confirmation;
-
-            confirm.outputs.push_back(conf_output);
-
-            /** commitments must be in sorted order */
-            std::sort(blind_tr.outputs.begin(), blind_tr.outputs.end(),
-                      [&](const blind_output &a, const blind_output &b) { return a.commitment < b.commitment; });
-            std::sort(blind_tr.inputs.begin(), blind_tr.inputs.end(),
-                      [&](const blind_input &a, const blind_input &b) { return a.commitment < b.commitment; });
-
-            confirm.trx.operations.emplace_back(std::move(blind_tr));
-            ilog("validate before");
-            confirm.trx.validate();
-            confirm.trx = sign_transaction(confirm.trx, broadcast).second;
-
-            if (broadcast)
-            {
-                  for (const auto &out : confirm.outputs)
-                  {
-                        try
-                        {
-                              receive_blind_transfer(out.confirmation_receipt, from_key_or_label, "");
-                        }
-                        catch (...)
-                        {
-                        }
-                  }
-            }
-
-            return confirm;
-      }
-      FC_CAPTURE_AND_RETHROW((from_key_or_label)(to_key_or_label)(amount_in)(symbol)(broadcast)(confirm))
-}
-
-/**
- *  Transfers a public balance from @from to one or more blinded balances using a
- *  stealth transfer.
- */
-blind_confirmation wallet_api::transfer_to_blind(string from_account_id_or_name,
-                                                 string asset_symbol,
-                                                 /** map from key or label to amount */
-                                                 vector<pair<string, string>> to_amounts,
-                                                 bool broadcast)
-{
-      try
-      {
-            FC_ASSERT(!is_locked());
-            idump((to_amounts));
-
-            blind_confirmation confirm;
-            account_object from_account = my->get_account(from_account_id_or_name);
-
-            fc::optional<asset_object> asset_obj = get_asset(asset_symbol);
-            FC_ASSERT(asset_obj, "Could not find asset matching ${asset}", ("asset", asset_symbol));
-
-            transfer_to_blind_operation bop;
-            bop.from = from_account.id;
-
-            vector<fc::sha256> blinding_factors;
-
-            asset total_amount = asset_obj->amount(0);
-
-            for (auto item : to_amounts)
-            {
-                  auto one_time_key = fc::ecc::private_key::generate();
-                  auto to_key = get_public_key(item.first);
-                  auto secret = one_time_key.get_shared_secret(to_key);
-                  auto child = fc::sha256::hash(secret);
-                  auto nonce = fc::sha256::hash(one_time_key.get_secret());
-                  auto blind_factor = fc::sha256::hash(child);
-
-                  blinding_factors.push_back(blind_factor);
-
-                  auto amount = asset_obj->amount_from_string(item.second);
-                  total_amount += amount;
-
-                  fc::ecc::public_key to_pub_key = to_key;
-                  blind_output out;
-                  out.owner = authority(1, public_key_type(to_pub_key.child(child)), 1);
-                  out.commitment = fc::ecc::blind(blind_factor, amount.amount.value);
-                  if (to_amounts.size() > 1)
-                        out.range_proof = fc::ecc::range_proof_sign(0, out.commitment, blind_factor, nonce, 0, 0, amount.amount.value);
-
-                  blind_confirmation::output conf_output;
-                  conf_output.label = item.first;
-                  conf_output.pub_key = to_key;
-                  conf_output.decrypted_memo.amount = amount;
-                  conf_output.decrypted_memo.blinding_factor = blind_factor;
-                  conf_output.decrypted_memo.commitment = out.commitment;
-                  conf_output.decrypted_memo.check = secret._hash[0];
-                  conf_output.confirmation.one_time_key = one_time_key.get_public_key();
-                  conf_output.confirmation.to = to_key;
-                  conf_output.confirmation.encrypted_memo = fc::aes_encrypt(secret, fc::raw::pack(conf_output.decrypted_memo));
-                  conf_output.confirmation_receipt = conf_output.confirmation;
-
-                  confirm.outputs.push_back(conf_output);
-
-                  bop.outputs.push_back(out);
-            }
-            bop.amount = total_amount;
-            bop.blinding_factor = fc::ecc::blind_sum(blinding_factors, blinding_factors.size());
-
-            /** commitments must be in sorted order */
-            std::sort(bop.outputs.begin(), bop.outputs.end(),
-                      [&](const blind_output &a, const blind_output &b) { return a.commitment < b.commitment; });
-
-            confirm.trx.operations.push_back(bop);
-            my->set_operation_fees(confirm.trx, my->_remote_db->get_global_properties().parameters.current_fees);
-            confirm.trx.validate();
-            confirm.trx = sign_transaction(confirm.trx, broadcast).second;
-
-            if (broadcast)
-            {
-                  for (const auto &out : confirm.outputs)
-                  {
-                        try
-                        {
-                              receive_blind_transfer(out.confirmation_receipt, "@" + from_account.name, "from @" + from_account.name);
-                        }
-                        catch (...)
-                        {
-                        }
-                  }
-            }
-
-            return confirm;
-      }
-      FC_CAPTURE_AND_RETHROW((from_account_id_or_name)(asset_symbol)(to_amounts))
-}
-
-blind_receipt wallet_api::receive_blind_transfer(string confirmation_receipt, string opt_from, string opt_memo)
-{
-      FC_ASSERT(!is_locked());
-      stealth_confirmation conf(confirmation_receipt);
-      FC_ASSERT(conf.to);
-
-      blind_receipt result;
-      result.conf = conf;
-
-      auto to_priv_key_itr = my->_keys.find(*conf.to);
-      FC_ASSERT(to_priv_key_itr != my->_keys.end(), "No private key for receiver", ("conf", conf));
-
-      auto to_priv_key = wif_to_key(to_priv_key_itr->second);
-      FC_ASSERT(to_priv_key);
-
-      auto secret = to_priv_key->get_shared_secret(conf.one_time_key);
-      auto child = fc::sha256::hash(secret);
-
-      auto child_priv_key = to_priv_key->child(child);
-      //auto blind_factor = fc::sha256::hash( child );
-
-      auto plain_memo = fc::aes_decrypt(secret, conf.encrypted_memo);
-      auto memo = fc::raw::unpack<stealth_confirmation::memo_data>(plain_memo);
-
-      result.to_key = *conf.to;
-      result.to_label = get_key_label(result.to_key);
-      if (memo.from)
-      {
-            result.from_key = *memo.from;
-            result.from_label = get_key_label(result.from_key);
-            if (result.from_label == string())
-            {
-                  result.from_label = opt_from;
-                  set_key_label(result.from_key, result.from_label);
-            }
-      }
-      else
-      {
-            result.from_label = opt_from;
-      }
-      result.amount = memo.amount;
-      result.memo = opt_memo;
-
-      // confirm the amount matches the commitment (verify the blinding factor)
-      auto commtiment_test = fc::ecc::blind(memo.blinding_factor, memo.amount.amount.value);
-      FC_ASSERT(fc::ecc::verify_sum({commtiment_test}, {memo.commitment}, 0));
-
-      blind_balance bal;
-      bal.amount = memo.amount;
-      bal.to = *conf.to;
-      if (memo.from)
-            bal.from = *memo.from;
-      bal.one_time_key = conf.one_time_key;
-      bal.blinding_factor = memo.blinding_factor;
-      bal.commitment = memo.commitment;
-      bal.used = false;
-
-      auto child_pubkey = child_priv_key.get_public_key();
-      auto owner = authority(1, public_key_type(child_pubkey), 1);
-      result.control_authority = owner;
-      result.data = memo;
-
-      auto child_key_itr = owner.key_auths.find(child_pubkey);
-      if (child_key_itr != owner.key_auths.end())
-            my->_keys[child_key_itr->first] = key_to_wif(child_priv_key);
-
-      // my->_wallet.blinded_balances[memo.amount.asset_id][bal.to].push_back( bal );
-
-      result.date = fc::time_point::now();
-      my->_wallet.blind_receipts.insert(result);
-      my->_keys[child_pubkey] = key_to_wif(child_priv_key);
-
-      save_wallet_file();
-
-      return result;
-}
-
-vector<blind_receipt> wallet_api::blind_history(string key_or_account)
-{
-      vector<blind_receipt> result;
-      auto pub_key = get_public_key(key_or_account);
-
-      if (pub_key == public_key_type())
-            return vector<blind_receipt>();
-
-      for (auto &r : my->_wallet.blind_receipts)
-      {
-            if (r.from_key == pub_key || r.to_key == pub_key)
-                  result.push_back(r);
-      }
-      std::sort(result.begin(), result.end(), [&](const blind_receipt &a, const blind_receipt &b) { return a.date > b.date; });
-      return result;
-}
-
 order_book wallet_api::get_order_book(const string &base, const string &quote, unsigned limit)
 {
       return (my->_remote_db->get_order_book(base, quote, limit));

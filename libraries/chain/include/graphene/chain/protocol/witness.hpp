@@ -36,8 +36,6 @@ namespace graphene { namespace chain {
    struct witness_create_operation : public base_operation
    {
       struct fee_parameters_type { uint64_t fee = 5000 * GRAPHENE_BLOCKCHAIN_PRECISION; };
-
-      asset             fee;
       /// The account which owns the witness. This account pays the fee for this operation.
       account_id_type   witness_account;
       string            url;
@@ -57,8 +55,6 @@ namespace graphene { namespace chain {
       {
          share_type fee = 20 * GRAPHENE_BLOCKCHAIN_PRECISION;
       };
-
-      asset             fee;
       /// The witness object to update.
       witness_id_type   witness;
       /// The account which owns the witness. This account pays the fee for this operation.
@@ -68,6 +64,7 @@ namespace graphene { namespace chain {
       /// The new block signing key.
       optional< public_key_type > new_signing_key;
 
+      bool              work_status;
       account_id_type fee_payer()const { return witness_account; }
       void            validate()const;
    };
@@ -77,7 +74,7 @@ namespace graphene { namespace chain {
 } } // graphene::chain
 
 FC_REFLECT( graphene::chain::witness_create_operation::fee_parameters_type, (fee) )
-FC_REFLECT( graphene::chain::witness_create_operation, (fee)(witness_account)(url)(block_signing_key) )
+FC_REFLECT( graphene::chain::witness_create_operation, (witness_account)(url)(block_signing_key) )
 
 FC_REFLECT( graphene::chain::witness_update_operation::fee_parameters_type, (fee) )
-FC_REFLECT( graphene::chain::witness_update_operation, (fee)(witness)(witness_account)(new_url)(new_signing_key) )
+FC_REFLECT( graphene::chain::witness_update_operation, (witness)(witness_account)(new_url)(new_signing_key)(work_status))

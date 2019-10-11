@@ -35,10 +35,6 @@ namespace graphene { namespace chain {
 
          void_result do_evaluate( const asset_create_operation& o );
          object_id_result do_apply( const asset_create_operation& o );
-
-         /** override the default behavior defined by generic_evalautor which is to
-          * post the fee to fee_paying_account_stats.pending_fees
-          */
          virtual void pay_fee() override;
       private:
          bool fee_is_odd;
@@ -100,17 +96,6 @@ namespace graphene { namespace chain {
          const asset_bitasset_data_object* bitasset_to_update = nullptr;
    };
 
-   class asset_fund_fee_pool_evaluator : public evaluator<asset_fund_fee_pool_evaluator>
-   {
-      public:
-         typedef asset_fund_fee_pool_operation operation_type;
-
-         void_result do_evaluate(const asset_fund_fee_pool_operation& op);
-         void_result do_apply(const asset_fund_fee_pool_operation& op);
-
-         const asset_dynamic_data_object* asset_dyn_data = nullptr;
-   };
-
    class asset_global_settle_evaluator : public evaluator<asset_global_settle_evaluator>
    {
       public:
@@ -143,7 +128,7 @@ namespace graphene { namespace chain {
          std::map<std::pair<asset_id_type,asset_id_type>,price_feed> median_feed_values;
    };
 
-   class asset_claim_fees_evaluator : public evaluator<asset_claim_fees_evaluator>
+  class asset_claim_fees_evaluator : public evaluator<asset_claim_fees_evaluator>
    {
       public:
          typedef asset_claim_fees_operation operation_type;
@@ -159,7 +144,7 @@ namespace graphene { namespace chain {
          void_result do_evaluate( const asset_update_restricted_operation& o );
          void_result do_apply( const asset_update_restricted_operation& o );
    };
-
+/*
    namespace impl { // TODO: remove after HARDFORK_CORE_429_TIME has passed
       class hf_429_visitor {
          public:
@@ -182,4 +167,5 @@ namespace graphene { namespace chain {
             }
       };
    }
+   */
 } } // graphene::chain

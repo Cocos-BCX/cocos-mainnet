@@ -8,8 +8,6 @@ namespace graphene { namespace chain {
    struct register_nh_asset_creator_operation : public base_operation
    {
        struct fee_parameters_type { uint64_t fee =  GRAPHENE_BLOCKCHAIN_PRECISION; };
-	   
-       asset              fee;    //手续费
        account_id_type    fee_paying_account;  //游戏开发者注册人
        account_id_type fee_payer()const { return fee_paying_account; }
        void            validate() const;
@@ -21,7 +19,7 @@ namespace graphene { namespace chain {
 
 FC_REFLECT( graphene::chain::register_nh_asset_creator_operation::fee_parameters_type, (fee) )
 
-FC_REFLECT( graphene::chain::register_nh_asset_creator_operation, (fee)(fee_paying_account) )
+FC_REFLECT( graphene::chain::register_nh_asset_creator_operation,(fee_paying_account) )
 
 
 

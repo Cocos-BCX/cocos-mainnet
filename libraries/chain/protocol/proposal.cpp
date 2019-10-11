@@ -39,7 +39,14 @@ proposal_create_operation proposal_create_operation::committee_proposal(const ch
 void proposal_create_operation::validate() const
 {
    FC_ASSERT( !proposed_ops.empty() );
-   for( const auto& op : proposed_ops ) operation_validate( op.op );
+   for( const auto& op : proposed_ops ) 
+   {
+      if(op.op.which()==operation::tag<worker_create_operation>::value)
+      {
+         FC_ASSERT(this->expiration_time<op.op.get<worker_create_operation>().work_begin_date,"The start time of the work should not be less than the end time of the proposed approval.");
+      }
+      operation_validate( op.op );
+   }
 }
 
 share_type proposal_create_operation::calculate_fee(const fee_parameters_type& k) const
@@ -49,7 +56,6 @@ share_type proposal_create_operation::calculate_fee(const fee_parameters_type& k
 
 void proposal_update_operation::validate() const
 {
-   FC_ASSERT(fee.amount >= share_type(0));
    FC_ASSERT(!(active_approvals_to_add.empty() && active_approvals_to_remove.empty() &&
                owner_approvals_to_add.empty() && owner_approvals_to_remove.empty() &&
                key_approvals_to_add.empty() && key_approvals_to_remove.empty()));
@@ -72,7 +78,7 @@ void proposal_update_operation::validate() const
 
 void proposal_delete_operation::validate() const
 {
-   FC_ASSERT( fee.amount >= share_type(0) );
+
 }
 
 share_type proposal_update_operation::calculate_fee(const fee_parameters_type& k) const

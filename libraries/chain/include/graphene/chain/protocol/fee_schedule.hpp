@@ -85,7 +85,7 @@ namespace graphene { namespace chain {
       fee_schedule();
 
       static fee_schedule get_default();
-
+      void full();
       /**
        *  Finds the appropriate fee parameter struct for the operation
        *  and then calculates the appropriate fee.

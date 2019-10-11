@@ -65,7 +65,13 @@ void transaction::validate() const // nico validate 验证
 {
       FC_ASSERT(operations.size() > 0 && operations.size() <= 1000, "A transaction must have at least one operation and should not exceed 1000 at most.", ("trx", *this));
       for (const auto &op : operations)
+      {     
+            FC_ASSERT(op.which()!=operation::tag<fill_order_operation>::value&&
+                      op.which()!=operation::tag<asset_settle_cancel_operation>::value&&
+                      op.which()!=operation::tag<execute_bid_operation>::value&&
+                      op.which()!=operation::tag<account_authentication_operation>::value);
             operation_validate(op);
+      }
 }
 
 graphene::chain::transaction_id_type graphene::chain::transaction::id() const

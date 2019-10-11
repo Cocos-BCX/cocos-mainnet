@@ -46,12 +46,11 @@ share_type crontab_create_operation::calculate_fee(const fee_parameters_type &k)
 
 void crontab_cancel_operation::validate() const
 {
-    FC_ASSERT(fee.amount >= share_type(0));
+
 }
 
 void crontab_recover_operation::validate() const
 {
-    FC_ASSERT(fee.amount >= share_type(0));
 }
 
 

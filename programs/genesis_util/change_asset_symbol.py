@@ -32,7 +32,7 @@ def main():
         if asset["symbol"] == frum:
             asset["symbol"] = opts.to
 
-    for balance in genesis["initial_balances"]:
+    for balance in genesis["initial_address_balances"]:
         if balance["asset_symbol"] == frum:
             balance["asset_symbol"] = opts.to
 

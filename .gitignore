@@ -10,7 +10,7 @@
 *.so
 *.so.?
 *.so.?.?.?
-*.a
+!*.a
 *.dylib
 lib/*
 
@@ -36,4 +36,5 @@ bin/Debug
 */*/Release/*
 */RelWithDebInfo/*
 */*/RelWithDebInfo/*
+*vscode
 

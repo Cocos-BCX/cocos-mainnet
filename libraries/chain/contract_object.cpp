@@ -237,16 +237,12 @@ void contract_object::push_table_parameters(lua_scheduler &context, lua_map &tab
 
 void contract_object::set_process_value(vector<char> process_value)
 {
-    // decrypt and config _process_value
-    std::vector<char> dcrypt = fc::aes_decrypt(key, process_value);
-    _process_value = fc::raw::unpack<struct process_variable>(dcrypt);
-    _process_value.reset_index();
+    encryption_helper.decrypt(process_value,_process_value); 
+    
 }
 vector<char> contract_object::set_result_process_value()
 {
-    auto source = fc::raw::pack(_process_value);
-    this->result.process_value = fc::aes_encrypt(key, source); // encryption(this->_process_value)
-                                                               // encryption _process_value and write the cipher into contract_result
+    this->result.process_value=encryption_helper.encrypt(_process_value);
     return this->result.process_value;
 }
 
@@ -296,6 +292,11 @@ void contract_object::do_contract_function(account_id_type caller, string functi
                 FC_THROW("Try the contract resolution execution failure,${message}", ("message", error_message));
             if (this->result.existed_pv)
                 this->set_result_process_value();
+            for(auto&temp:result.contract_affecteds){
+                if(temp.which()==contract_affected_type::tag<contract_result>::value)
+                    result.relevant_datasize+=temp.get<contract_result>().relevant_datasize;
+            }
+            result.relevant_datasize+=fc::raw::pack_size(contract_data)+fc::raw::pack_size(account_data)+fc::raw::pack_size(result.contract_affecteds);
         }
         catch (VMcollapseErrorException e)
         {

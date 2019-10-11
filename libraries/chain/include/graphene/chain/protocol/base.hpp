@@ -84,9 +84,15 @@ namespace chain
     *
     *  @{
     */
-
-struct void_result
+struct base_result
 {
+  base_result(){};
+  optional<vector<asset>> fees;
+};
+
+struct void_result:public base_result
+{
+  void_result(){}
   uint64_t real_running_time = 0;
 };
 typedef struct token_affected
@@ -115,7 +121,7 @@ typedef struct contract_logger
   contract_logger() {}
   contract_logger(account_id_type aft) : affected_account(aft) {}
 } contract_logger;
-typedef struct logger_result
+typedef struct logger_result:public base_result
 {
   string message;
   uint64_t real_running_time = 0;
@@ -123,7 +129,7 @@ typedef struct logger_result
   logger_result() {}
 } logger_result;
 
-typedef struct error_result
+typedef struct error_result:public base_result
 {
   int64_t error_code = 0;
   string message;
@@ -136,7 +142,7 @@ struct contract_result;
 
 typedef fc::static_variant<token_affected, nht_affected, contract_memo_message, contract_logger, contract_result> contract_affected_type;
 
-typedef struct contract_result
+typedef struct contract_result:public base_result
 {
 public:
   contract_id_type contract_id;
@@ -144,7 +150,7 @@ public:
   optional<uint64_t> real_running_time = {};
   bool existed_pv = false;
   vector<char> process_value;
-  optional<asset> additional_cost = {};
+  uint64_t relevant_datasize=0;
 } contract_result;
 
 struct contract_affected_type_visitor
@@ -168,7 +174,7 @@ struct contract_affected_type_visitor
   }
 };
 
-struct object_id_result
+struct object_id_result:public base_result
 {
   object_id_type result;
   uint64_t real_running_time = 0;
@@ -176,7 +182,7 @@ struct object_id_result
   object_id_result() {}
 };
 
-struct asset_result
+struct asset_result:public base_result
 {
   asset result;
   uint64_t real_running_time = 0;
@@ -263,13 +269,14 @@ typedef vector<std::string> extensions_type;
 FC_REFLECT_TYPENAME(graphene::chain::operation_result)
 FC_REFLECT_TYPENAME(graphene::chain::contract_affected_type)
 FC_REFLECT_TYPENAME(graphene::chain::future_extensions)
-FC_REFLECT(graphene::chain::void_result, (real_running_time))
+FC_REFLECT(graphene::chain::base_result, (fees))
+FC_REFLECT_DERIVED(graphene::chain::void_result,(graphene::chain::base_result),(real_running_time))
 FC_REFLECT(graphene::chain::token_affected, (affected_account)(affected_asset))
-FC_REFLECT(graphene::chain::object_id_result, (result)(real_running_time))
-FC_REFLECT(graphene::chain::asset_result, (result)(real_running_time))
+FC_REFLECT_DERIVED(graphene::chain::object_id_result,(graphene::chain::base_result), (result)(real_running_time))
+FC_REFLECT_DERIVED(graphene::chain::asset_result,(graphene::chain::base_result), (result)(real_running_time))
 FC_REFLECT(graphene::chain::nht_affected, (affected_account)(affected_item)(action)(modified))
 FC_REFLECT(graphene::chain::contract_memo_message, (affected_account)(memo))
 FC_REFLECT(graphene::chain::contract_logger, (affected_account)(message))
-FC_REFLECT(graphene::chain::contract_result, (contract_id)(contract_affecteds)(real_running_time)(existed_pv)(process_value)(additional_cost))
-FC_REFLECT(graphene::chain::logger_result, (message)(real_running_time))
-FC_REFLECT(graphene::chain::error_result, (error_code)(message)(real_running_time))
+FC_REFLECT_DERIVED(graphene::chain::contract_result,(graphene::chain::base_result), (contract_id)(contract_affecteds)(real_running_time)(existed_pv)(process_value)(relevant_datasize))
+FC_REFLECT_DERIVED(graphene::chain::logger_result,(graphene::chain::base_result), (message)(real_running_time))
+FC_REFLECT_DERIVED(graphene::chain::error_result,(graphene::chain::base_result), (error_code)(message)(real_running_time))

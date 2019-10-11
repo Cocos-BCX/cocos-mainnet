@@ -104,7 +104,7 @@ genesis_state_type create_example_genesis()
   }
 
   initial_state.initial_accounts.emplace_back("nicotest", nico_key.get_public_key());
-  initial_state.initial_balances.push_back({nico_key.get_public_key(),
+  initial_state.initial_address_balances.push_back({nico_key.get_public_key(),
                                             GRAPHENE_SYMBOL,
                                             GRAPHENE_MAX_SHARE_SUPPLY / 2});
   initial_state.initial_chain_id = fc::sha256::hash(GRAPHENE_ADDRESS_PREFIX);
@@ -311,8 +311,7 @@ public:
   }
 
   application_impl(application *self)
-      : _self(self),
-        _chain_db(std::make_shared<chain::database>())
+      : _self(self)
   {
   }
 
@@ -455,7 +454,6 @@ public:
         wild_access.allowed_apis.push_back("database_api");
         wild_access.allowed_apis.push_back("network_broadcast_api");
         wild_access.allowed_apis.push_back("history_api");
-        /*wild_access.allowed_apis.push_back("crypto_api");*/
         wild_access.allowed_apis.push_back("network_node_api");
         _apiaccess.permission_map["*"] = wild_access;
       }
@@ -1011,12 +1009,15 @@ void application::set_program_options(boost::program_options::options_descriptio
   command_line_options.add(_cli_options);
   configuration_file_options.add(_cfg_options);
 }
-
-void application::initialize(const fc::path &data_dir, const boost::program_options::variables_map &options)
+void application::initialize_db(const fc::path &data_dir)
 {
   my->_data_dir = data_dir;
-  my->_options = &options;
+  my->_chain_db=std::make_shared<chain::database>( my->_data_dir);
+}
 
+void application::initialize(const boost::program_options::variables_map &options)
+{
+  my->_options = &options;
   if (options.count("version"))
   {
     std::cout << "Version: " << graphene::utilities::git_revision_description << "\n";

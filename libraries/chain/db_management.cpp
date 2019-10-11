@@ -38,8 +38,9 @@ namespace graphene
 namespace chain
 {
 
-database::database()
+database::database(const fc::path& data_dir)
 {
+    _data_dir=data_dir/"blockchain";
     initialize_indexes();
     initialize_evaluators();
 }
@@ -140,7 +141,7 @@ void database::wipe(const fc::path &data_dir, bool include_blocks)
     close();
     object_database::wipe(data_dir);
     if (include_blocks)
-        fc::remove_all(data_dir / "database");
+        fc::remove_all(data_dir / "block_database");
 }
 
 void database::open(
@@ -171,7 +172,7 @@ void database::open(
 
         object_database::open(data_dir);
 
-        _block_id_to_block.open(data_dir / "database" / "block_num_to_block");
+        _block_id_to_block.open(data_dir /"block_database");
 
         if (!find(global_property_id_type()))
             init_genesis(genesis_loader());

@@ -102,6 +102,7 @@ int main(int argc, char** argv) {
          if( data_dir.is_relative() )
             data_dir = fc::current_path() / data_dir;
       }
+      node.initialize_db(data_dir);
 
       fc::path config_ini_path = data_dir / "config.ini";
       // Create config file if not already present
@@ -165,7 +166,7 @@ int main(int argc, char** argv) {
       if( !options.count("plugins") )
          options.insert( std::make_pair( "plugins", bpo::variable_value(std::string("delayed_node account_history market_history"), true) ) );
 
-      node.initialize(data_dir, options);
+      node.initialize( options);
       node.initialize_plugins( options );
 
       node.startup();

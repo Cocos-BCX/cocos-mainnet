@@ -178,6 +178,10 @@ const contract_object &register_scheduler::get_contract(string name_or_id)
         LUA_C_ERR_THROW(this->context.mState, e.to_string());
     }
 }
+void register_scheduler::make_release()
+{
+    db.modify(contract.get_id()(db),[](contract_object& cb){cb.is_release=true;});
+}
 static int get_account_contract_data(lua_State *L)
 {
     try
@@ -230,12 +234,19 @@ static int import_contract(lua_State *L)
         auto chainhelper = context.readVariable<register_scheduler *>(current_contract_name, "chainhelper");
         auto &temp_contract = chainhelper->get_contract(name_or_id);
         auto &temp_contract_code=temp_contract.lua_code_b_id(chainhelper->db);
+        auto cbi=context.readVariable<contract_base_info *>(current_contract_name, "contract_base_info");
+        auto &baseENV = contract_bin_code_id_type(0)(chainhelper->db);
+        FC_ASSERT(lua_getglobal(context.mState, temp_contract.name.c_str())==LUA_TNIL);
+        context.new_sandbox(temp_contract.name,baseENV.lua_code_b.data(),baseENV.lua_code_b.size());
+        temp_contract.register_function(context,chainhelper, cbi);
         FC_ASSERT(lua_getglobal(context.mState, current_contract_name.c_str()) == LUA_TTABLE);
         if (lua_getfield(context.mState, -1, temp_contract.name.c_str()) == LUA_TTABLE)
             return 1;
         lua_pop(context.mState, 1);
-        lua_newtable(context.mState);
+        lua_getglobal(context.mState, temp_contract.name.c_str());
         lua_setfield(context.mState, -2, temp_contract.name.c_str());
+        lua_pushnil(context.mState);
+        lua_setglobal(context.mState,temp_contract.name.c_str());
         luaL_loadbuffer(context.mState, temp_contract_code.lua_code_b.data(), temp_contract_code.lua_code_b.size(), temp_contract.name.data()); //  lua加载脚本之后会返回一个函数(即此时栈顶的chunk块)，lua_pcall将默认调用此块
         lua_getglobal(context.mState, current_contract_name.c_str());
         lua_getfield(context.mState, -1, temp_contract.name.c_str()); //想要使用的_ENV备用空间
@@ -304,6 +315,7 @@ void lua_scheduler::chain_function_bind()
     registerFunction("hash256", &register_scheduler::hash256);
     registerFunction("hash512", &register_scheduler::hash512);
     registerFunction("make_memo", &register_scheduler::make_memo);
+    registerFunction("make_release", &register_scheduler::make_release);
     registerFunction("random", &register_scheduler::contract_random);
     registerFunction("is_owner", &register_scheduler::is_owner);
     registerFunction("read_chain", &register_scheduler::read_cache);
@@ -386,7 +398,7 @@ void lua_scheduler::chain_function_bind()
                 fc_register.relate_nh_asset(fc_register.caller, parent, child, relate, enable_logger); });
 }
 
-void contract_object::register_function(lua_scheduler &context, register_scheduler *fc_register, contract_base_info *base_info)
+void contract_object::register_function(lua_scheduler &context, register_scheduler *fc_register, contract_base_info *base_info)const
 {
     try
     {

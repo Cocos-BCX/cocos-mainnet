@@ -111,7 +111,12 @@ typedef multi_index_container<
 										 member<nh_asset_object, account_id_type, &nh_asset_object::nh_asset_active>,
 										 const_mem_fun< nh_asset_object, bool, &nh_asset_object::is_leasing>,
 										 member<nh_asset_object, string, &nh_asset_object::world_view>>>,
-		ordered_non_unique<tag<by_nh_asset_creator>, member<nh_asset_object, account_id_type, &nh_asset_object::nh_asset_creator>>>>
+		ordered_non_unique<tag<by_nh_asset_creator>, 
+						composite_key<nh_asset_object,
+						member<nh_asset_object, account_id_type, &nh_asset_object::nh_asset_creator>,
+						member<nh_asset_object, string, &nh_asset_object::world_view>
+						>
+		>>>
 	nh_asset_object_multi_index_type;
 
 typedef generic_index<nh_asset_object, nh_asset_object_multi_index_type> nh_asset_index;

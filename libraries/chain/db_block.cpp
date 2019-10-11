@@ -257,7 +257,6 @@ processed_transaction database::push_transaction(const signed_transaction &trx, 
   }
   FC_CAPTURE_AND_RETHROW((trx))
 }
-typedef vector<std::string> extensions_type;
 processed_transaction database::_push_transaction(const signed_transaction &trx, transaction_push_state push_state)
 {
   // If this is the first transaction pushed after applying a block, start a new undo session.
@@ -444,9 +443,9 @@ signed_block database::_generate_block(
       {
         //if (tx.operation_results.size() > 0)
         //{
-        if (BOOST_LIKELY(head_block_num() > 0))
+        if (BOOST_LIKELY(head_block_num() > 0)&& !tx.agreed_task)
         {
-          if (!(skip & skip_tapos_check) && !tx.agreed_task)
+          if (!(skip & skip_tapos_check) )
           {
             const auto &tapos_block_summary = block_summary_id_type(tx.ref_block_num)(*this);
             FC_ASSERT(tx.ref_block_prefix == tapos_block_summary.block_id._hash[1]);
@@ -483,6 +482,10 @@ signed_block database::_generate_block(
     // _pending_tx_session.
 
     pending_block.previous = head_block_id();
+    if(pending_block.previous==block_id_type())
+    {
+      pending_block.extensions=vector<string>{"Ignition with Kevin , Nico , Major and Wililiam"};
+    }
     pending_block.timestamp = when;
     //pending_block.transaction_merkle_root = pending_block.calculate_merkle_root();
     pending_block.witness = witness_id;
@@ -622,7 +625,6 @@ void database::_apply_block(const signed_block &next_block)
     clear_expired_orders();
     clear_expired_timed_task();
     update_expired_feeds();
-    update_withdraw_permissions(); // 更新解冻的金额
     clear_expired_active();
 
     // n.b., update_maintenance_flag() happens this late
@@ -657,7 +659,6 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
   //fc::microseconds start1 = fc::time_point::now().time_since_epoch();
   try
   {
-    bool is_agreed_task = false;
     uint32_t skip = get_node_properties().skip_flags;
 
     auto &chain_parameters = get_global_properties().parameters;
@@ -684,17 +685,15 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
         case proposal_object::type_id:
         {
           auto &proposal = ((proposal_id_type)id)(*this);
-          FC_ASSERT(trx_hash == proposal.proposed_transaction.hash() && proposal.expiration_time <= now && proposal.is_authorized_to_execute(*this));
-          is_agreed_task = true;
-          modify(proposal, [](proposal_object &p) { p.permitted_clean = true; });
+          FC_ASSERT(trx_hash == proposal.proposed_transaction.hash() && proposal.expiration_time <= now && proposal.allow_execution);
+          modify(proposal,[](proposal_object &pr){pr.allow_execution=false;});
           break;
         }
         case crontab_object::type_id:
         {
           auto &crontab = ((crontab_id_type)id)(*this);
           temp_crontab = &crontab;
-          FC_ASSERT(trx_hash == crontab.timed_transaction.hash() && crontab.next_execte_time <= now);
-          is_agreed_task = true;
+          FC_ASSERT(trx_hash == crontab.timed_transaction.hash() && crontab.next_execte_time <= now&&crontab.allow_execution);
           modify(crontab, [&](crontab_object &c) {
             c.last_execte_time = now;
             c.next_execte_time = c.last_execte_time + c.execute_interval;
@@ -707,7 +706,7 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
         default:
           FC_THROW("Unexpected System Transactions");
         }
-        eval_state.is_agreed_task=is_agreed_task;
+        eval_state.is_agreed_task=trx.agreed_task.valid()?true:false;
       }
       else
       {
@@ -724,9 +723,9 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
         // 应用_apply_transaction 验证交易权限
       }
     }
-    if (BOOST_LIKELY(head_block_num() > 0))
+    if (BOOST_LIKELY(head_block_num() > 0)&&!eval_state.is_agreed_task)
     {
-      if (!(skip & skip_tapos_check) && !trx.agreed_task)
+      if (!(skip & skip_tapos_check))
       {
         const auto &tapos_block_summary = block_summary_id_type(trx.ref_block_num)(*this);
         FC_ASSERT(trx.ref_block_prefix == tapos_block_summary.block_id._hash[1]);
@@ -763,11 +762,11 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
     bool result_contains_error = false;
     for (const auto &op : ptrx.operations)
     {
-      auto op_result = apply_operation(eval_state, op, is_agreed_task);
+      auto op_result = apply_operation(eval_state, op, eval_state.is_agreed_task);
       real_run_time += op_result.visit(get_runtime);
       if (run_mode != transaction_apply_mode::apply_block_mode)
         FC_ASSERT(real_run_time < block_interval() * 75000ll, "Total execution time exceeds block interval,tx:${tx}", ("tx", trx)); //block_interval*75%
-      if (run_mode == transaction_apply_mode::apply_block_mode && is_agreed_task)
+      if (run_mode == transaction_apply_mode::apply_block_mode && eval_state.is_agreed_task)
         FC_ASSERT(op_result == ((processed_transaction *)eval_state._trx)->operation_results[_current_op_in_trx]);
       eval_state.operation_results.emplace_back(op_result);
       if (op_result.which() == operation_result::tag<contract_result>::value && op_result.get<contract_result>().existed_pv)

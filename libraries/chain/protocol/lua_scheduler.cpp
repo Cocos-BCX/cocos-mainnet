@@ -30,15 +30,18 @@ bool lua_scheduler::new_sandbox(string spacename, const char *condition, size_t 
 	if (lua_isnil(mState,-1))
 	{
 		lua_pop(mState, 1);
-		luaL_loadbuffer(mState, condition, condition_size, spacename.data());
+		luaL_loadbuffer(mState, condition, condition_size,(spacename+" baseENV").data());
 		lua_setglobal(mState,"baseENV");
 		lua_getglobal(mState, "baseENV");
 	}
 	int err = lua_pcall(mState, 0, 1, 0);
 	if (err)
 		FC_THROW("Contract loading infrastructure failure,${message}", ("message", string(lua_tostring(mState, -1))));
-	lua_setglobal(mState, spacename.data());
-	lua_pop(mState, -1);
+	if(!spacename.empty())
+	{	
+		lua_setglobal(mState, spacename.data());
+		lua_pop(mState, -1);
+	}
 	return true;
 }
 
