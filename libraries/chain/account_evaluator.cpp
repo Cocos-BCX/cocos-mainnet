@@ -140,7 +140,37 @@ int64_t account_update_evaluator::verify_account_votes(const account_options &op
       // }
 }
 
+void_result account_create_evaluator::do_evaluate(const account_create_operation &op)
+{
+      try
+      {
+            database &d = db();
+            FC_ASSERT(fee_paying_account->is_lifetime_member(), "Only Lifetime members may register an account.");
 
+            try
+            {
+                  verify_authority_accounts(d, op.owner);
+                  verify_authority_accounts(d, op.active);
+            }
+            GRAPHENE_RECODE_EXC(internal_verify_auth_max_auth_exceeded, account_create_max_auth_exceeded)
+            GRAPHENE_RECODE_EXC(internal_verify_auth_account_not_found, account_create_auth_account_not_found)
+
+            if (op.extensions.value.owner_special_authority.valid())
+                  evaluate_special_authority(d, *op.extensions.value.owner_special_authority);
+            if (op.extensions.value.active_special_authority.valid())
+                  evaluate_special_authority(d, *op.extensions.value.active_special_authority);
+
+            auto &acnt_indx = d.get_index_type<account_index>();
+            if (op.name.size())
+            {
+                  auto current_account_itr = acnt_indx.indices().get<by_name>().find(op.name);
+                  FC_ASSERT(current_account_itr == acnt_indx.indices().get<by_name>().end());
+            }
+
+            return void_result();
+      }
+      FC_CAPTURE_AND_RETHROW((op))
+}
 
 object_id_result account_create_evaluator::do_apply(const account_create_operation &o)
 {
@@ -181,38 +211,6 @@ object_id_result account_create_evaluator::do_apply(const account_create_operati
             return new_acnt_object.id;
       }
       FC_CAPTURE_AND_RETHROW((o))
-}
-
-void_result account_create_evaluator::do_evaluate(const account_create_operation &op)
-{
-      try
-      {
-            database &d = db();
-            FC_ASSERT(fee_paying_account->is_lifetime_member(), "Only Lifetime members may register an account.");
-
-            try
-            {
-                  verify_authority_accounts(d, op.owner);
-                  verify_authority_accounts(d, op.active);
-            }
-            GRAPHENE_RECODE_EXC(internal_verify_auth_max_auth_exceeded, account_create_max_auth_exceeded)
-            GRAPHENE_RECODE_EXC(internal_verify_auth_account_not_found, account_create_auth_account_not_found)
-
-            if (op.extensions.value.owner_special_authority.valid())
-                  evaluate_special_authority(d, *op.extensions.value.owner_special_authority);
-            if (op.extensions.value.active_special_authority.valid())
-                  evaluate_special_authority(d, *op.extensions.value.active_special_authority);
-
-            auto &acnt_indx = d.get_index_type<account_index>();
-            if (op.name.size())
-            {
-                  auto current_account_itr = acnt_indx.indices().get<by_name>().find(op.name);
-                  FC_ASSERT(current_account_itr == acnt_indx.indices().get<by_name>().end());
-            }
-
-            return void_result();
-      }
-      FC_CAPTURE_AND_RETHROW((op))
 }
 
 void_result account_update_evaluator::do_evaluate(const account_update_operation &o)
@@ -338,7 +336,72 @@ void_result account_update_evaluator::do_apply(const account_update_operation &o
       }
       FC_CAPTURE_AND_RETHROW((o))
 }
+/*
+void_result account_whitelist_evaluator::do_evaluate(const account_whitelist_operation &o)
+{
+      try
+      {
+            database &d = db();
 
+            listed_account = &o.account_to_list(d);
+            if (!d.get_global_properties().parameters.allow_non_member_whitelists)
+                  FC_ASSERT(o.authorizing_account(d).is_lifetime_member());
+
+            return void_result();
+      }
+      FC_CAPTURE_AND_RETHROW((o))
+}
+
+void_result account_whitelist_evaluator::do_apply(const account_whitelist_operation &o)
+{
+      try
+      {
+            database &d = db();
+
+            d.modify(*listed_account, [&o](account_object &a) {
+                  if (o.new_listing & o.white_listed)
+                        a.whitelisting_accounts.insert(o.authorizing_account);
+                  else
+                        a.whitelisting_accounts.erase(o.authorizing_account);
+
+                  if (o.new_listing & o.black_listed)
+                        a.blacklisting_accounts.insert(o.authorizing_account);
+                  else
+                        a.blacklisting_accounts.erase(o.authorizing_account);
+            });
+      
+            // for tracking purposes only, this state is not needed to evaluate /
+            d.modify(o.authorizing_account(d), [&](account_object &a) {
+                  if (o.new_listing & o.white_listed)
+                        a.whitelisted_accounts.insert(o.account_to_list);
+                  else
+                        a.whitelisted_accounts.erase(o.account_to_list);
+
+                  if (o.new_listing & o.black_listed)
+                        a.blacklisted_accounts.insert(o.account_to_list);
+                  else
+                        a.blacklisted_accounts.erase(o.account_to_list);
+            });
+
+            return void_result();
+      }
+      FC_CAPTURE_AND_RETHROW((o))
+}
+*/
+void_result account_upgrade_evaluator::do_evaluate(const account_upgrade_evaluator::operation_type &o)
+{
+      try
+      {
+            database &d = db();
+
+            account = &d.get(o.account_to_upgrade);
+            FC_ASSERT(!account->is_lifetime_member());
+
+            return {};
+            //} FC_CAPTURE_AND_RETHROW( (o) ) }
+      }
+      FC_RETHROW_EXCEPTIONS(error, "Unable to upgrade account '${a}'", ("a", o.account_to_upgrade(db()).name))
+}
 
 void_result account_upgrade_evaluator::do_apply(const account_upgrade_evaluator::operation_type &o)
 {
@@ -353,21 +416,6 @@ void_result account_upgrade_evaluator::do_apply(const account_upgrade_evaluator:
                   }
             });
             return {};
-      }
-      FC_RETHROW_EXCEPTIONS(error, "Unable to upgrade account '${a}'", ("a", o.account_to_upgrade(db()).name))
-}
-
-void_result account_upgrade_evaluator::do_evaluate(const account_upgrade_evaluator::operation_type &o)
-{
-      try
-      {
-            database &d = db();
-
-            account = &d.get(o.account_to_upgrade);
-            FC_ASSERT(!account->is_lifetime_member());
-
-            return {};
-            //} FC_CAPTURE_AND_RETHROW( (o) ) }
       }
       FC_RETHROW_EXCEPTIONS(error, "Unable to upgrade account '${a}'", ("a", o.account_to_upgrade(db()).name))
 }
