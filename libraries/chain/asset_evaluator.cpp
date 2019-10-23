@@ -47,36 +47,10 @@ void_result asset_create_evaluator::do_evaluate(const asset_create_operation &op
             database &d = db();
 
             const auto &chain_parameters = d.get_global_properties().parameters;
-            //FC_ASSERT(op.common_options.whitelist_authorities.size() <= chain_parameters.maximum_asset_whitelist_authorities);
-            //FC_ASSERT(op.common_options.blacklist_authorities.size() <= chain_parameters.maximum_asset_whitelist_authorities);
-
-            // Check that all authorities do exist
-            //for (auto id : op.common_options.whitelist_authorities)
-            //     d.get_object(id);
-            //for (auto id : op.common_options.blacklist_authorities)
-            //     d.get_object(id);
-
             auto &asset_indx = d.get_index_type<asset_index>().indices().get<by_symbol>();
             auto asset_symbol_itr = asset_indx.find(op.symbol);
             FC_ASSERT(asset_symbol_itr == asset_indx.end());
 
-            /*//if (d.head_block_time() > HARDFORK_385_TIME)
-            //{
-
-                  if (d.head_block_time() <= HARDFORK_409_TIME)
-                  {
-                        auto dotpos = op.symbol.find('.');
-                        if (dotpos != std::string::npos)
-                        {
-                              auto prefix = op.symbol.substr(0, dotpos);
-                              auto asset_symbol_itr = asset_indx.find(op.symbol);
-                              FC_ASSERT(asset_symbol_itr != asset_indx.end(), "Asset ${s} may only be created by issuer of ${p}, but ${p} has not been registered",
-                                        ("s", op.symbol)("p", prefix));
-                              FC_ASSERT(asset_symbol_itr->issuer == op.issuer, "Asset ${s} may only be created by issuer of ${p}, ${i}",
-                                        ("s", op.symbol)("p", prefix)("i", op.issuer(d).name));
-                        }
-                  }
-                  else*/
             {
                   auto dotpos = op.symbol.rfind('.');
                   if (dotpos != std::string::npos)
@@ -89,14 +63,6 @@ void_result asset_create_evaluator::do_evaluate(const asset_create_operation &op
                                   ("s", op.symbol)("p", prefix)("i", op.issuer(d).name));
                   }
             }
-            /*}
-            else
-            {
-                  auto dotpos = op.symbol.find('.');
-                  if (dotpos != std::string::npos)
-                        wlog("Asset ${s} has a name which requires hardfork 385", ("s", op.symbol));
-            }
-*/
             if (op.bitasset_opts)
             {
                   const asset_object &backing = op.bitasset_opts->short_backing_asset(d);
@@ -115,20 +81,6 @@ void_result asset_create_evaluator::do_evaluate(const asset_create_operation &op
                   FC_ASSERT(op.bitasset_opts->feed_lifetime_sec > chain_parameters.block_interval &&
                             op.bitasset_opts->force_settlement_delay_sec > chain_parameters.block_interval);
             }
-            /* 取消二元预测市场
-            if (op.is_prediction_market)
-            {
-                  FC_ASSERT(op.bitasset_opts);
-                  FC_ASSERT(op.precision == op.bitasset_opts->short_backing_asset(d).precision);
-            }
-            */
-            /*      
-            if (d.head_block_time() <= HARDFORK_CORE_429_TIME)
-            { // TODO: remove after HARDFORK_CORE_429_TIME has passed
-                  graphene::chain::impl::hf_429_visitor hf_429;
-                  hf_429(op);
-            }
-            */
             return void_result();
       }
       FC_CAPTURE_AND_RETHROW((op))
@@ -151,7 +103,6 @@ object_id_result asset_create_evaluator::do_apply(const asset_create_operation &
             if (op.bitasset_opts.valid())
                   bit_asset_id = db().create<asset_bitasset_data_object>([&](asset_bitasset_data_object &a) {
                                            a.options = *op.bitasset_opts;
-                                           //a.is_prediction_market = op.is_prediction_market; // 取消二元预测市场
                                             }).id;
 
             auto next_asset_id = db().get_index_type<asset_index>().get_next_id();

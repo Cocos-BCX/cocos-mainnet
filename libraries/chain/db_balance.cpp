@@ -136,6 +136,8 @@ optional<vesting_balance_id_type> database::deposit_lazy_vesting(
             break;
         if (vbo.policy.get<cdd_vesting_policy>().vesting_seconds != req_vesting_seconds)
             break;
+        if (vbo.describe!= describe)
+            break;
         modify(vbo, [&](vesting_balance_object &_vbo) {
             if (require_vesting)
                 _vbo.deposit(now, amount);
@@ -168,23 +170,10 @@ void database::deposit_cashback(const account_object &acct, asset amount, string
 
     if (amount.amount == share_type(0))
         return;
-
-    if (acct.get_id() == GRAPHENE_COMMITTEE_ACCOUNT || acct.get_id() == GRAPHENE_WITNESS_ACCOUNT ||
-        //acct.get_id() == GRAPHENE_RELAXED_COMMITTEE_ACCOUNT ||
-        acct.get_id() == GRAPHENE_NULL_ACCOUNT || acct.get_id() == GRAPHENE_TEMP_ACCOUNT)
-    {
-        // The blockchain's accounts do not get cashback; it simply goes to the reserve pool.
-        // 这些链上的公共账户不会拥有返现，该部分资金将转移到储备池，操作:减少当前资产流通量
-        modify(get(amount.asset_id).dynamic_asset_data_id(*this), [amount](asset_dynamic_data_object &d) {
-            d.current_supply -= amount.amount; // 修改当前供应量
-        });
-        return;
-    }
-
     optional<vesting_balance_id_type> new_vbid = deposit_lazy_vesting(
-        acct.cashback_vb,
+        acct.cashback_gas,
         amount,
-        get_global_properties().parameters.cashback_vesting_period_seconds,
+        get_global_properties().parameters.cashback_gas_period_seconds,
         acct.id,
         describe,
         require_vesting);
@@ -192,7 +181,7 @@ void database::deposit_cashback(const account_object &acct, asset amount, string
     if (new_vbid.valid())
     {
         modify(acct, [&](account_object &_acct) {
-            _acct.cashback_vb = *new_vbid;
+            _acct.cashback_gas = *new_vbid;
         });
     }
 

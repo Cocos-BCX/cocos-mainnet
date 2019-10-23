@@ -761,7 +761,7 @@ std::map<std::string, full_account> database_api_impl::get_full_accounts(const v
         acnt.votes = lookup_vote_ids(account->options.votes);
 
         // Add the account itself, its statistics object, cashback balance, and referral account names
-        if (account->cashback_vb)
+        if (account->cashback_gas)
         {
             acnt.cashback_balance = account->cashback_balance(_db);
         }

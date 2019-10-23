@@ -170,10 +170,11 @@ class account_object : public graphene::db::abstract_object<account_object>
    /**
           * Vesting balance which receives cashback_reward deposits.
           */
-   optional<vesting_balance_id_type> cashback_vb; // 终生会员手续费返现
-
-   optional<special_authority> owner_special_authority = {};//no_special_authority();  // 创建一个类似与理事会的公共资产管理账户时，需要根据此项来确定owner权限来划分，可设置代币持有者　top N　来共同管理
-   optional<special_authority> active_special_authority ={};// no_special_authority(); // 创建一个类似与理事会的公共资产管理账户时，需要根据此项来确定active权限来划分，可设置代币持有者　top N　来共同管理
+   optional<vesting_balance_id_type> cashback_gas;
+   optional<vesting_balance_id_type> cashback_vb;
+   optional<vesting_balance_id_type> cashback_vote;
+   optional<special_authority> owner_special_authority = {};  // 创建一个类似与理事会的公共资产管理账户时，需要根据此项来确定owner权限来划分，可设置代币持有者　top N　来共同管理
+   optional<special_authority> active_special_authority ={}; // 创建一个类似与理事会的公共资产管理账户时，需要根据此项来确定active权限来划分，可设置代币持有者　top N　来共同管理
 
    /**
           * This flag is set when the top_n logic sets both authorities,
@@ -193,8 +194,8 @@ class account_object : public graphene::db::abstract_object<account_object>
    template <typename DB>
    const vesting_balance_object &cashback_balance(const DB &db) const
    {
-      FC_ASSERT(cashback_vb);
-      return db.get(*cashback_vb);
+      FC_ASSERT(cashback_gas);
+      return db.get(*cashback_gas);
    }
 
    /// @return true if this is a lifetime member account; false otherwise.
@@ -318,7 +319,7 @@ FC_REFLECT_DERIVED(graphene::chain::account_object,
                    (graphene::db::object),
                    (membership_expiration_date)(registrar)
                    (name)(witness_status)(committee_status)(owner)(active)(options)(statistics)(asset_locked)
-                   (cashback_vb)(owner_special_authority)(active_special_authority)(top_n_control_flags))
+                   (cashback_gas)(cashback_vb)(cashback_vote)(owner_special_authority)(active_special_authority)(top_n_control_flags))
 
 FC_REFLECT_DERIVED(graphene::chain::account_balance_object,
                    (graphene::db::object),

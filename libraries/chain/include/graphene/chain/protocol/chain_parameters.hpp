@@ -54,7 +54,9 @@ namespace graphene { namespace chain {
       uint16_t                witness_number_of_election          = GRAPHENE_DEFAULT_WITNESSE_NUMBER; ///< maximum number of active witnesses
       uint16_t                committee_number_of_election             = GRAPHENE_DEFAULT_COMMITTEE_NUMBER; ///< maximum number of active committee_members
       uint16_t                maximum_authority_membership        = GRAPHENE_DEFAULT_MAX_AUTHORITY_MEMBERSHIP; ///< largest number of keys/accounts an authority can have
-      uint32_t                cashback_vesting_period_seconds     = GRAPHENE_DEFAULT_CASHBACK_VESTING_PERIOD_SEC; ///< time after cashback rewards are accrued before they become liquid
+      uint32_t                cashback_gas_period_seconds         = GRAPHENE_DEFAULT_CASHBACK_VESTING_PERIOD_SEC; ///< time after cashback rewards are accrued before they become liquid
+      uint32_t                cashback_vb_period_seconds          = GRAPHENE_DEFAULT_CASHBACK_VESTING_PERIOD_SEC;
+      uint32_t                cashback_vote_period_seconds        = GRAPHENE_DEFAULT_CASHBACK_VESTING_PERIOD_SEC;
       //bool                    allow_non_member_whitelists         = false; ///< true if non-member accounts may set whitelists and blacklists; false otherwise
       share_type              witness_pay_per_block               = GRAPHENE_DEFAULT_WITNESS_PAY_PER_BLOCK; ///< CORE to be allocated to witnesses (per block)
       uint32_t                witness_pay_vesting_seconds         = GRAPHENE_DEFAULT_WITNESS_PAY_VESTING_SECONDS; ///< vesting_seconds parameter for witness VBO's
@@ -96,7 +98,9 @@ FC_REFLECT( graphene::chain::chain_parameters,
             (committee_number_of_election)
             (maximum_authority_membership)
             //(committee_percent_of_network)
-            (cashback_vesting_period_seconds)
+            (cashback_gas_period_seconds)
+            (cashback_vb_period_seconds)
+            (cashback_vote_period_seconds)
             //(allow_non_member_whitelists)
             (witness_pay_per_block)
             (witness_pay_vesting_seconds)

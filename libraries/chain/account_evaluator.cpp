@@ -57,50 +57,48 @@ void verify_authority_accounts(const database &db, const authority &a)
                             ("a", acnt.first));
       }
 }
-template<typename Candidate_Type>
-void account_update_evaluator::modify_candidate(Candidate_Type& candidate,vote_id_type vote,const flat_set<vote_id_type>& new_support,const flat_set<vote_id_type>&cancellation_support)
+template <typename Candidate_Type>
+void account_update_evaluator::modify_candidate(Candidate_Type &candidate, vote_id_type vote, const flat_set<vote_id_type> &new_support, const flat_set<vote_id_type> &cancellation_support)
 {
-      auto temp_itr=new_support.find(vote);
-      if ( temp_itr!= new_support.end())
+      auto temp_itr = new_support.find(vote);
+      if (temp_itr != new_support.end())
       {
-            auto candidate_supporter_itr=candidate.supporters.find(acnt->id);
-            if(candidate_supporter_itr!=candidate.supporters.end())     
+            auto candidate_supporter_itr = candidate.supporters.find(acnt->id);
+            if (candidate_supporter_itr != candidate.supporters.end())
             {
-                  candidate.total_votes+=(vote_lock.amount-candidate_supporter_itr->second.amount).value;
-                  candidate_supporter_itr->second=vote_lock;
+                  candidate.total_votes += (vote_lock.amount - candidate_supporter_itr->second.amount).value;
+                  candidate_supporter_itr->second = vote_lock;
             }
             else
             {
-                  candidate.supporters.insert(make_pair(acnt->id,vote_lock));
-                  candidate.total_votes+=vote_lock.amount.value;
+                  candidate.supporters.insert(make_pair(acnt->id, vote_lock));
+                  candidate.total_votes += vote_lock.amount.value;
             }
       }
       if (cancellation_support.find(vote) != cancellation_support.end())
       {
-            auto candidate_supporter_itr=candidate.supporters.find(acnt->id);
-            if(candidate_supporter_itr!=candidate.supporters.end())     
+            auto candidate_supporter_itr = candidate.supporters.find(acnt->id);
+            if (candidate_supporter_itr != candidate.supporters.end())
             {
                   candidate.supporters.erase(candidate_supporter_itr);
-                  candidate.total_votes-=candidate_supporter_itr->second.amount.value;
+                  candidate.total_votes -= candidate_supporter_itr->second.amount.value;
             }
       }
-
 }
-
 
 int64_t account_update_evaluator::verify_account_votes(const account_options &options, const flat_set<vote_id_type> &old_votes)
 {
       // ensure account's votes satisfy requirements
       // NB only the part of vote checking that requires chain state is here,
       // the rest occurs in account_options::validate()
-      auto &d=db();
+      auto &d = db();
       flat_set<vote_id_type> new_support;
       flat_set<vote_id_type> cancellation_support;
       flat_set<vote_id_type> affected_voting;
       for (auto &temp_vote : options.votes)
       {
-            auto temp_itr=old_votes.find(temp_vote);
-            if ( temp_itr== old_votes.end()||this->acnt->asset_locked.vote_locked!=vote_lock)
+            auto temp_itr = old_votes.find(temp_vote);
+            if (temp_itr == old_votes.end() || this->acnt->asset_locked.vote_locked != vote_lock)
                   new_support.insert(temp_vote);
             affected_voting.insert(temp_vote);
       }
@@ -121,7 +119,7 @@ int64_t account_update_evaluator::verify_account_votes(const account_options &op
                   auto committee_obj = committee_idx.find(vote);
                   FC_ASSERT(committee_obj != committee_idx.end());
                   d.modify(*committee_obj, [&](committee_member_object &com) {
-                        modify_candidate(com,vote,new_support,cancellation_support);
+                        modify_candidate(com, vote, new_support, cancellation_support);
                   });
                   break;
             }
@@ -130,7 +128,7 @@ int64_t account_update_evaluator::verify_account_votes(const account_options &op
                   auto witness_obj = witness_idx.find(vote);
                   FC_ASSERT(witness_obj != witness_idx.end());
                   d.modify(*witness_obj, [&](witness_object &wit) {
-                         modify_candidate(wit,vote,new_support,cancellation_support);
+                        modify_candidate(wit, vote, new_support, cancellation_support);
                   });
                   break;
             }
@@ -140,6 +138,49 @@ int64_t account_update_evaluator::verify_account_votes(const account_options &op
             }
       }
       // }
+}
+
+
+
+object_id_result account_create_evaluator::do_apply(const account_create_operation &o)
+{
+      try
+      {
+
+            database &d = db();
+            const auto &new_acnt_object = db().create<account_object>([&](account_object &obj) {
+                  obj.registrar = o.registrar;
+                  obj.name = o.name;
+                  obj.owner = o.owner;
+                  obj.active = o.active;
+                  obj.options = o.options;
+                  obj.statistics = db().create<account_statistics_object>([&](account_statistics_object &s) { s.owner = obj.id; }).id;
+
+                  if (o.extensions.value.owner_special_authority.valid())
+                        obj.owner_special_authority = o.extensions.value.owner_special_authority;
+                  if (o.extensions.value.active_special_authority.valid())
+                        obj.active_special_authority = o.extensions.value.active_special_authority;
+            });
+            const auto &dynamic_properties = db().get_dynamic_global_properties();
+            db().modify(dynamic_properties, [](dynamic_global_property_object &p) {
+                  ++p.accounts_registered_this_interval;
+            });
+
+            const auto &global_properties = db().get_global_properties();
+            if (dynamic_properties.accounts_registered_this_interval % global_properties.parameters.accounts_per_fee_scale == 0)
+                  db().modify(global_properties, [&dynamic_properties](global_property_object &p) {
+                        p.parameters.current_fees->get<account_create_operation>().basic_fee <<= p.parameters.account_fee_scale_bitshifts;
+                  });
+
+            if (o.extensions.value.owner_special_authority.valid() || o.extensions.value.active_special_authority.valid())
+            {
+                  db().create<special_authority_object>([&](special_authority_object &sa) {
+                        sa.account = new_acnt_object.id;
+                  });
+            }
+            return new_acnt_object.id;
+      }
+      FC_CAPTURE_AND_RETHROW((o))
 }
 
 void_result account_create_evaluator::do_evaluate(const account_create_operation &op)
@@ -174,48 +215,6 @@ void_result account_create_evaluator::do_evaluate(const account_create_operation
       FC_CAPTURE_AND_RETHROW((op))
 }
 
-object_id_result account_create_evaluator::do_apply(const account_create_operation &o)
-{
-      try
-      {
-
-            database &d = db();
-            const auto &new_acnt_object = db().create<account_object>([&](account_object &obj) {
-                  obj.registrar = o.registrar;
-                  obj.name = o.name;
-                  obj.owner = o.owner;
-                  obj.active = o.active;
-                  obj.options = o.options;
-                  obj.statistics = db().create<account_statistics_object>([&](account_statistics_object &s) { s.owner = obj.id; }).id;
-
-                  if (o.extensions.value.owner_special_authority.valid())
-                        obj.owner_special_authority = o.extensions.value.owner_special_authority;
-                  if (o.extensions.value.active_special_authority.valid())
-                        obj.active_special_authority = o.extensions.value.active_special_authority;
-                  
-            });
-            const auto &dynamic_properties = db().get_dynamic_global_properties();
-            db().modify(dynamic_properties, [](dynamic_global_property_object &p) {
-                  ++p.accounts_registered_this_interval;
-            });
-
-            const auto &global_properties = db().get_global_properties();
-            if (dynamic_properties.accounts_registered_this_interval % global_properties.parameters.accounts_per_fee_scale == 0)
-                  db().modify(global_properties, [&dynamic_properties](global_property_object &p) {
-                        p.parameters.current_fees->get<account_create_operation>().basic_fee <<= p.parameters.account_fee_scale_bitshifts;
-                  });
-
-            if (o.extensions.value.owner_special_authority.valid() || o.extensions.value.active_special_authority.valid())
-            {
-                  db().create<special_authority_object>([&](special_authority_object &sa) {
-                        sa.account = new_acnt_object.id;
-                  });
-            }
-            return new_acnt_object.id;
-      }
-      FC_CAPTURE_AND_RETHROW((o))
-}
-
 void_result account_update_evaluator::do_evaluate(const account_update_operation &o)
 {
       try
@@ -230,21 +229,21 @@ void_result account_update_evaluator::do_evaluate(const account_update_operation
             }
             GRAPHENE_RECODE_EXC(internal_verify_auth_max_auth_exceeded, account_update_max_auth_exceeded)
             GRAPHENE_RECODE_EXC(internal_verify_auth_account_not_found, account_update_auth_account_not_found)
-            if(o.new_options)
+            if (o.new_options)
             {
-                  if(o.new_options->votes.size()==0)
-                        FC_ASSERT(o.lock_with_vote.asset_id==asset_id_type()&&o.lock_with_vote.amount==0);
-                  auto  num_witness=0, num_committee=0;
-                  for( vote_id_type id : o.new_options->votes )
+                  if (o.new_options->votes.size() == 0)
+                        FC_ASSERT(o.lock_with_vote.asset_id == asset_id_type() && o.lock_with_vote.amount == 0);
+                  auto num_witness = 0, num_committee = 0;
+                  for (vote_id_type id : o.new_options->votes)
                   {
-                  if( id.type() == vote_id_type::witness )
-                        num_witness++;
-                  else if ( id.type() == vote_id_type::committee)
-                       num_committee++;
+                        if (id.type() == vote_id_type::witness)
+                              num_witness++;
+                        else if (id.type() == vote_id_type::committee)
+                              num_committee++;
                   }
-                  auto chain_params=d.get_global_properties().parameters;
-                  FC_ASSERT(num_witness <= chain_params.witness_number_of_election,"Voted for more witnesses than currently allowed (${c})", ("c", chain_params.witness_number_of_election));
-                  FC_ASSERT(num_committee <= chain_params.committee_number_of_election,"Voted for more committee members than currently allowed (${c})", ("c", chain_params.committee_number_of_election));
+                  auto chain_params = d.get_global_properties().parameters;
+                  FC_ASSERT(num_witness <= chain_params.witness_number_of_election, "Voted for more witnesses than currently allowed (${c})", ("c", chain_params.witness_number_of_election));
+                  FC_ASSERT(num_committee <= chain_params.committee_number_of_election, "Voted for more committee members than currently allowed (${c})", ("c", chain_params.committee_number_of_election));
             }
             if (o.extensions.value.owner_special_authority.valid())
                   evaluate_special_authority(d, *o.extensions.value.owner_special_authority);
@@ -252,7 +251,6 @@ void_result account_update_evaluator::do_evaluate(const account_update_operation
                   evaluate_special_authority(d, *o.extensions.value.active_special_authority);
 
             acnt = &o.account(d);
-                  
 
             return void_result();
       }
@@ -278,19 +276,34 @@ void_result account_update_evaluator::do_apply(const account_update_operation &o
                   }
                   if (o.new_options)
                   {
-                        vote_lock=o.lock_with_vote;
-                        FC_ASSERT(vote_lock.asset_id==asset_id_type());
+                        vote_lock = o.lock_with_vote;
+                        FC_ASSERT(vote_lock.asset_id == asset_id_type());
                         verify_account_votes(*o.new_options, acnt->options.votes);
-                        if(a.asset_locked.vote_locked.valid())
-                        {     
-                              a.asset_locked.locked_total[a.asset_locked.vote_locked->asset_id]+=vote_lock.amount-a.asset_locked.vote_locked->amount;
-                              a.asset_locked.vote_locked=vote_lock;
+                        if (a.asset_locked.vote_locked.valid())
+                        {
+                              auto temp = vote_lock.amount - a.asset_locked.vote_locked->amount;
+                              a.asset_locked.locked_total[a.asset_locked.vote_locked->asset_id] += temp;
+                              a.asset_locked.vote_locked = vote_lock;
+                              if (temp < 0)
+                              {
+                                    optional<vesting_balance_id_type> new_vbid = d.deposit_lazy_vesting(
+                                        acnt->cashback_vote,
+                                        -temp,
+                                        d.get_global_properties().parameters.cashback_vote_period_seconds,
+                                        acnt->id,
+                                        "cashback_vote",
+                                        true);
+                                    if (new_vbid.valid())
+                                          a.cashback_vote=new_vbid;
+                                    d.adjust_balance(a.id,temp);
+                              }
                         }
-                        else{
-                              a.asset_locked.vote_locked=vote_lock;
-                              a.asset_locked.locked_total[a.asset_locked.vote_locked->asset_id]+=a.asset_locked.vote_locked->amount;
+                        else
+                        {
+                              a.asset_locked.vote_locked = vote_lock;
+                              a.asset_locked.locked_total[a.asset_locked.vote_locked->asset_id] += a.asset_locked.vote_locked->amount;
                         }
-                        
+
                         a.options = *o.new_options;
                   }
                   sa_before = a.has_special_authority();
@@ -325,72 +338,7 @@ void_result account_update_evaluator::do_apply(const account_update_operation &o
       }
       FC_CAPTURE_AND_RETHROW((o))
 }
-/*
-void_result account_whitelist_evaluator::do_evaluate(const account_whitelist_operation &o)
-{
-      try
-      {
-            database &d = db();
 
-            listed_account = &o.account_to_list(d);
-            if (!d.get_global_properties().parameters.allow_non_member_whitelists)
-                  FC_ASSERT(o.authorizing_account(d).is_lifetime_member());
-
-            return void_result();
-      }
-      FC_CAPTURE_AND_RETHROW((o))
-}
-
-void_result account_whitelist_evaluator::do_apply(const account_whitelist_operation &o)
-{
-      try
-      {
-            database &d = db();
-
-            d.modify(*listed_account, [&o](account_object &a) {
-                  if (o.new_listing & o.white_listed)
-                        a.whitelisting_accounts.insert(o.authorizing_account);
-                  else
-                        a.whitelisting_accounts.erase(o.authorizing_account);
-
-                  if (o.new_listing & o.black_listed)
-                        a.blacklisting_accounts.insert(o.authorizing_account);
-                  else
-                        a.blacklisting_accounts.erase(o.authorizing_account);
-            });
-      
-            // for tracking purposes only, this state is not needed to evaluate /
-            d.modify(o.authorizing_account(d), [&](account_object &a) {
-                  if (o.new_listing & o.white_listed)
-                        a.whitelisted_accounts.insert(o.account_to_list);
-                  else
-                        a.whitelisted_accounts.erase(o.account_to_list);
-
-                  if (o.new_listing & o.black_listed)
-                        a.blacklisted_accounts.insert(o.account_to_list);
-                  else
-                        a.blacklisted_accounts.erase(o.account_to_list);
-            });
-
-            return void_result();
-      }
-      FC_CAPTURE_AND_RETHROW((o))
-}
-*/
-void_result account_upgrade_evaluator::do_evaluate(const account_upgrade_evaluator::operation_type &o)
-{
-      try
-      {
-            database &d = db();
-
-            account = &d.get(o.account_to_upgrade);
-            FC_ASSERT(!account->is_lifetime_member());
-
-            return {};
-            //} FC_CAPTURE_AND_RETHROW( (o) ) }
-      }
-      FC_RETHROW_EXCEPTIONS(error, "Unable to upgrade account '${a}'", ("a", o.account_to_upgrade(db()).name))
-}
 
 void_result account_upgrade_evaluator::do_apply(const account_upgrade_evaluator::operation_type &o)
 {
@@ -405,6 +353,21 @@ void_result account_upgrade_evaluator::do_apply(const account_upgrade_evaluator:
                   }
             });
             return {};
+      }
+      FC_RETHROW_EXCEPTIONS(error, "Unable to upgrade account '${a}'", ("a", o.account_to_upgrade(db()).name))
+}
+
+void_result account_upgrade_evaluator::do_evaluate(const account_upgrade_evaluator::operation_type &o)
+{
+      try
+      {
+            database &d = db();
+
+            account = &d.get(o.account_to_upgrade);
+            FC_ASSERT(!account->is_lifetime_member());
+
+            return {};
+            //} FC_CAPTURE_AND_RETHROW( (o) ) }
       }
       FC_RETHROW_EXCEPTIONS(error, "Unable to upgrade account '${a}'", ("a", o.account_to_upgrade(db()).name))
 }

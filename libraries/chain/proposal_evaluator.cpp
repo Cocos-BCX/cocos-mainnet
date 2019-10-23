@@ -65,7 +65,7 @@ void_result proposal_create_evaluator::do_evaluate(const proposal_create_operati
 
             FC_ASSERT(other.size() == 0,"required other authorities:${other}",("other",other)); // TODO: what about other???
 
-            if (auths.find(GRAPHENE_COMMITTEE_ACCOUNT) != auths.end())
+            if (auths.find(GRAPHENE_COMMITTEE_ACCOUNT) != auths.end()||auths.find(GRAPHENE_WITNESS_ACCOUNT)!=auths.end())
             {
                 GRAPHENE_ASSERT(
                     o.review_period_seconds.valid(),
@@ -77,6 +77,8 @@ void_result proposal_create_evaluator::do_evaluate(const proposal_create_operati
                     proposal_create_review_period_insufficient,
                     "Review period of ${t} specified, but at least ${min} required",
                     ("t", *o.review_period_seconds)("min", global_parameters.committee_proposal_review_period));
+                FC_ASSERT(o.expiration_time<=d.get_dynamic_global_properties().next_maintenance_time,
+                    "The proposal must end before the arrival of a new term in the group account");   
             }
             
             // Verify that the impacted account exists

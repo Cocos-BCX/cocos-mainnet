@@ -57,7 +57,7 @@ void account_object::pay_fee(database&db,asset fee)const
     }
     else
     {
-       db.deposit_cashback(get_id()(db), fee, "account:" + string(id), true);
+       db.deposit_cashback(get_id()(db), fee, "cashback_gas", true);
     }
 }
 set<account_id_type> account_member_index::get_account_members(const account_object& a)const
