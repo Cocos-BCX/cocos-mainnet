@@ -899,6 +899,7 @@ bool database::before_last_checkpoint() const
 bool database::log_pending_size()
 {
   _pending_size=_pending_tx.size();
+  return true;
 }
 } // namespace chain
 } // namespace graphene

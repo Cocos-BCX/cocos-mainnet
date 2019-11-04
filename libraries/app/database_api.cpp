@@ -508,6 +508,10 @@ asset database_api::estimation_gas(const asset& delta_collateral)
     return my->_db.estimation_gas(delta_collateral);
 }
 
+flat_set<public_key_type> database_api::get_signature_keys(const signed_transaction&trx)
+{
+    return trx.get_signature_keys(my->_db.get_chain_id());
+}
 
 optional<processed_transaction> database_api_impl::get_transaction_by_id(const string &id) const
 {
@@ -1930,7 +1934,7 @@ vector<variant> database_api_impl::lookup_vote_ids(const flat_set<vote_id_type>&
             break;
         }
         
-        case vote_id_type::VOTE_TYPE_COUNT:
+        case vote_id_type::vote_noone:
             break; // supress unused enum value warnings
         }
     }

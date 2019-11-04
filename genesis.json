@@ -10,7 +10,7 @@
     "block_interval": 2,
     "maintenance_interval": 1800,
     "maintenance_skip_slots": 3,
-    "committee_proposal_review_period": 1800,
+    "committee_proposal_review_period": 1200,
     "maximum_block_size": 2000000,
     "maximum_time_until_expiration": 86400,
     "maximum_proposal_lifetime": 2419200,

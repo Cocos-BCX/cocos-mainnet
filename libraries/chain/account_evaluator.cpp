@@ -95,18 +95,24 @@ int64_t account_update_evaluator::verify_account_votes(const account_options &op
       flat_set<vote_id_type> new_support;
       flat_set<vote_id_type> cancellation_support;
       flat_set<vote_id_type> affected_voting;
+      final_vote = options.votes;
       for (auto &temp_vote : options.votes)
       {
             auto temp_itr = old_votes.find(temp_vote);
-            if (temp_itr == old_votes.end() || this->acnt->asset_locked.vote_locked != vote_lock)
+            if (temp_itr == old_votes.end() || temp.value)
                   new_support.insert(temp_vote);
             affected_voting.insert(temp_vote);
       }
       for (auto &temp_vote : old_votes)
       {
-            if (options.votes.find(temp_vote) == options.votes.end())
-                  cancellation_support.insert(temp_vote);
-            affected_voting.insert(temp_vote);
+            if (temp_vote.type() == _vote_type)
+            {
+                  if (options.votes.find(temp_vote) == options.votes.end())
+                        cancellation_support.insert(temp_vote);
+                  affected_voting.insert(temp_vote);
+            }
+            else
+                  final_vote.insert(temp_vote);
       }
       const auto &committee_idx = d.get_index_type<committee_member_index>().indices().get<by_vote_id>();
       const auto &witness_idx = d.get_index_type<witness_index>().indices().get<by_vote_id>();
@@ -229,19 +235,27 @@ void_result account_update_evaluator::do_evaluate(const account_update_operation
             GRAPHENE_RECODE_EXC(internal_verify_auth_account_not_found, account_update_auth_account_not_found)
             if (o.new_options)
             {
-                  if (o.new_options->votes.size() == 0)
-                        FC_ASSERT(o.lock_with_vote.asset_id == asset_id_type() && o.lock_with_vote.amount == 0);
-                  auto num_witness = 0, num_committee = 0;
-                  for (vote_id_type id : o.new_options->votes)
+                  if (o.lock_with_vote)
                   {
-                        if (id.type() == vote_id_type::witness)
-                              num_witness++;
-                        else if (id.type() == vote_id_type::committee)
-                              num_committee++;
+                        if (o.new_options->votes.size() == 0)
+                              FC_ASSERT(o.lock_with_vote->second.asset_id == asset_id_type() && o.lock_with_vote->second.amount == 0);
+                        FC_ASSERT(o.lock_with_vote->first <= vote_id_type::vote_type::vote_noone);
+                        _vote_type = vote_id_type::vote_type(o.lock_with_vote->first);
+                        for (vote_id_type id : o.new_options->votes)
+                        {
+                              if (id.type() == vote_id_type::witness)
+                                    num_witness++;
+                              else if (id.type() == vote_id_type::committee)
+                                    num_committee++;
+                        }
+                        if (num_committee.value)
+                              FC_ASSERT(_vote_type == vote_id_type::vote_type::committee);
+                        if (num_witness.value)
+                              FC_ASSERT(_vote_type == vote_id_type::vote_type::witness);
+                        auto chain_params = d.get_global_properties().parameters;
+                        FC_ASSERT(num_witness <= chain_params.witness_number_of_election, "Voted for more witnesses than currently allowed (${c})", ("c", chain_params.witness_number_of_election));
+                        FC_ASSERT(num_committee <= chain_params.committee_number_of_election, "Voted for more committee members than currently allowed (${c})", ("c", chain_params.committee_number_of_election));
                   }
-                  auto chain_params = d.get_global_properties().parameters;
-                  FC_ASSERT(num_witness <= chain_params.witness_number_of_election, "Voted for more witnesses than currently allowed (${c})", ("c", chain_params.witness_number_of_election));
-                  FC_ASSERT(num_committee <= chain_params.committee_number_of_election, "Voted for more committee members than currently allowed (${c})", ("c", chain_params.committee_number_of_election));
             }
             if (o.extensions.value.owner_special_authority.valid())
                   evaluate_special_authority(d, *o.extensions.value.owner_special_authority);
@@ -274,35 +288,40 @@ void_result account_update_evaluator::do_apply(const account_update_operation &o
                   }
                   if (o.new_options)
                   {
-                        vote_lock = o.lock_with_vote;
-                        FC_ASSERT(vote_lock.asset_id == asset_id_type());
-                        verify_account_votes(*o.new_options, acnt->options.votes);
-                        if (a.asset_locked.vote_locked.valid())
+                        if (o.lock_with_vote)
                         {
-                              auto temp = vote_lock.amount - a.asset_locked.vote_locked->amount;
-                              a.asset_locked.locked_total[a.asset_locked.vote_locked->asset_id] += temp;
-                              a.asset_locked.vote_locked = vote_lock;
-                              if (temp < 0)
+                              vote_lock = o.lock_with_vote->second;
+                              FC_ASSERT(vote_lock.asset_id == asset_id_type());
+                              if (o.lock_with_vote->first != vote_id_type::vote_type::vote_noone)
                               {
-                                    optional<vesting_balance_id_type> new_vbid = d.deposit_lazy_vesting(
-                                        acnt->cashback_vote,
-                                        -temp,
-                                        d.get_global_properties().parameters.cashback_vote_period_seconds,
-                                        acnt->id,
-                                        "cashback_vote",
-                                        true);
-                                    if (new_vbid.valid())
-                                          a.cashback_vote=new_vbid;
-                                    d.adjust_balance(a.id,temp);
+                                    auto &real_vote_locked = o.lock_with_vote->first == vote_id_type::vote_type::witness ? a.asset_locked.vote_for_witness : a.asset_locked.vote_for_committee;
+                                    if (real_vote_locked.valid())
+                                    {
+                                          temp = vote_lock.amount - real_vote_locked->amount;
+                                          a.asset_locked.locked_total[real_vote_locked->asset_id] += temp.value;
+                                          if (temp.value < 0)
+                                          {
+                                                optional<vesting_balance_id_type> new_vbid = d.deposit_lazy_vesting(
+                                                    acnt->cashback_vote, -temp,
+                                                    d.get_global_properties().parameters.cashback_vote_period_seconds,
+                                                    acnt->id, "cashback_vote", true);
+                                                if (new_vbid.valid())
+                                                      a.cashback_vote = new_vbid;
+                                                d.adjust_balance(a.id, temp);
+                                          }
+                                    }
+                                    else
+                                          a.asset_locked.locked_total[vote_lock.asset_id] += vote_lock.amount;
+                                    verify_account_votes(*o.new_options, acnt->options.votes);
+                                    if (vote_lock.amount == 0)
+                                          real_vote_locked = {};
+                                    else
+                                          real_vote_locked = vote_lock;
                               }
                         }
-                        else
-                        {
-                              a.asset_locked.vote_locked = vote_lock;
-                              a.asset_locked.locked_total[a.asset_locked.vote_locked->asset_id] += a.asset_locked.vote_locked->amount;
-                        }
-
                         a.options = *o.new_options;
+                        if (o.lock_with_vote)
+                              a.options.votes = final_vote;
                   }
                   sa_before = a.has_special_authority();
                   if (o.extensions.value.owner_special_authority.valid())

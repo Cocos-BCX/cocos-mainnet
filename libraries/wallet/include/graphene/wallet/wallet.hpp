@@ -1304,6 +1304,7 @@ class wallet_api
     pair<tx_hash_type, signed_transaction> call_contract_function(string account_id_or_name, string contract_id_or_name, string function_name, vector<lua_types> value_list, bool broadcast = false);
     fc::optional<contract_object> get_contract(string contract_id_or_name);
     fc::optional<processed_transaction> get_transaction_by_id(string id);
+    flat_set<public_key_type> get_signature_keys(const signed_transaction&trx);
     fc::optional<transaction_in_block_info> get_transaction_in_block_info(const string &id);
     pair<tx_hash_type, signed_transaction> adjustment_temporary_authorization(string account_id_or_name, string describe, fc::time_point_sec expiration_time, flat_map<public_key_type, weight_type> temporary_active, bool broadcast = false);
     chain_property_object get_chain_properties();
@@ -1476,7 +1477,7 @@ FC_API(graphene::wallet::wallet_api,
        // crontab
        (create_crontab)(cancel_crontab)(list_account_crontab)(crontab_builder_transaction)(recover_crontab)(set_node_message_send_cache_size)(set_node_deduce_in_verification_mode)
        //gas
-       (update_collateral_for_gas)
+       (update_collateral_for_gas)(get_signature_keys)
        /*nico end*/
        (list_assets)(list_asset_restricted_objects)(asset_update_restricted_list)(import_key)(import_balance)(suggest_brain_key)(derive_owner_keys_from_brain_key)(register_account)(upgrade_account)(create_account_with_brain_key)(sell_asset)(sell)(buy)(borrow_asset)(cancel_order)(transfer)(transfer2)(get_transaction_id)(create_asset)(update_asset)(update_bitasset)(update_asset_feed_producers)(publish_asset_feed)(issue_asset)(get_asset)(get_bitasset_data)(reserve_asset)(global_settle_asset)(settle_asset)(bid_collateral)
        //(whitelist_account)

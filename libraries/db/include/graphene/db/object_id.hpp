@@ -38,9 +38,9 @@ namespace graphene { namespace db {
 
    struct index_number
    {
-      uint8_t s;
-      uint8_t t;
-      uint64_t i;
+      uint8_t s=0;
+      uint8_t t=0;
+      uint64_t i=0;
       index_number(){s=t=i=0;}
       index_number(const index_number& number):s(number.s),t(number.t),i(number.i){}
       void reset()

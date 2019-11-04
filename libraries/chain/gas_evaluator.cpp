@@ -11,6 +11,7 @@ namespace chain
 void_result update_collateral_for_gas_evaluator::do_evaluate(const operation_type &o)
 {
     database &d = db();
+    FC_ASSERT(d.find(o.beneficiary));
     auto &index = d.get_index_type<collateral_for_gas_index>().indices().get<by_mortgager_and_beneficiary>();
     auto itr = index.find(boost::make_tuple(o.mortgager, o.beneficiary));
     if (itr != index.end())

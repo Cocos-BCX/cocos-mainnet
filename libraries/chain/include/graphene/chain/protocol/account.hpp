@@ -54,9 +54,10 @@ struct asset_locked_object
 {
   map<asset_id_type,share_type> locked_total;
   map<contract_id_type,map<asset_id_type,share_type>> contract_lock_details;
-  optional<asset> candidate_freeze;
-  optional<asset> vote_locked;
-  optional<price> pledge_for_gas;
+  optional<asset> committee_freeze;
+  optional<asset> witness_freeze;
+  optional<asset> vote_for_committee;
+  optional<asset> vote_for_witness;
   };
 /**
     *  @ingroup operations
@@ -119,7 +120,7 @@ struct account_update_operation : public base_operation
     uint32_t price_per_kbyte = GRAPHENE_BLOCKCHAIN_PRECISION;
   };
 
-  asset lock_with_vote;
+  optional<pair<uint32_t,asset>> lock_with_vote;
   /// The account to update
   account_id_type account;
 
@@ -288,7 +289,7 @@ struct account_authentication_operation : public base_operation
 FC_REFLECT(graphene::chain::account_options, (memo_key)(votes)(extensions))
 FC_REFLECT(graphene::chain::account_authentication_operation::fee_parameters_type, (fee))
 FC_REFLECT(graphene::chain::account_authentication_operation, (account_id)(data)(extensions))
-FC_REFLECT(graphene::chain::asset_locked_object, (locked_total)(contract_lock_details)(candidate_freeze)(vote_locked)(pledge_for_gas))
+FC_REFLECT(graphene::chain::asset_locked_object, (locked_total)(contract_lock_details)(committee_freeze)(witness_freeze)(vote_for_committee)(vote_for_witness))
 /*
 FC_REFLECT_ENUM(graphene::chain::account_whitelist_operation::account_listing,
                 (no_listing)(white_listed)(black_listed)(white_and_black_listed))

@@ -70,17 +70,9 @@ object_id_result witness_create_evaluator::do_apply(const witness_create_operati
             
             _db.modify(new_witness_object.witness_account(_db), [&](account_object &witness) {
                   witness.witness_status = std::make_pair(new_witness_object.id, true);
-                  if (!witness.asset_locked.candidate_freeze.valid())
-                  {
-                        witness.asset_locked.candidate_freeze = candidate_freeze;
-                        witness.asset_locked.locked_total[asset_id_type()] += candidate_freeze;
-                  }else
-                  {
-                        auto increment=candidate_freeze-witness.asset_locked.candidate_freeze->amount;
-                        witness.asset_locked.candidate_freeze->amount += increment;
-                        witness.asset_locked.locked_total[asset_id_type()] += increment;
-                  }
-                  FC_ASSERT(*witness.asset_locked.candidate_freeze >= asset());
+                  witness.asset_locked.witness_freeze = candidate_freeze;
+                  witness.asset_locked.locked_total[asset_id_type()] += candidate_freeze;
+                  FC_ASSERT(*witness.asset_locked.witness_freeze >= asset());
             });
             return new_witness_object.id;
       }
@@ -109,7 +101,7 @@ void_result witness_update_evaluator::do_apply(const witness_update_operation &o
       {
             database &_db = db();
             const auto &witness = _db.get(op.witness);
-            auto candidate_freeze = _db.get_global_properties().parameters.committee_candidate_freeze;
+            auto candidate_freeze = _db.get_global_properties().parameters.witness_candidate_freeze;
             auto next_maintenance_time = _db.get_dynamic_global_properties().next_maintenance_time;
             auto &witness_account = op.witness_account(_db);
             FC_ASSERT(witness.next_maintenance_time != next_maintenance_time);
@@ -120,7 +112,7 @@ void_result witness_update_evaluator::do_apply(const witness_update_operation &o
                         wit.work_status = op.work_status;
                         wit.next_maintenance_time = next_maintenance_time;
                         wit.work_status ? wit.total_votes += candidate_freeze.value :
-                        wit.total_votes -= witness_account.asset_locked.candidate_freeze->amount.value;
+                        wit.total_votes -= witness_account.asset_locked.witness_freeze->amount.value;
                   }
                   if (op.new_url.valid())
                         wit.url = *op.new_url;
@@ -131,24 +123,22 @@ void_result witness_update_evaluator::do_apply(const witness_update_operation &o
                   _db.modify(witness_account, [&](account_object &account) {
                         bool status = op.work_status;
                         account.witness_status->second = op.work_status;
-                        if (account.committee_status.valid())
-                              status = account.committee_status->second || op.work_status;
                         if (!status)
                         {
-                              if (account.asset_locked.candidate_freeze.valid())
+                              if (account.asset_locked.witness_freeze.valid())
                               {
-                                    FC_ASSERT(*account.asset_locked.candidate_freeze >= asset() &&
-                                              account.asset_locked.locked_total[asset_id_type()] >= account.asset_locked.candidate_freeze->amount);
-                                    account.asset_locked.locked_total[asset_id_type()] -= account.asset_locked.candidate_freeze->amount;
-                                    account.asset_locked.candidate_freeze = {};
+                                    FC_ASSERT(*account.asset_locked.witness_freeze >= asset() &&
+                                              account.asset_locked.locked_total[asset_id_type()] >= account.asset_locked.witness_freeze->amount);
+                                    account.asset_locked.locked_total[asset_id_type()] -= account.asset_locked.witness_freeze->amount;
+                                    account.asset_locked.witness_freeze = {};
                               }
                         }
                         else
                         {
-                              if (!account.asset_locked.candidate_freeze.valid())
+                              if (!account.asset_locked.witness_freeze.valid())
                               {
-                                    account.asset_locked.candidate_freeze = candidate_freeze;
-                                    FC_ASSERT(*account.asset_locked.candidate_freeze >= asset());
+                                    account.asset_locked.witness_freeze = candidate_freeze;
+                                    FC_ASSERT(*account.asset_locked.witness_freeze >= asset());
                                     account.asset_locked.locked_total[asset_id_type()] += candidate_freeze;
                               }
                         }

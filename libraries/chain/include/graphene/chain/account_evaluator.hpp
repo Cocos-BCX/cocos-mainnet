@@ -47,9 +47,11 @@ public:
 
    template<typename Candidate_Type>
    void modify_candidate(Candidate_Type& candidate,vote_id_type vote,const flat_set<vote_id_type>& new_support,const flat_set<vote_id_type>&cancellation_support);
-
+   vote_id_type::vote_type _vote_type=vote_id_type::vote_type::vote_noone;
    const account_object* acnt;
    asset vote_lock;
+   share_type num_witness = 0, num_committee = 0 ,temp=0;
+   flat_set<vote_id_type> final_vote;
 };
 
 class account_upgrade_evaluator : public evaluator<account_upgrade_evaluator>

@@ -728,12 +728,10 @@ asset database::pay_market_fees(const asset_object &recv_asset, const asset &rec
 asset database::estimation_gas(const asset& delta_collateral)
 {
    FC_ASSERT(delta_collateral.asset_id==asset_id_type()&&delta_collateral.amount>=0);
-   auto gas_reserved=GRAPHENE_ASSET_GAS(*this).reserved(*this);
    auto core_current_supply = asset_id_type(0)(*this).dynamic_asset_data_id(*this).current_supply;
    auto asset_to_real = [&](const asset &a, int p=0) { return double(a.amount.value) / pow(10, p); };
    double scale=asset_to_real(delta_collateral)/asset_to_real(asset(core_current_supply));
-   auto scale0=std::pow(1+scale,0.4)-1;
-   share_type amount=double(gas_reserved.value)*scale0;
+   share_type amount=double(GRAPHENE_ASSET_GAS(*this).options.max_supply.value)*scale;
    return asset(amount,GRAPHENE_ASSET_GAS);
 }
 

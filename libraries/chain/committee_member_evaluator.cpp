@@ -71,18 +71,9 @@ object_id_result committee_member_create_evaluator::do_apply(const committee_mem
 
       _db.modify(new_del_object.committee_member_account(_db), [&](account_object &committee) {
          committee.committee_status = std::make_pair(new_del_object.id, true);
-         if (!committee.asset_locked.candidate_freeze.valid())
-         {
-            committee.asset_locked.candidate_freeze = candidate_freeze;
-            committee.asset_locked.locked_total[asset_id_type()] += candidate_freeze;
-         }
-         else
-         {
-            auto increment=candidate_freeze-committee.asset_locked.candidate_freeze->amount;
-            committee.asset_locked.candidate_freeze->amount += increment;
-            committee.asset_locked.locked_total[asset_id_type()] += increment;
-         }
-         FC_ASSERT(*committee.asset_locked.candidate_freeze >= asset(0));
+         committee.asset_locked.committee_freeze = candidate_freeze;
+         committee.asset_locked.locked_total[asset_id_type()] += candidate_freeze;
+         FC_ASSERT(*committee.asset_locked.committee_freeze >= asset(0));
          
       });
       return new_del_object.id;
@@ -125,7 +116,7 @@ void_result committee_member_update_evaluator::do_apply(const committee_member_u
             com.work_status = op.work_status;
             com.next_maintenance_time = next_maintenance_time;
             com.work_status ? com.total_votes += candidate_freeze.value : 
-            com.total_votes -= committee_account.asset_locked.candidate_freeze->amount.value;
+            com.total_votes -= committee_account.asset_locked.committee_freeze->amount.value;
          }
          if (op.new_url.valid())
             com.url = *op.new_url;
@@ -134,25 +125,23 @@ void_result committee_member_update_evaluator::do_apply(const committee_member_u
          _db.modify(committee_account, [&](account_object &account) {
             bool status = op.work_status;
             account.committee_status->second = op.work_status;
-            if (account.witness_status.valid())
-               status = account.witness_status->second || op.work_status;
             if (!status)
             {
-               if (account.asset_locked.candidate_freeze.valid())
+               if (account.asset_locked.committee_freeze.valid())
                {
-                  FC_ASSERT(*account.asset_locked.candidate_freeze >= asset() &&
-                            account.asset_locked.locked_total[asset_id_type()] >= account.asset_locked.candidate_freeze->amount);
-                  account.asset_locked.locked_total[asset_id_type()] -= account.asset_locked.candidate_freeze->amount;
-                  account.asset_locked.candidate_freeze = {};
+                  FC_ASSERT(*account.asset_locked.committee_freeze >= asset() &&
+                            account.asset_locked.locked_total[asset_id_type()] >= account.asset_locked.committee_freeze->amount);
+                  account.asset_locked.locked_total[asset_id_type()] -= account.asset_locked.committee_freeze->amount;
+                  account.asset_locked.committee_freeze = {};
                }
             }
             else
             {
-               if (!account.asset_locked.candidate_freeze.valid())
+               if (!account.asset_locked.committee_freeze.valid())
                {
 
-                  account.asset_locked.candidate_freeze = candidate_freeze;
-                  FC_ASSERT(*account.asset_locked.candidate_freeze >= asset());
+                  account.asset_locked.committee_freeze = candidate_freeze;
+                  FC_ASSERT(*account.asset_locked.committee_freeze >= asset());
                   account.asset_locked.locked_total[asset_id_type()] += candidate_freeze;
                }
             }

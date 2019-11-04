@@ -646,6 +646,7 @@ class database_api
       optional<file_object> lookup_file(const string &file_name_or_ids) const;
       map<string, file_id_type> list_account_created_file(const account_id_type &file_creater) const;
       asset estimation_gas(const asset& delta_collateral);
+      flat_set<public_key_type> get_signature_keys(const signed_transaction &trx);
       // list crontabs that created by the account
       // crontab_creator:crontab creator
       vector<crontab_object> list_account_crontab(const account_id_type &crontab_creator, bool contain_normal = true, bool contain_suspended = true) const;
@@ -680,7 +681,7 @@ FC_API(graphene::app::database_api,
        (get_chain_properties)(get_global_properties)(get_config)(get_chain_id)(get_dynamic_global_properties)
 
        // Keys
-       (get_key_references)(is_public_key_registered)
+       (get_key_references)(is_public_key_registered)(get_signature_keys)
 
        // Accounts
        (get_accounts)(get_full_accounts)(get_account_by_name)(get_account_references)(lookup_account_names)(lookup_accounts)(get_account_count)

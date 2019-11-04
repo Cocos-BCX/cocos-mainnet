@@ -91,7 +91,7 @@ namespace detail
 
 struct operation_result_printer
 {
-    public:
+public:
       operation_result_printer(const wallet_api_impl &w)
           : _wallet(w) {}
       const wallet_api_impl &_wallet;
@@ -108,14 +108,14 @@ struct operation_result_printer
 // BLOCK  TRX  OP  VOP
 struct operation_printer
 {
-    private:
+private:
       ostream &out;
       const wallet_api_impl &wallet;
       operation_result result;
 
       std::string fee(const asset &a) const;
 
-    public:
+public:
       operation_printer(ostream &out, const wallet_api_impl &wallet, const operation_result &r = operation_result())
           : out(out),
             wallet(wallet),
@@ -313,10 +313,10 @@ struct op_prototype_visitor
 
 class wallet_api_impl
 {
-    public:
+public:
       api_documentation method_documentation;
 
-    private:
+private:
       void claim_registered_account(const account_object &account)
       {
             auto it = _wallet.pending_account_registrations.find(account.name);
@@ -456,7 +456,7 @@ class wallet_api_impl
 
       vector<private_key_type> extern_private_keys;
 
-    public:
+public:
       wallet_api &self;
       wallet_api_impl(wallet_api &s, const wallet_data &initial_data, fc::api<login_api> rapi)
           : self(s),
@@ -576,8 +576,7 @@ class wallet_api_impl
             result["head_block_num"] = dynamic_props.head_block_number;
             result["head_block_id"] = dynamic_props.head_block_id;
             result["head_block_age"] = fc::get_approximate_relative_time_string(dynamic_props.time,
-                                                                                time_point_sec(time_point::now()),
-                                                                                " old");
+                                                                                time_point_sec(time_point::now()));
             result["next_maintenance_time"] = fc::get_approximate_relative_time_string(dynamic_props.next_maintenance_time);
             result["chain_id"] = chain_props.chain_id;
             result["participation"] = (100 * dynamic_props.recent_slots_filled.popcount()) / 128.0;
@@ -899,7 +898,7 @@ class wallet_api_impl
                                                     const operation &new_op)
       {
             FC_ASSERT(_builder_transactions.count(handle));
-            signed_transaction& trx = _builder_transactions[handle];
+            signed_transaction &trx = _builder_transactions[handle];
             FC_ASSERT(operation_index < trx.operations.size());
             trx.operations[operation_index] = new_op;
       }
@@ -1417,19 +1416,18 @@ class wallet_api_impl
             }
             FC_CAPTURE_AND_RETHROW((owner_account)(broadcast))
       }
-      
-      signed_transaction update_committee_member(string committee_name,string url,bool work_status,bool broadcast /*= false*/)
-      {
-                  committee_member_update_operation  committee_member_update_op;
-                  committee_member_update_op.work_status=work_status;
-                  committee_member_update_op.new_url=url;
-                  committee_member_update_op.committee_member_account=get_account_id(committee_name);
-                  committee_member_update_op.committee_member=get_committee_member(committee_name).id;
-                  signed_transaction tx;
-                  tx.operations.push_back(committee_member_update_op);
-                  tx.validate();
-                  return sign_transaction(tx, broadcast);
 
+      signed_transaction update_committee_member(string committee_name, string url, bool work_status, bool broadcast /*= false*/)
+      {
+            committee_member_update_operation committee_member_update_op;
+            committee_member_update_op.work_status = work_status;
+            committee_member_update_op.new_url = url;
+            committee_member_update_op.committee_member_account = get_account_id(committee_name);
+            committee_member_update_op.committee_member = get_committee_member(committee_name).id;
+            signed_transaction tx;
+            tx.operations.push_back(committee_member_update_op);
+            tx.validate();
+            return sign_transaction(tx, broadcast);
       }
       witness_object get_witness(string owner_account)
       {
@@ -1510,7 +1508,7 @@ class wallet_api_impl
                   account_object witness_account = get_account(owner_account);
                   fc::ecc::private_key active_private_key = get_private_key_for_account(witness_account);
                   int witness_key_index = find_first_unused_derived_key_index(active_private_key);
-                  fc::ecc::private_key witness_private_key = derive_private_key(key_to_wif(active_private_key)+fc::sha224::hash(witness_account.name).str(), witness_key_index);
+                  fc::ecc::private_key witness_private_key = derive_private_key(key_to_wif(active_private_key) + fc::sha224::hash(witness_account.name).str(), witness_key_index);
                   graphene::chain::public_key_type witness_public_key = witness_private_key.get_public_key();
                   wdump((witness_public_key)(witness_private_key));
                   witness_create_operation witness_create_op;
@@ -1524,7 +1522,7 @@ class wallet_api_impl
                   signed_transaction tx;
                   tx.operations.push_back(witness_create_op);
                   tx.validate();
-                  _keys.insert(make_pair(witness_public_key,key_to_wif(witness_private_key)));
+                  _keys.insert(make_pair(witness_public_key, key_to_wif(witness_private_key)));
                   _wallet.pending_witness_registrations[owner_account] = key_to_wif(witness_private_key);
 
                   return sign_transaction(tx, broadcast);
@@ -1547,7 +1545,7 @@ class wallet_api_impl
                   witness_update_operation witness_update_op;
                   witness_update_op.witness = witness.id;
                   witness_update_op.witness_account = witness_account.id;
-                  witness_update_op.work_status=work_status;
+                  witness_update_op.work_status = work_status;
                   if (url != "")
                         witness_update_op.new_url = url;
                   if (block_signing_key != "")
@@ -1638,8 +1636,19 @@ class wallet_api_impl
                   fc::optional<committee_member_object> committee_member_obj = _remote_db->get_committee_member_by_account(committee_member_owner_account_id);
                   if (!committee_member_obj)
                         FC_THROW("Account ${committee_member} is not registered as a committee_member", ("committee_member", committee_member));
+
                   if (approve)
                   {
+                        for (auto vote_id = voting_account_object.options.votes.begin(); vote_id != voting_account_object.options.votes.end();)
+                        {
+                              if (vote_id->type() == vote_id_type::vote_type::witness)
+                              {
+                                    auto& temp = *vote_id;
+                                    voting_account_object.options.votes.erase(temp);
+                              }
+                              else
+                                    vote_id++;
+                        }
                         voting_account_object.options.votes.insert(committee_member_obj->vote_id);
                   }
                   else
@@ -1649,7 +1658,7 @@ class wallet_api_impl
                   account_update_operation account_update_op;
                   account_update_op.account = voting_account_object.id;
                   account_update_op.new_options = voting_account_object.options;
-                  account_update_op.lock_with_vote=asset(approve);
+                  account_update_op.lock_with_vote = std::make_pair(vote_id_type::vote_type::committee, asset(approve));
                   signed_transaction tx;
                   tx.operations.push_back(account_update_op);
                   tx.validate();
@@ -1672,9 +1681,20 @@ class wallet_api_impl
                   fc::optional<witness_object> witness_obj = _remote_db->get_witness_by_account(witness_owner_account_id);
                   if (!witness_obj)
                         FC_THROW("Account ${witness} is not registered as a witness", ("witness", witness));
+
                   if (approve)
                   {
-                       voting_account_object.options.votes.insert(witness_obj->vote_id);
+                        for (auto vote_id = voting_account_object.options.votes.begin(); vote_id != voting_account_object.options.votes.end();)
+                        {
+                              if (vote_id->type() == vote_id_type::vote_type::committee)
+                              {
+                                    auto& temp = *vote_id;
+                                    voting_account_object.options.votes.erase(temp);
+                              }
+                              else
+                                    vote_id++;
+                        }
+                        voting_account_object.options.votes.insert(witness_obj->vote_id);
                   }
                   else
                   {
@@ -1683,7 +1703,7 @@ class wallet_api_impl
                   account_update_operation account_update_op;
                   account_update_op.account = voting_account_object.id;
                   account_update_op.new_options = voting_account_object.options;
-                  account_update_op.lock_with_vote=asset(approve);
+                  account_update_op.lock_with_vote = std::make_pair(vote_id_type::vote_type::witness, asset(approve));
                   signed_transaction tx;
                   tx.operations.push_back(account_update_op);
                   tx.validate();
@@ -1928,24 +1948,23 @@ class wallet_api_impl
       }
 
       /************************************************nico add**********************************************************************************/
-      signed_transaction update_collateral_for_gas( account_id_type  mortgager,account_id_type  beneficiary,share_type  collateral,bool broadcast=false)
+      signed_transaction update_collateral_for_gas(account_id_type mortgager, account_id_type beneficiary, share_type collateral, bool broadcast = false)
       {
 
             try
             {
                   FC_ASSERT(!self.is_locked());
-                  FC_ASSERT(collateral>=0);
+                  FC_ASSERT(collateral >= 0);
                   update_collateral_for_gas_operation op;
-                  op.mortgager=mortgager;
-                  op.beneficiary=beneficiary;
-                  op.collateral=collateral;
+                  op.mortgager = mortgager;
+                  op.beneficiary = beneficiary;
+                  op.collateral = collateral;
                   signed_transaction tx;
                   tx.operations.push_back(op);
                   tx.validate();
                   return sign_transaction(tx, broadcast);
             }
             FC_CAPTURE_AND_RETHROW((mortgager)(beneficiary)(collateral)(broadcast))
-
       }
 
       signed_transaction create_contract(string owner, string name, public_key_type contract_authority, string data, bool broadcast = false) // wallet 合约 API
@@ -2170,7 +2189,7 @@ class wallet_api_impl
             }
             FC_CAPTURE_AND_RETHROW((from)(to)(nh_asset))
       }
-/*
+      /*
       signed_transaction relate_nh_asset(const string &nh_asset_creator, const string &parent, const string &child,
                                          const string &contract_id_or_name, bool relate, bool broadcast = false)
       {
@@ -2491,22 +2510,21 @@ class wallet_api_impl
             FC_CAPTURE_AND_RETHROW((crontab_creator)(crontab_id)(restart_time))
       }
 
-      signed_transaction asset_update_restricted_list(const string &asset_issuer, string  target_asset, restricted_enum restricted_type, vector<object_id_type> restricted_list, bool isadd, bool broadcast)
+      signed_transaction asset_update_restricted_list(const string &asset_issuer, string target_asset, restricted_enum restricted_type, vector<object_id_type> restricted_list, bool isadd, bool broadcast)
       {
             try
             {
                   FC_ASSERT(!is_locked());
                   signed_transaction trx;
                   asset_update_restricted_operation op;
-                  op.target_asset=get_asset(target_asset).id;
-                  op.payer= get_account(asset_issuer).id;
-                  op.restricted_type=restricted_type;
-                  op.restricted_list=restricted_list;
-                  op.isadd=isadd;
+                  op.target_asset = get_asset(target_asset).id;
+                  op.payer = get_account(asset_issuer).id;
+                  op.restricted_type = restricted_type;
+                  op.restricted_list = restricted_list;
+                  op.isadd = isadd;
                   trx.operations = {op};
                   trx.validate();
                   return sign_transaction(trx, broadcast);
-
             }
             FC_CAPTURE_AND_RETHROW((asset_issuer)(target_asset)(restricted_type)(restricted_list)(isadd))
       }
@@ -2685,27 +2703,26 @@ class wallet_api_impl
       }
 
       signed_transaction propose_parameter_change(const string &proposing_account, fc::time_point_sec expiration_time,
-                                                  const variant_object &changed_values,fc::optional<proposal_id_type> proposal_base, bool broadcast = false)
+                                                  const variant_object &changed_values, fc::optional<proposal_id_type> proposal_base, bool broadcast = false)
       {
             FC_ASSERT(!changed_values.contains("current_fees"));
             chain_parameters current_params;
-            bool on_proposal=false;
-            if(proposal_base.valid())
+            bool on_proposal = false;
+            if (proposal_base.valid())
             {
-                  const proposal_object proposal_base_ob=get_object(*proposal_base);
-                  for(auto&temp_op:proposal_base_ob.proposed_transaction.operations)
+                  const proposal_object proposal_base_ob = get_object(*proposal_base);
+                  for (auto &temp_op : proposal_base_ob.proposed_transaction.operations)
                   {
-                        if(temp_op.which()==operation::tag<committee_member_update_global_parameters_operation>::value)
+                        if (temp_op.which() == operation::tag<committee_member_update_global_parameters_operation>::value)
                         {
-                              current_params=temp_op.get<committee_member_update_global_parameters_operation>().new_parameters;
-                              on_proposal=true;
+                              current_params = temp_op.get<committee_member_update_global_parameters_operation>().new_parameters;
+                              on_proposal = true;
                               break;
                         }
                   }
-            
             }
-            if(!on_proposal)
-             current_params=get_global_properties().parameters;
+            if (!on_proposal)
+                  current_params = get_global_properties().parameters;
             chain_parameters new_params = current_params;
             fc::reflector<chain_parameters>::visit(
                 fc::from_variant_visitor<chain_parameters>(changed_values, new_params));
@@ -2729,27 +2746,26 @@ class wallet_api_impl
       }
 
       signed_transaction propose_fee_change(const string &proposing_account, fc::time_point_sec expiration_time,
-                                            const variant_object &changed_fees,fc::optional<proposal_id_type> proposal_base, bool broadcast = false)
+                                            const variant_object &changed_fees, fc::optional<proposal_id_type> proposal_base, bool broadcast = false)
       {
-            
+
             chain_parameters current_params;
-            bool on_proposal=false;
-            if(proposal_base.valid())
+            bool on_proposal = false;
+            if (proposal_base.valid())
             {
-                  const proposal_object proposal_base_ob=get_object(*proposal_base);
-                  for(auto&temp_op:proposal_base_ob.proposed_transaction.operations)
+                  const proposal_object proposal_base_ob = get_object(*proposal_base);
+                  for (auto &temp_op : proposal_base_ob.proposed_transaction.operations)
                   {
-                        if(temp_op.which()==operation::tag<committee_member_update_global_parameters_operation>::value)
+                        if (temp_op.which() == operation::tag<committee_member_update_global_parameters_operation>::value)
                         {
-                              current_params=temp_op.get<committee_member_update_global_parameters_operation>().new_parameters;
-                              on_proposal=true;
+                              current_params = temp_op.get<committee_member_update_global_parameters_operation>().new_parameters;
+                              on_proposal = true;
                               break;
                         }
                   }
-            
             }
-            if(!on_proposal)
-             current_params=get_global_properties().parameters;
+            if (!on_proposal)
+                  current_params = get_global_properties().parameters;
             const fee_schedule_type &current_fees = *(current_params.current_fees);
 
             flat_map<int, fee_parameters> fee_map;
@@ -2858,7 +2874,6 @@ class wallet_api_impl
             tx.validate();
             return sign_transaction(tx, broadcast);
       }
-
 
       void dbg_push_blocks(const std::string &src_filename, uint32_t count)
       {
@@ -3318,8 +3333,6 @@ pair<tx_hash_type, signed_transaction> wallet_api::sign_builder_transaction(tran
       return std::make_pair(tx.hash(), tx);
 }
 
-
-
 pair<tx_hash_type, signed_transaction> wallet_api::propose_builder_transaction(
     transaction_handle_type handle,
     string account_name_or_id,
@@ -3384,7 +3397,6 @@ bool wallet_api::import_key(string account_name_or_id, string wif_key)
       return false;
 }
 
-
 string wallet_api::normalize_brain_key(string s) const
 {
       return detail::normalize_brain_key(s);
@@ -3444,6 +3456,10 @@ fc::optional<processed_transaction> wallet_api::get_transaction_by_id(string id)
 {
       return my->_remote_db->get_transaction_by_id(id);
 }
+flat_set<public_key_type> wallet_api::get_signature_keys(const signed_transaction&trx)
+{
+       return my->_remote_db->get_signature_keys(trx);
+}
 fc::optional<transaction_in_block_info> wallet_api::get_transaction_in_block_info(const string &id)
 {
       return my->_remote_db->get_transaction_in_block_info(id);
@@ -3463,9 +3479,9 @@ pair<tx_hash_type, signed_transaction> wallet_api::revise_contract(string revise
       return std::make_pair(tx.hash(), tx);
 }
 
-pair<tx_hash_type, signed_transaction> wallet_api::update_collateral_for_gas( account_id_type  mortgager,account_id_type  beneficiary,share_type  collateral,bool broadcast)
+pair<tx_hash_type, signed_transaction> wallet_api::update_collateral_for_gas(account_id_type mortgager, account_id_type beneficiary, share_type collateral, bool broadcast)
 {
-      auto tx=my->update_collateral_for_gas(mortgager,beneficiary,collateral,broadcast);
+      auto tx = my->update_collateral_for_gas(mortgager, beneficiary, collateral, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 
@@ -3540,11 +3556,11 @@ pair<tx_hash_type, signed_transaction> wallet_api::create_nh_asset(
 }
 
 std::pair<vector<nh_asset_object>, uint32_t> wallet_api::list_nh_asset_by_creator(
-    const string &nh_asset_creator,const string& world_view,
+    const string &nh_asset_creator, const string &world_view,
     uint32_t pagesize,
     uint32_t page)
 {
-      return (my->_remote_db->list_nh_asset_by_creator(get_account(nh_asset_creator).id,world_view, pagesize, page));
+      return (my->_remote_db->list_nh_asset_by_creator(get_account(nh_asset_creator).id, world_view, pagesize, page));
 }
 
 std::pair<vector<nh_asset_object>, uint32_t> wallet_api::list_account_nh_asset(
@@ -3749,7 +3765,7 @@ pair<tx_hash_type, signed_transaction> wallet_api::recover_crontab(const string 
       return std::make_pair(tx.hash(), tx);
 }
 
-pair<tx_hash_type, signed_transaction> wallet_api::asset_update_restricted_list(const string &asset_issuer, string  target_asset, restricted_enum restricted_type, vector<object_id_type> restricted_list, bool isadd, bool broadcast)
+pair<tx_hash_type, signed_transaction> wallet_api::asset_update_restricted_list(const string &asset_issuer, string target_asset, restricted_enum restricted_type, vector<object_id_type> restricted_list, bool isadd, bool broadcast)
 {
       auto tx = my->asset_update_restricted_list(asset_issuer, target_asset, restricted_type, restricted_list, isadd, broadcast);
       return std::make_pair(tx.hash(), tx);
@@ -3857,10 +3873,10 @@ pair<tx_hash_type, signed_transaction> wallet_api::create_committee_member(strin
       auto tx = my->create_committee_member(owner_account, url, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
-pair<tx_hash_type, signed_transaction> wallet_api::update_committee_member(string committee_account, string url,bool work_status,
+pair<tx_hash_type, signed_transaction> wallet_api::update_committee_member(string committee_account, string url, bool work_status,
                                                                            bool broadcast /* = false */)
 {
-      auto tx = my->update_committee_member(committee_account, url,work_status, broadcast);
+      auto tx = my->update_committee_member(committee_account, url, work_status, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 map<string, witness_id_type> wallet_api::list_witnesses(const string &lowerbound, uint32_t limit)
@@ -3891,9 +3907,6 @@ pair<tx_hash_type, signed_transaction> wallet_api::create_witness(string owner_a
       return std::make_pair(tx.hash(), tx);
 }
 
-
-
-
 pair<tx_hash_type, signed_transaction> wallet_api::update_witness(
     string witness_name,
     string url,
@@ -3901,7 +3914,7 @@ pair<tx_hash_type, signed_transaction> wallet_api::update_witness(
     bool work_status,
     bool broadcast /* = false */)
 {
-      auto tx = my->update_witness(witness_name, url, block_signing_key, work_status,broadcast);
+      auto tx = my->update_witness(witness_name, url, block_signing_key, work_status, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 
@@ -3962,7 +3975,6 @@ operation wallet_api::get_prototype_operation_by_idx(uint index)
       return my->get_prototype_operation_by_idx(index);
 }
 
-
 void wallet_api::dbg_push_blocks(std::string src_filename, uint32_t count)
 {
       my->dbg_push_blocks(src_filename, count);
@@ -4009,7 +4021,6 @@ bool wallet_api::set_node_deduce_in_verification_mode(const bool &params)
       return true;
 }
 
-
 pair<tx_hash_type, signed_transaction> wallet_api::propose_parameter_change(
     const string &proposing_account,
     fc::time_point_sec expiration_time,
@@ -4018,7 +4029,7 @@ pair<tx_hash_type, signed_transaction> wallet_api::propose_parameter_change(
     bool broadcast /* = false */
 )
 {
-      auto tx = my->propose_parameter_change(proposing_account, expiration_time, changed_values,proposal_base, broadcast);
+      auto tx = my->propose_parameter_change(proposing_account, expiration_time, changed_values, proposal_base, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 
@@ -4026,11 +4037,11 @@ pair<tx_hash_type, signed_transaction> wallet_api::propose_fee_change(
     const string &proposing_account,
     fc::time_point_sec expiration_time,
     const variant_object &changed_fees,
-    fc::optional<proposal_id_type>proposal_base,
+    fc::optional<proposal_id_type> proposal_base,
     bool broadcast /* = false */
 )
 {
-      auto tx = my->propose_fee_change(proposing_account, expiration_time, changed_fees,proposal_base, broadcast);
+      auto tx = my->propose_fee_change(proposing_account, expiration_time, changed_fees, proposal_base, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 

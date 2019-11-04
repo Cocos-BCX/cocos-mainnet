@@ -611,6 +611,7 @@ void database::init_genesis(const genesis_state_type &genesis_state)
             const auto total_supply = item.second;
 
             modify(get(asset_id), [&](asset_object &asset) {
+                FC_ASSERT(total_supply<=asset.options.max_supply);
                 modify(get(asset.dynamic_asset_data_id), [&](asset_dynamic_data_object &asset_data) {
                     asset_data.current_supply = total_supply;
                 });
