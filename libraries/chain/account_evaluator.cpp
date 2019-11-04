@@ -178,33 +178,33 @@ object_id_result account_create_evaluator::do_apply(const account_create_operati
       {
 
             database &d = db();
-            const auto &new_acnt_object = db().create<account_object>([&](account_object &obj) {
+            const auto &new_acnt_object = d.create<account_object>([&](account_object &obj) {
                   obj.registrar = o.registrar;
                   obj.name = o.name;
                   obj.owner = o.owner;
                   obj.active = o.active;
                   obj.options = o.options;
-                  obj.statistics = db().create<account_statistics_object>([&](account_statistics_object &s) { s.owner = obj.id; }).id;
+                  obj.statistics = d.create<account_statistics_object>([&](account_statistics_object &s) { s.owner = obj.id; }).id;
 
                   if (o.extensions.value.owner_special_authority.valid())
                         obj.owner_special_authority = o.extensions.value.owner_special_authority;
                   if (o.extensions.value.active_special_authority.valid())
                         obj.active_special_authority = o.extensions.value.active_special_authority;
             });
-            const auto &dynamic_properties = db().get_dynamic_global_properties();
-            db().modify(dynamic_properties, [](dynamic_global_property_object &p) {
+            const auto &dynamic_properties = d.get_dynamic_global_properties();
+            d.modify(dynamic_properties, [](dynamic_global_property_object &p) {
                   ++p.accounts_registered_this_interval;
             });
 
-            const auto &global_properties = db().get_global_properties();
+            const auto &global_properties = d.get_global_properties();
             if (dynamic_properties.accounts_registered_this_interval % global_properties.parameters.accounts_per_fee_scale == 0)
-                  db().modify(global_properties, [&dynamic_properties](global_property_object &p) {
+                  d.modify(global_properties, [&dynamic_properties](global_property_object &p) {
                         p.parameters.current_fees->get<account_create_operation>().basic_fee <<= p.parameters.account_fee_scale_bitshifts;
                   });
 
             if (o.extensions.value.owner_special_authority.valid() || o.extensions.value.active_special_authority.valid())
             {
-                  db().create<special_authority_object>([&](special_authority_object &sa) {
+                  d.create<special_authority_object>([&](special_authority_object &sa) {
                         sa.account = new_acnt_object.id;
                   });
             }

@@ -335,16 +335,16 @@ vector<operation_history_object> history_api::get_account_history(account_id_typ
   if (start == operation_history_id_type())
     start = node->operation_id;
 
-  while (node && node->operation_id.instance.value > stop.instance.value && result.size() < limit)
+  while (node && node->operation_id.instance > stop.instance && result.size() < limit)
   {
-    if (node->operation_id.instance.value <= start.instance.value)
+    if (node->operation_id.instance <= start.instance)
       result.push_back(node->operation_id(db));
     if (node->next == account_transaction_history_id_type())
       node = nullptr;
     else
       node = &node->next(db);
   }
-  if (stop.instance.value == 0 && result.size() < limit)
+  if (stop.instance == 0 && result.size() < limit)
   {
     node = db.find(account_transaction_history_id_type());
     if (node && node->account == account)
@@ -370,9 +370,9 @@ vector<operation_history_object> history_api::get_account_history_operations(acc
   if (start == operation_history_id_type())
     start = node->operation_id;
 
-  while (node && node->operation_id.instance.value > stop.instance.value && result.size() < limit)
+  while (node && node->operation_id.instance > stop.instance && result.size() < limit)
   {
-    if (node->operation_id.instance.value <= start.instance.value)
+    if (node->operation_id.instance <= start.instance)
     {
 
       if (node->operation_id(db).op.which() == operation_id)
@@ -383,7 +383,7 @@ vector<operation_history_object> history_api::get_account_history_operations(acc
     else
       node = &node->next(db);
   }
-  if (stop.instance.value == 0 && result.size() < limit)
+  if (stop.instance == 0 && result.size() < limit)
   {
     const account_transaction_history_object head = account_transaction_history_id_type()(db);
     if (head.account == account && head.operation_id(db).op.which() == operation_id)
@@ -481,7 +481,7 @@ vector<account_asset_balance> asset_api::get_asset_holders(asset_id_type asset_i
     if (result.size() >= limit)
       break;
 
-    if (bal.balance.value == 0)
+    if (bal.balance == 0)
       continue;
 
     if (index++ < start)
@@ -492,7 +492,7 @@ vector<account_asset_balance> asset_api::get_asset_holders(asset_id_type asset_i
     account_asset_balance aab;
     aab.name = account->name;
     aab.account_id = account->id;
-    aab.amount = bal.balance.value;
+    aab.amount = bal.balance;
 
     result.push_back(aab);
   }

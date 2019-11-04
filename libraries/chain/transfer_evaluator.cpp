@@ -91,8 +91,8 @@ void_result transfer_evaluator::do_apply(const transfer_operation &o)
   try
   {
     database &d = db();
-    const account_object &from_account = o.from(d);
-    const account_object &to_account = o.to(d);
+    //const account_object &from_account = o.from(d);
+    //const account_object &to_account = o.to(d);
     if (o.amount.amount > share_type(0))
     {
       d.adjust_balance(o.from, -o.amount);

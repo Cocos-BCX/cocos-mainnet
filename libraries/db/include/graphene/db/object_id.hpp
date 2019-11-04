@@ -36,30 +36,82 @@ namespace graphene { namespace db {
    using  fc::unsigned_int;
    using  fc::signed_int;
 
+   struct index_number
+   {
+      uint8_t s;
+      uint8_t t;
+      uint64_t i;
+      index_number(){s=t=i=0;}
+      index_number(const index_number& number):s(number.s),t(number.t),i(number.i){}
+      void reset()
+      {
+         s=t=i=0;
+      }
+      uint16_t space_type()const
+      {
+         return ((s<<8)|t);
+      }
+      index_number(uint8_t ss, uint8_t tt, uint64_t ii)
+      {
+         s=ss;
+         t=tt;
+         i=ii;
+      }
+      friend bool  operator ==(const index_number& a,const index_number& b)
+      {
+         return (a.space_type()==b.space_type()&&a.i==b.i);
+      }
+      friend bool  operator !=(const index_number& a,const index_number& b)
+      {
+         return !(a==b);
+      }
+      friend bool  operator <(const index_number& a,const index_number& b)
+      {
+         if(a.space_type()<b.space_type())
+            return true;
+         if(a.space_type()==b.space_type())
+            return a.i<b.i;
+         return false;
+      }
+      friend bool  operator >(const index_number& a,const index_number& b)
+      {
+         if(a==b)
+            return false;
+         return !(a<b);
+      }
+      size_t hash()const
+      {
+            return std::hash<uint64_t>()(s)+ 
+            std::hash<uint64_t>()(t)+ 
+            std::hash<uint64_t>()(i);
+      }
+
+   };
    struct object_id_type
    {
       object_id_type( uint8_t s, uint8_t t, uint64_t i )
       {
-         assert( i>>48 == 0 );
-         FC_ASSERT( i >> 48 == 0, "instance overflow", ("instance",i) );
-         number = (uint64_t(s)<<56) | (uint64_t(t)<<48) | i;
+         number=index_number(s,t,i);
+        // assert( i>>48 == 0 );
+        // FC_ASSERT( i >> 48 == 0, "instance overflow", ("instance",i) );
+        // number = (uint64_t(s)<<56) | (uint64_t(t)<<48) | i;
       }
-      object_id_type(){ number = 0; }
+      object_id_type(){ number = index_number(); }
 
-      uint8_t  space()const       { return number >> 56;              }
-      uint8_t  type()const        { return number >> 48 & 0x00ff;     }
-      uint16_t space_type()const { return number >> 48;              }
-      uint64_t instance()const { return number & GRAPHENE_DB_MAX_INSTANCE_ID; }
-      bool     is_null()const { return number == 0; }
-      explicit operator uint64_t()const { return number; }
+      uint8_t  space()const       { return number.s;              }
+      uint8_t  type()const        { return number.t;     }
+      uint16_t space_type()const { return number.space_type();              }
+      uint64_t instance()const { return number.i ; }
+      bool     is_null()const { return number == index_number(); }
+      //explicit operator uint64_t()const { return number; }
 
       friend bool  operator == ( const object_id_type& a, const object_id_type& b ) { return a.number == b.number; }
       friend bool  operator != ( const object_id_type& a, const object_id_type& b ) { return a.number != b.number; }
       friend bool  operator < ( const object_id_type& a, const object_id_type& b ) { return a.number < b.number; }
       friend bool  operator > ( const object_id_type& a, const object_id_type& b ) { return a.number > b.number; }
 
-      object_id_type& operator++(int) { ++number; return *this; }
-      object_id_type& operator++()    { ++number; return *this; }
+      object_id_type& operator++(int) { ++number.i; return *this; }
+      object_id_type& operator++()    { ++number.i; return *this; }
 
       friend object_id_type operator+(const object_id_type& a, int delta ) {
          return object_id_type( a.space(), a.type(), a.instance() + delta );
@@ -67,12 +119,12 @@ namespace graphene { namespace db {
       friend object_id_type operator+(const object_id_type& a, int64_t delta ) {
          return object_id_type( a.space(), a.type(), a.instance() + delta );
       }
-      friend size_t hash_value( object_id_type v ) { return std::hash<uint64_t>()(v.number); }
+      friend size_t hash_value( object_id_type v ) { return v.number.hash(); }
 
       template< typename T >
       bool is() const
       {
-         return (number >> 48) == ((T::space_id << 8) | (T::type_id));
+         return (number.s == T::space_id)&& (number.t ==T::type_id);
       }
 
       template< typename T >
@@ -87,7 +139,7 @@ namespace graphene { namespace db {
           return fc::to_string(space()) + "." + fc::to_string(type()) + "." + fc::to_string(instance());
       }
 
-      uint64_t                   number;
+      index_number                   number;
    };
 
    class object;
@@ -100,21 +152,21 @@ namespace graphene { namespace db {
       static const uint8_t space_id = SpaceID;
       static const uint8_t type_id = TypeID;
 
-      object_id(){}
+      object_id(){instance=0;}
       object_id( unsigned_int i ):instance(i){}
       explicit object_id( uint64_t i ):instance(i)
       {
-         FC_ASSERT( (i >> 48) == 0 );
+         //FC_ASSERT( (i >> 48) == 0 );
       }
       object_id( object_id_type id ):instance(id.instance())
       {
       }
 
-      friend object_id operator+(const object_id a, int64_t delta ) { return object_id( uint64_t(a.instance.value+delta) ); }
-      friend object_id operator+(const object_id a, int delta ) { return object_id( uint64_t(a.instance.value+delta) ); }
+      friend object_id operator+(const object_id a, int64_t delta ) { return object_id( uint64_t(a.instance+delta) ); }
+      friend object_id operator+(const object_id a, int delta ) { return object_id( uint64_t(a.instance+delta) ); }
 
-      operator object_id_type()const { return object_id_type( SpaceID, TypeID, instance.value ); }
-      explicit operator uint64_t()const { return object_id_type( *this ).number; }
+      operator object_id_type()const { return object_id_type( SpaceID, TypeID, instance ); }
+      //explicit operator uint64_t()const { return object_id_type( *this ).number; }
 
       template<typename DB>
       const T& operator()(const DB& db)const { return db.get(*this); }
@@ -126,16 +178,16 @@ namespace graphene { namespace db {
       friend bool  operator == ( const object_id& b, const object_id_type& a ) { return a == object_id_type(b); }
       friend bool  operator != ( const object_id& b, const object_id_type& a ) { return a != object_id_type(b); }
 
-      friend bool  operator < ( const object_id& a, const object_id& b ) { return a.instance.value < b.instance.value; }
-      friend bool  operator > ( const object_id& a, const object_id& b ) { return a.instance.value > b.instance.value; }
+      friend bool  operator < ( const object_id& a, const object_id& b ) { return a.instance < b.instance; }
+      friend bool  operator > ( const object_id& a, const object_id& b ) { return a.instance > b.instance; }
 
-      friend size_t hash_value( object_id v ) { return std::hash<uint64_t>()(v.instance.value); }
+      friend size_t hash_value( object_id v ) { return std::hash<uint64_t>()(v.instance); }
 
-      unsigned_int instance;
+      uint64_t instance=0;
    };
 
 } } // graphene::db
-
+FC_REFLECT( graphene::db::index_number, (s)(t)(i) )
 FC_REFLECT( graphene::db::object_id_type, (number) )
 
 // REFLECT object_id manually because it has 2 template params
@@ -176,24 +228,24 @@ struct reflector<graphene::db::object_id<SpaceID,TypeID,T> >
 
  inline void from_variant( const fc::variant& var,  graphene::db::object_id_type& vo )
  { try {
-    vo.number = 0;
+    vo.number.reset();
     const auto& s = var.get_string();
     auto first_dot = s.find('.');
     auto second_dot = s.find('.',first_dot+1);
     FC_ASSERT( first_dot != second_dot );
     FC_ASSERT( first_dot != 0 && first_dot != std::string::npos );
-    vo.number = fc::to_uint64(s.substr( second_dot+1 ));
-    FC_ASSERT( vo.number <= GRAPHENE_DB_MAX_INSTANCE_ID );
+    vo.number.i = fc::to_uint64(s.substr( second_dot+1 ));
     auto space_id = fc::to_uint64( s.substr( 0, first_dot ) );
     FC_ASSERT( space_id <= 0xff );
     auto type_id =  fc::to_uint64( s.substr( first_dot+1, second_dot-first_dot-1 ) );
     FC_ASSERT( type_id <= 0xff );
-    vo.number |= (space_id << 56) | (type_id << 48);
+    vo.number.s= space_id;
+    vo.number.t=type_id;
  } FC_CAPTURE_AND_RETHROW( (var) ) }
  template<uint8_t SpaceID, uint8_t TypeID, typename T>
  void to_variant( const graphene::db::object_id<SpaceID,TypeID,T>& var,  fc::variant& vo )
  {
-    vo = fc::to_string(SpaceID) + "." + fc::to_string(TypeID) + "." + fc::to_string(var.instance.value);
+    vo = fc::to_string(SpaceID) + "." + fc::to_string(TypeID) + "." + fc::to_string(var.instance);
  }
  template<uint8_t SpaceID, uint8_t TypeID, typename T>
  void from_variant( const fc::variant& var,  graphene::db::object_id<SpaceID,TypeID,T>& vo )
@@ -216,7 +268,7 @@ namespace std {
      {
           size_t operator()(const graphene::db::object_id_type& x) const
           {
-              return std::hash<uint64_t>()(x.number);
+              return x.number.hash();
           }
      };
 }

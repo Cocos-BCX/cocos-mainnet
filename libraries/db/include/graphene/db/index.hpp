@@ -214,7 +214,7 @@ namespace graphene { namespace db {
          { return object_type::type_id; }
 
          virtual object_id_type get_next_id()const override              { return _next_id;    }
-         virtual void           use_next_id()override                    { ++_next_id.number;  }
+         virtual void           use_next_id()override                    { ++_next_id.number.i;  }
          virtual void           set_next_id( object_id_type id )override { _next_id = id;      }
 
          fc::sha256 get_object_version()const

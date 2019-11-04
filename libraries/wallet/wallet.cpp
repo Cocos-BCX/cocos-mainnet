@@ -899,7 +899,7 @@ class wallet_api_impl
                                                     const operation &new_op)
       {
             FC_ASSERT(_builder_transactions.count(handle));
-            signed_transaction trx = _builder_transactions[handle];
+            signed_transaction& trx = _builder_transactions[handle];
             FC_ASSERT(operation_index < trx.operations.size());
             trx.operations[operation_index] = new_op;
       }
@@ -3017,11 +3017,13 @@ std::string operation_printer::operator()(const T &op) const
 std::string operation_printer::operator()(const account_create_operation &op) const
 {
       out << "Create Account '" << op.name << "'";
+      return "";
 }
 
 std::string operation_printer::operator()(const account_update_operation &op) const
 {
       out << "Update Account '" << wallet.get_account(op.account).name << "'";
+      return "";
 }
 
 std::string operation_printer::operator()(const asset_create_operation &op) const
@@ -3032,6 +3034,7 @@ std::string operation_printer::operator()(const asset_create_operation &op) cons
       else
             out << "User-Issue Asset ";
       out << "'" << op.symbol << "' with issuer " << wallet.get_account(op.issuer).name;
+      return "";
 }
 
 std::string operation_result_printer::operator()(const void_result &x) const
