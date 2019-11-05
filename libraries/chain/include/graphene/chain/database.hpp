@@ -102,6 +102,13 @@ class database : public db::object_database
         std::function<genesis_state_type()> genesis_loader,
         const std::string &db_version);
 
+    
+    void open(
+        const fc::path &data_dir,
+        std::function<genesis_state_type()> genesis_loader,
+        const std::string &db_version,int roll_back_at_height);
+    
+    
     /**
           * @brief Rebuild object graph from block history and open detabase
           *
@@ -109,6 +116,8 @@ class database : public db::object_database
           * replaying blockchain history. When this method exits successfully, the database will be open.
           */
     void reindex(fc::path data_dir);
+
+    void reindex(fc::path data_diri,int roll_back_at_height );
 
     /**
           * @brief wipe Delete database from disk, and potentially the raw chain as well.
