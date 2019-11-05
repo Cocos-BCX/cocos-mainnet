@@ -10,7 +10,7 @@ const account_object &register_scheduler::get_account(string name_or_id)
 {
     try
     {
-       return db.get_account(name_or_id);
+        return db.get_account(name_or_id);
     }
     catch (fc::exception e)
     {
@@ -22,7 +22,7 @@ void register_scheduler::transfer_by_contract(account_id_type from, account_id_t
 {
     try
     {
-        FC_ASSERT(token.asset_id!=GRAPHENE_ASSET_GAS);
+        FC_ASSERT(token.asset_id != GRAPHENE_ASSET_GAS);
         FC_ASSERT(from != to, "It's no use transferring money to yourself");
         const account_object &from_account = from(db);
         const account_object &to_account = to(db);
@@ -46,7 +46,7 @@ void register_scheduler::transfer_by_contract(account_id_type from, account_id_t
                     "'to' account ${to} is not whitelisted for asset ${asset}",
                     ("to", to)("asset", token.asset_id));
             }
-            if (asset_type.is_transfer_restricted()&&(!asset_type.is_white_list()))
+            if (asset_type.is_transfer_restricted() && (!asset_type.is_white_list()))
             {
                 GRAPHENE_ASSERT(
                     from_account.id == asset_type.issuer || to_account.id == asset_type.issuer,
@@ -85,10 +85,10 @@ void register_scheduler::adjust_lock_asset(string symbol_or_id, int64_t amount)
         FC_ASSERT(amount != 0, "set lock asset in function:adjust_lock_asset");
         auto contract_owner = contract.owner(db);
         auto target_asset = get_asset(symbol_or_id).get_id();
-        FC_ASSERT(target_asset!=GRAPHENE_ASSET_GAS);
-        auto contract_id=contract.get_id();
+        FC_ASSERT(target_asset != GRAPHENE_ASSET_GAS);
+        auto contract_id = contract.get_id();
         map<asset_id_type, share_type> locked_asset = contract_owner.asset_locked.contract_lock_details[contract_id];
-        if (locked_asset.size()>0)
+        if (locked_asset.size() > 0)
         {
             auto itr = locked_asset.find(target_asset);
             if (itr != locked_asset.end())
@@ -104,17 +104,14 @@ void register_scheduler::adjust_lock_asset(string symbol_or_id, int64_t amount)
         if (locked_asset[target_asset] == 0)
             locked_asset.erase(target_asset);
         contract_owner.asset_locked.contract_lock_details[contract_id] = locked_asset;
-        if(contract_owner.asset_locked.contract_lock_details[contract_id].size()==0)
-             contract_owner.asset_locked.contract_lock_details.erase(contract_id);
+        if (contract_owner.asset_locked.contract_lock_details[contract_id].size() == 0)
+            contract_owner.asset_locked.contract_lock_details.erase(contract_id);
         share_type locked_total = contract_owner.asset_locked.locked_total[target_asset];
-        if (locked_total!=0)
+        if (locked_total != 0)
             contract_owner.asset_locked.locked_total[target_asset] += amount;
         else
             contract_owner.asset_locked.locked_total[target_asset] = amount;
-        auto balance = db.get_balance(contract_owner.get_id(), target_asset).amount;
-        FC_ASSERT(contract_owner.asset_locked.locked_total[target_asset] >= 0 &&
-                      contract_owner.asset_locked.locked_total[target_asset] <= balance,
-                  "Setting asset lock amount must be >=0 and 0<= account balance:${balance},asset:${asset},amount:${amount}", ("asset", symbol_or_id)("amount", amount)("balance", balance));
+        db.assert_balance(contract_owner, asset(amount, target_asset));
         if (contract_owner.asset_locked.locked_total[target_asset] == 0)
             contract_owner.asset_locked.locked_total.erase(target_asset);
         db.modify(contract.owner(db), [&](account_object &ac) {

@@ -102,13 +102,6 @@ class database : public db::object_database
         std::function<genesis_state_type()> genesis_loader,
         const std::string &db_version);
 
-    
-    void open(
-        const fc::path &data_dir,
-        std::function<genesis_state_type()> genesis_loader,
-        const std::string &db_version,int roll_back_at_height);
-    
-    
     /**
           * @brief Rebuild object graph from block history and open detabase
           *
@@ -116,8 +109,6 @@ class database : public db::object_database
           * replaying blockchain history. When this method exits successfully, the database will be open.
           */
     void reindex(fc::path data_dir);
-
-    void reindex(fc::path data_diri,int roll_back_at_height );
 
     /**
           * @brief wipe Delete database from disk, and potentially the raw chain as well.
@@ -203,12 +194,15 @@ class database : public db::object_database
     /*******************************************************nico add****************************************************/
     uint32_t pause_point_num=0;
     uint16_t _message_cache_size_limit=0;
+    flat_set<vote_id_type> concerned_candidates; 
     //Whether to deduce in verification mode
     bool deduce_in_verification_mode=false;
     void clear_expired_active();
     void clear_expired_timed_task();
     bool log_pending_size();
     asset estimation_gas(const asset& delta_collateral);
+    void assert_balance(account_object a,const asset& target);
+    void set_concerned_candidates(const flat_set<vote_id_type> candidates ){concerned_candidates=candidates; }
     void set_message_cache_size_limit(uint16_t message_cache_size_limit);
     void set_deduce_in_verification_mode(bool flag){deduce_in_verification_mode=flag;}
 

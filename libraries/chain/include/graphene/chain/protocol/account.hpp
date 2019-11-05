@@ -144,13 +144,11 @@ struct account_update_operation : public base_operation
 
   void get_required_owner_authorities(flat_set<account_id_type> &a) const
   {
-    if (is_owner_update())
       a.insert(account);
   }
 
   void get_required_active_authorities(flat_set<account_id_type> &a) const
   {
-    if (!is_owner_update())
       a.insert(account);
   }
 };

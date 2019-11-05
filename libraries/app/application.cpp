@@ -397,6 +397,12 @@ public:
       }
       _chain_db->add_checkpoints(loaded_checkpoints);
 
+       if(_options->count("concerned_candidates"))
+      {
+        auto concerned_candidates=_options->at("concerned_candidates").as<string>();
+        flat_set<vote_id_type>  _candidates= fc::json::from_string(concerned_candidates).as<flat_set<vote_id_type>>();
+        _chain_db->set_concerned_candidates(_candidates);
+      }
       if(_options->count("message_cache_limit"))
       {
         auto limit_size=_options->at("message_cache_limit").as<uint16_t>();
@@ -409,14 +415,10 @@ public:
       }
       if (_options->count("replay-blockchain"))
         _chain_db->wipe(_data_dir / "blockchain", false);
-      
-      auto roll_back_at_height = 0; 
-      if (_options->count("roll-back-at-height")) 
-        roll_back_at_height = _options->at("roll-back-at-height").as<uint32_t>(); 
 
       try
       {
-        _chain_db->open(_data_dir / "blockchain", initial_state, GRAPHENE_CURRENT_DB_VERSION,roll_back_at_height);
+        _chain_db->open(_data_dir / "blockchain", initial_state, GRAPHENE_CURRENT_DB_VERSION);
       }
       catch (const fc::exception &e)
       {
@@ -1007,7 +1009,6 @@ void application::set_program_options(boost::program_options::options_descriptio
                                      "invalid file is found, it will be replaced with an example Genesis State.")
                                      ("replay-blockchain", "Rebuild object graph by replaying all blocks")
                                      ("resync-blockchain", "Delete all blocks and re-sync with network from scratch")
-                                     ("roll-back-at-height", bpo::value<uint32_t>(), "Roll back to this Height ")
                                      ("force-validate", "Force validation of all transactions")
                                      ("genesis-timestamp", bpo::value<uint32_t>(), "Replace timestamp from genesis.json with current time plus this many seconds (experts only!)")
                                      ("version,v", "Display version information");

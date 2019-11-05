@@ -58,31 +58,35 @@ void verify_authority_accounts(const database &db, const authority &a)
       }
 }
 template <typename Candidate_Type>
-void account_update_evaluator::modify_candidate(Candidate_Type &candidate, vote_id_type vote, const flat_set<vote_id_type> &new_support, const flat_set<vote_id_type> &cancellation_support)
+void account_update_evaluator::modify_candidate(Candidate_Type &candidate, const flat_set<vote_id_type> &new_support, const flat_set<vote_id_type> &changed_support, const flat_set<vote_id_type> &cancellation_support)
 {
-      auto temp_itr = new_support.find(vote);
-      if (temp_itr != new_support.end())
+      if (new_support.find(candidate.vote_id) != new_support.end())
       {
-            auto candidate_supporter_itr = candidate.supporters.find(acnt->id);
-            if (candidate_supporter_itr != candidate.supporters.end())
-            {
-                  candidate.total_votes += (vote_lock.amount - candidate_supporter_itr->second.amount).value;
-                  candidate_supporter_itr->second = vote_lock;
-            }
-            else
-            {
+            if (is_concerned)
                   candidate.supporters.insert(make_pair(acnt->id, vote_lock));
-                  candidate.total_votes += vote_lock.amount.value;
-            }
+            candidate.total_votes += vote_lock.amount.value;
       }
-      if (cancellation_support.find(vote) != cancellation_support.end())
+      if (changed_support.find(candidate.vote_id) != changed_support.end())
       {
-            auto candidate_supporter_itr = candidate.supporters.find(acnt->id);
-            if (candidate_supporter_itr != candidate.supporters.end())
+            if (is_concerned)
             {
-                  candidate.supporters.erase(candidate_supporter_itr);
-                  candidate.total_votes -= candidate_supporter_itr->second.amount.value;
+                  auto candidate_supporter_itr = candidate.supporters.find(acnt->id);
+                  if (candidate_supporter_itr != candidate.supporters.end())
+                        candidate_supporter_itr->second = vote_lock;
+                  else
+                        candidate.supporters.insert(make_pair(acnt->id, vote_lock));
             }
+            candidate.total_votes += temp.value;
+      }
+      if (cancellation_support.find(candidate.vote_id) != cancellation_support.end())
+      {
+            if (is_concerned)
+            {
+                  auto candidate_supporter_itr = candidate.supporters.find(acnt->id);
+                  if (candidate_supporter_itr != candidate.supporters.end())
+                        candidate.supporters.erase(candidate_supporter_itr);
+            }
+            candidate.total_votes -= old_vote_lock.amount.value;
       }
 }
 
@@ -93,14 +97,17 @@ int64_t account_update_evaluator::verify_account_votes(const account_options &op
       // the rest occurs in account_options::validate()
       auto &d = db();
       flat_set<vote_id_type> new_support;
+      flat_set<vote_id_type> changed_support;
       flat_set<vote_id_type> cancellation_support;
       flat_set<vote_id_type> affected_voting;
       final_vote = options.votes;
       for (auto &temp_vote : options.votes)
       {
             auto temp_itr = old_votes.find(temp_vote);
-            if (temp_itr == old_votes.end() || temp.value)
+            if (temp_itr == old_votes.end())
                   new_support.insert(temp_vote);
+            else if (temp.value)
+                  changed_support.insert(temp_vote);
             affected_voting.insert(temp_vote);
       }
       for (auto &temp_vote : old_votes)
@@ -118,6 +125,9 @@ int64_t account_update_evaluator::verify_account_votes(const account_options &op
       const auto &witness_idx = d.get_index_type<witness_index>().indices().get<by_vote_id>();
       for (auto vote : affected_voting) // associate an account with its identity(witness, committee) information,and assert the vote contents
       {
+            is_concerned = false;
+            if (d.concerned_candidates.find(vote) != d.concerned_candidates.end())
+                  is_concerned = true;
             switch (vote.type())
             {
             case vote_id_type::committee:
@@ -125,7 +135,7 @@ int64_t account_update_evaluator::verify_account_votes(const account_options &op
                   auto committee_obj = committee_idx.find(vote);
                   FC_ASSERT(committee_obj != committee_idx.end());
                   d.modify(*committee_obj, [&](committee_member_object &com) {
-                        modify_candidate(com, vote, new_support, cancellation_support);
+                        modify_candidate(com, new_support, changed_support, cancellation_support);
                   });
                   break;
             }
@@ -134,7 +144,7 @@ int64_t account_update_evaluator::verify_account_votes(const account_options &op
                   auto witness_obj = witness_idx.find(vote);
                   FC_ASSERT(witness_obj != witness_idx.end());
                   d.modify(*witness_obj, [&](witness_object &wit) {
-                        modify_candidate(wit, vote, new_support, cancellation_support);
+                        modify_candidate(wit, new_support, changed_support, cancellation_support);
                   });
                   break;
             }
@@ -237,8 +247,9 @@ void_result account_update_evaluator::do_evaluate(const account_update_operation
             {
                   if (o.lock_with_vote)
                   {
-                        if (o.new_options->votes.size() == 0)
-                              FC_ASSERT(o.lock_with_vote->second.asset_id == asset_id_type() && o.lock_with_vote->second.amount == 0);
+                        bool vote_amount = o.lock_with_vote->second.amount.value ? true : false;
+                        bool vote_size = o.new_options->votes.size() ? true : false;
+                        FC_ASSERT(o.lock_with_vote->second.asset_id == asset_id_type() && (vote_amount ^ vote_size == 0));
                         FC_ASSERT(o.lock_with_vote->first <= vote_id_type::vote_type::vote_noone);
                         _vote_type = vote_id_type::vote_type(o.lock_with_vote->first);
                         for (vote_id_type id : o.new_options->votes)
@@ -291,12 +302,13 @@ void_result account_update_evaluator::do_apply(const account_update_operation &o
                         if (o.lock_with_vote)
                         {
                               vote_lock = o.lock_with_vote->second;
-                              FC_ASSERT(vote_lock.asset_id == asset_id_type());
+                              FC_ASSERT(vote_lock.asset_id == asset_id_type() && vote_lock.amount >= 0);
                               if (o.lock_with_vote->first != vote_id_type::vote_type::vote_noone)
                               {
                                     auto &real_vote_locked = o.lock_with_vote->first == vote_id_type::vote_type::witness ? a.asset_locked.vote_for_witness : a.asset_locked.vote_for_committee;
                                     if (real_vote_locked.valid())
                                     {
+                                          old_vote_lock = *real_vote_locked;
                                           temp = vote_lock.amount - real_vote_locked->amount;
                                           a.asset_locked.locked_total[real_vote_locked->asset_id] += temp.value;
                                           if (temp.value < 0)
@@ -318,6 +330,7 @@ void_result account_update_evaluator::do_apply(const account_update_operation &o
                                     else
                                           real_vote_locked = vote_lock;
                               }
+                              d.assert_balance(a,vote_lock);
                         }
                         a.options = *o.new_options;
                         if (o.lock_with_vote)
@@ -350,7 +363,6 @@ void_result account_update_evaluator::do_apply(const account_update_operation &o
                         sa.account = o.account;
                   });
             }
-
             return void_result();
       }
       FC_CAPTURE_AND_RETHROW((o))

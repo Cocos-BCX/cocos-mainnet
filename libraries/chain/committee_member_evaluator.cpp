@@ -74,8 +74,9 @@ object_id_result committee_member_create_evaluator::do_apply(const committee_mem
          committee.asset_locked.committee_freeze = candidate_freeze;
          committee.asset_locked.locked_total[asset_id_type()] += candidate_freeze;
          FC_ASSERT(*committee.asset_locked.committee_freeze >= asset(0));
-         
+         _db.assert_balance(committee,*committee.asset_locked.committee_freeze);   
       });
+      
       return new_del_object.id;
    }
    FC_CAPTURE_AND_RETHROW((op))
@@ -146,6 +147,7 @@ void_result committee_member_update_evaluator::do_apply(const committee_member_u
                }
             }
          });
+       _db.assert_balance(committee_account,asset(candidate_freeze));  
       return void_result();
    }
    FC_CAPTURE_AND_RETHROW((op))

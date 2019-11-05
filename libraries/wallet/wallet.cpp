@@ -3277,6 +3277,7 @@ brain_key_info wallet_api::suggest_brain_key() const
       fc::ecc::private_key priv_key = derive_private_key(brain_key, 0);
       result.brain_priv_key = brain_key;
       result.wif_priv_key = key_to_wif(priv_key);
+      result.address_info=priv_key.get_public_key();
       result.pub_key = priv_key.get_public_key();
       return result;
 }

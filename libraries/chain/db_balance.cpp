@@ -70,6 +70,14 @@ string database::to_pretty_string(const asset &a) const
 {
     return a.asset_id(*this).amount_to_pretty_string(a.amount);
 }
+void database::assert_balance(account_object a,const asset& target)
+{
+    auto balance = get_balance(a.get_id(), target.asset_id).amount;
+    FC_ASSERT(a.asset_locked.locked_total[target.asset_id] >= 0 &&
+                  a.asset_locked.locked_total[target.asset_id] <= balance,
+              "assert_balance : lock amount must be >=0 and 0<= account balance:${balance},asset:${asset},amount:${amount}",
+              ("asset", target.asset_id)("amount", target.amount)("balance", balance));
+}
 
 void database::adjust_balance(account_id_type account, asset delta, bool allow_gas_negative)
 {
@@ -101,8 +109,8 @@ void database::adjust_balance(account_id_type account, asset delta, bool allow_g
                     auto account_ob = account(*this);
                     optional<share_type> locked = account_ob.asset_locked.locked_total[delta.asset_id];
                     if (locked)
-                        FC_ASSERT(locked->value >= 0 && itr->get_balance() + delta >= asset(locked->value, delta.asset_id), "Some assets are locked and cannot be transferred.asset_id:${asset_id},amount:${amount}",
-                                  ("asset_id", delta.asset_id)("amount", locked->value));
+                        FC_ASSERT(locked->value >= 0 && itr->get_balance() + delta >= asset(locked->value, delta.asset_id), "Some assets are locked and cannot be transferred.asset_id:${asset_id},lock_amount:${amount},request_amount:${request_amount}",
+                                  ("asset_id", delta.asset_id)("amount", locked->value)("request_amount",delta.amount));
                 }
             }
             this->modify(*itr, [delta](account_balance_object &b) {
@@ -136,7 +144,7 @@ optional<vesting_balance_id_type> database::deposit_lazy_vesting(
             break;
         if (vbo.policy.get<cdd_vesting_policy>().vesting_seconds != req_vesting_seconds)
             break;
-        if (vbo.describe!= describe)
+        if (vbo.describe != describe)
             break;
         modify(vbo, [&](vesting_balance_object &_vbo) {
             if (require_vesting)
