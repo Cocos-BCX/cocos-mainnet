@@ -352,7 +352,7 @@ void database::init_genesis(const genesis_state_type &genesis_state)
                 a.precision = GRAPHENE_BLOCKCHAIN_PRECISION_DIGITS;
                 a.options.flags =0;
                 a.options.issuer_permissions = 2;
-                a.issuer = GRAPHENE_ACCOUNT;
+                a.issuer = GRAPHENE_COMMITTEE_ACCOUNT;
                 // a.options.core_exchange_rate.base=asset(1);
                 //a.options.core_exchange_rate.quote=asset(1);
                 a.dynamic_asset_data_id = create<asset_dynamic_data_object>([&](asset_dynamic_data_object &ad){
@@ -366,7 +366,7 @@ void database::init_genesis(const genesis_state_type &genesis_state)
                 a.precision = GRAPHENE_BLOCKCHAIN_PRECISION_DIGITS;
                 a.options.flags = 0x8a;
                 a.options.issuer_permissions = 0x8a;
-                a.issuer = account_id_type(15);
+                a.issuer = GRAPHENE_COMMITTEE_ACCOUNT;
                 a.options.core_exchange_rate=price(asset(1),asset(1,GRAPHENE_ASSET_GAS));
                 a.dynamic_asset_data_id =  create<asset_dynamic_data_object>([&](asset_dynamic_data_object &ad){
                                                                     ad.current_supply = 0;}).id;
