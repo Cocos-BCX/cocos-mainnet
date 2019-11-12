@@ -126,10 +126,14 @@ int64_t account_update_evaluator::verify_account_votes(const account_options &op
       for (auto vote : affected_voting) // associate an account with its identity(witness, committee) information,and assert the vote contents
       {
             is_concerned = false;
-            auto content = d.concerned_candidates.begin()->content;
+            if(d.concerned_candidates.size()>0)
+            {
+                  auto content = d.concerned_candidates.begin()->content;
           
-            if (content == 0)
-                 is_concerned = true;
+                  if (content == 0)
+                      is_concerned = true;  
+            }
+
             if (d.concerned_candidates.find(vote) != d.concerned_candidates.end())
                   is_concerned = true;
             switch (vote.type())
