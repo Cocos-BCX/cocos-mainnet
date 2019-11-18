@@ -38,3 +38,6 @@ bin/Debug
 */*/RelWithDebInfo/*
 *vscode
 
+core
+mainnet-v1.0.2-package/witness_node
+mainnet-v1.0.1-package/witness_node
