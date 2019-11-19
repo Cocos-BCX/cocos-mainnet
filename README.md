@@ -2,15 +2,17 @@
 
 # Getting Started  
 ## Preparation  
-```sudo apt-get update
+```  
+sudo apt-get update
 sudo apt-get install autoconf cmake git vim libbz2-dev libdb++-dev libdb-dev
 libssl-dev openssl libreadline-dev libtool libcurl4-openssl-dev libboost-all-dev
 ```  
 
 
 ## Building the source  
-``` cmake -DBUILD_PROCESS_ENCRYPTION=NO .  
-make
+```  
+cmake -DBUILD_PROCESS_ENCRYPTION=NO .  
+make  
 ```  
 
 # License  
