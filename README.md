@@ -1,4 +1,8 @@
-# cocos_mainnet
+cocos_mainnet  
+==============  
+
+Cocos-BCX is the next generation gaming digital economy platform. The project aims to provide game developers with an easy-to-use, comprehensive blockchain gaming infrastructure. Provide gamers with a transparent, fair and open game environment. The underlying chain system is based on graphene for optimization of consensus mechanisms and the addition of intelligent contract systems. And provide a lot of game features, such as: random number, contract session mechanism, timer and heartbeat.  
+
 
 # Getting Started  
 ## Preparation  
@@ -79,5 +83,18 @@ API 0 is accessible using regular JSON-RPC:
     $ curl --data '{"jsonrpc": "2.0", "method": "get_accounts", "params": [["1.2.0"]], "id": 1}' http://127.0.0.1:8090/rpc  
 
 
+# Contribution    
+Thank you for considering to help out with the source code! We welcome contributions from anyone on the internet, and are grateful for even the smallest of fixes!If you'd like to contribute to go-ethereum, please fork, fix, commit and send a pull request for the maintainers to review and merge into the main code base.  
+
+# Resources  
+1.  [Cocos-BCX scan](https://www.cocosabc.com/) 
+We can view the corresponding information on the chain in the blockchain browser.
+2.  [SDK](https://cn-dev.cocosbcx.io/docs/711)   
+We provide rich api connection support, including various sdk:js-sdk, ios-sdk, android-sdk, python-sdk, crytop API...  
+3.  [DAPP Sample](https://cn-dev.cocosbcx.io/docs/81-%E6%8A%BD%E5%A5%96%E7%A4%BA%E4%BE%8B)  
+We provide DAPP cases, for example [cocos-dice-sample](https://github.com/Cocos-BCX/cocos-dice-sample)   
+4.  [White Paper](https://www.cocosbcx.io/static/Whitepaper_zh.pdf)  
+
+
 # License  
-Cocos-BCX mainnet is under the MIT license. See COPYING for more information or see https://opensource.org/licenses/MIT.
+Cocos-BCX mainnet is under the MIT license. See COPYING for more information or see https://opensource.org/licenses/MIT.  
