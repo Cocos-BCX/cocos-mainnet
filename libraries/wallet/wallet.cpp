@@ -1954,16 +1954,19 @@ public:
       }
 
       /************************************************nico add**********************************************************************************/
-      signed_transaction update_collateral_for_gas(account_id_type mortgager, account_id_type beneficiary, share_type collateral, bool broadcast = false)
+      signed_transaction update_collateral_for_gas(const string& mortgager, const string& beneficiary, share_type collateral, bool broadcast = false)
       {
-
             try
             {
                   FC_ASSERT(!self.is_locked());
                   FC_ASSERT(collateral >= 0);
+
+                  account_id_type mortgager_id = get_account_id(mortgager);
+                  account_id_type beneficiary_id = get_account_id(beneficiary);
+
                   update_collateral_for_gas_operation op;
-                  op.mortgager = mortgager;
-                  op.beneficiary = beneficiary;
+                  op.mortgager = mortgager_id;
+                  op.beneficiary = beneficiary_id;
                   op.collateral = collateral;
                   signed_transaction tx;
                   tx.operations.push_back(op);
@@ -3523,7 +3526,7 @@ pair<tx_hash_type, signed_transaction> wallet_api::revise_contract(string revise
       return std::make_pair(tx.hash(), tx);
 }
 
-pair<tx_hash_type, signed_transaction> wallet_api::update_collateral_for_gas(account_id_type mortgager, account_id_type beneficiary, share_type collateral, bool broadcast)
+pair<tx_hash_type, signed_transaction> wallet_api::update_collateral_for_gas(const string& mortgager, const string& beneficiary, share_type collateral, bool broadcast)
 {
       auto tx = my->update_collateral_for_gas(mortgager, beneficiary, collateral, broadcast);
       return std::make_pair(tx.hash(), tx);
