@@ -1323,7 +1323,7 @@ class wallet_api
     pair<pair<tx_hash_type, pair<object_id_type, account_transaction_history_id_type>>, processed_transaction> get_account_transaction(const string account_id_or_name, account_transaction_history_id_type transaction_history_id);
     bool set_node_message_send_cache_size(const uint32_t &params);
     bool set_node_deduce_in_verification_mode(const bool &params);
-    pair<tx_hash_type, signed_transaction> update_collateral_for_gas( account_id_type  mortgager,account_id_type  beneficiary,share_type  collateral,bool broadcast=false);
+     pair<tx_hash_type, signed_transaction> update_collateral_for_gas(const string& mortgager, const string& beneficiary, share_type collateral,bool broadcast=false);
     vector<asset_restricted_object> list_asset_restricted_objects(const asset_id_type asset_id, restricted_enum restricted_type) const;
     pair<tx_hash_type, signed_transaction> asset_update_restricted_list(const string &asset_issuer, string  target_asset ,restricted_enum restricted_type,vector<object_id_type> restricted_list,bool isadd, bool broadcast);
     // 注册游戏开发者
