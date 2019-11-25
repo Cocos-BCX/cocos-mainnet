@@ -58,8 +58,7 @@ rpc-endpoint = 127.0.0.1:8090
 >>> import_balance <ACCOUNT NAME> [<WIF_KEY>] true  
 ```  
 
-如果通过此连接发送私钥，则rpc-endpoint应该绑定到localhost以获得安全性.  
-使用帮助查看所有可用的钱包命令。源代码定义和所有命令的列表在 [此处提供](https://cn-dev.cocosbcx.io/docs/22-cli_wallet)  
+如果通过此连接发送私钥，则rpc-endpoint应该绑定到localhost以获得安全性. 使用帮助查看所有可用的钱包命令. 源代码定义和所有命令的列表在 [此处提供](https://cn-dev.cocosbcx.io/docs/22-cli_wallet).  
 
 # API使用  
 
@@ -90,7 +89,7 @@ API 0 提供对数据库的只读访问权限, 而API 1用于登录并获得对�
 # Resources  
 * [Cocos-BCX 浏览器](https://www.cocosabc.com/): We can view the corresponding information on the chain in the blockchain browser.
 * [SDK](https://cn-dev.cocosbcx.io/docs/711): We provide rich api connection support, including various sdk:js-sdk, ios-sdk, android-sdk, python-sdk, crytop API...  
-* [DAPP 案例](https://cn-dev.cocosbcx.io/docs/81-%E6%8A%BD%E5%A5%96%E7%A4%BA%E4%BE%8B): We provide DAPP cases, for example [cocos-dice-sample](https://github.com/Cocos-BCX/cocos-dice-sample)   
+* [DAPP 案例](https://cn-dev.cocosbcx.io/docs/81-%E6%8A%BD%E5%A5%96%E7%A4%BA%E4%BE%8B): We provide DAPP cases, for example [cocos-dice-sample](https://github.com/Cocos-BCX/cocos-dice-sample).   
 * [白皮书](https://www.cocosbcx.io/static/Whitepaper_zh.pdf)  
 
 

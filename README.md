@@ -91,7 +91,7 @@ Thank you for considering to help out with the source code! We welcome contribut
 # Resources  
 * [Cocos-BCX scan](https://www.cocosabc.com/): We can view the corresponding information on the chain in the blockchain browser.
 * [SDK](https://cn-dev.cocosbcx.io/docs/711): We provide rich api connection support, including various sdk:js-sdk, ios-sdk, android-sdk, python-sdk, crytop API...  
-* [DAPP Sample](https://cn-dev.cocosbcx.io/docs/81-%E6%8A%BD%E5%A5%96%E7%A4%BA%E4%BE%8B): We provide DAPP cases, for example [cocos-dice-sample](https://github.com/Cocos-BCX/cocos-dice-sample)   
+* [DAPP Sample](https://cn-dev.cocosbcx.io/docs/81-%E6%8A%BD%E5%A5%96%E7%A4%BA%E4%BE%8B): We provide DAPP cases, for example [cocos-dice-sample](https://github.com/Cocos-BCX/cocos-dice-sample).   
 * [White Paper](https://www.cocosbcx.io/static/Whitepaper_zh.pdf)  
 
 
