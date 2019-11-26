@@ -4033,12 +4033,12 @@ bool wallet_api::set_node_deduce_in_verification_mode(const bool &params)
       (*(my->_remote_net_node))->set_deduce_in_verification_mode(params);
       return true;
 }
-void wallet_api::node_flush()
+/* void wallet_api::node_flush()
 {
       FC_ASSERT(!is_locked());
       my->use_network_node_api();
       (*(my->_remote_net_node))->node_flush();
-}
+}*/
 
 pair<tx_hash_type, signed_transaction> wallet_api::propose_parameter_change(
     const string &proposing_account,
