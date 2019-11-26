@@ -1643,7 +1643,7 @@ public:
                         {
                               if (vote_id->type() == vote_id_type::vote_type::witness)
                               {
-                                    auto& temp = *vote_id;
+                                    auto &temp = *vote_id;
                                     voting_account_object.options.votes.erase(temp);
                               }
                               else
@@ -1688,7 +1688,7 @@ public:
                         {
                               if (vote_id->type() == vote_id_type::vote_type::committee)
                               {
-                                    auto& temp = *vote_id;
+                                    auto &temp = *vote_id;
                                     voting_account_object.options.votes.erase(temp);
                               }
                               else
@@ -1910,7 +1910,7 @@ public:
       }
 
       signed_transaction transfer(string from, string to, string amount,
-                                  string asset_symbol, string memo, bool broadcast = false)
+                                  string asset_symbol, pair<string, bool> memo, bool broadcast = false)
       {
             try
             {
@@ -1929,13 +1929,19 @@ public:
                   xfer_op.to = to_id;
                   xfer_op.amount = asset_obj->amount_from_string(amount);
 
-                  if (memo.size())
+                  if (memo.first.size())
                   {
-                        xfer_op.memo = memo_data();
-                        xfer_op.memo->from = from_account.options.memo_key;
-                        xfer_op.memo->to = to_account.options.memo_key;
-                        xfer_op.memo->set_message(get_private_key(from_account.options.memo_key),
-                                                  to_account.options.memo_key, memo);
+                        if (memo.second)
+                        {
+                              auto temp_memo = memo_data();
+                              temp_memo.from = from_account.options.memo_key;
+                              temp_memo.to = to_account.options.memo_key;
+                              temp_memo.set_message(get_private_key(from_account.options.memo_key),
+                                                    to_account.options.memo_key, memo.first);
+                              xfer_op.memo = temp_memo;
+                        }
+                        else
+                              xfer_op.memo = memo.first;
                   }
 
                   signed_transaction tx;
@@ -2530,7 +2536,7 @@ public:
       }
       /***************************************************nico end*******************************************************************************/
 
-      signed_transaction issue_asset(string to_account, string amount, string symbol, string memo, bool broadcast = false)
+      signed_transaction issue_asset(string to_account, string amount, string symbol, pair<string, bool> memo, bool broadcast = false)
       {
             auto asset_obj = get_asset(symbol);
 
@@ -2542,13 +2548,19 @@ public:
             issue_op.asset_to_issue = asset_obj.amount_from_string(amount);
             issue_op.issue_to_account = to.id;
 
-            if (memo.size())
+            if (memo.first.size())
             {
-                  issue_op.memo = memo_data();
-                  issue_op.memo->from = issuer.options.memo_key;
-                  issue_op.memo->to = to.options.memo_key;
-                  issue_op.memo->set_message(get_private_key(issuer.options.memo_key),
-                                             to.options.memo_key, memo);
+                  if (memo.second)
+                  {
+                        auto temp_memo = memo_data();
+                        temp_memo.from = issuer.options.memo_key;
+                        temp_memo.to = to.options.memo_key;
+                        temp_memo.set_message(get_private_key(issuer.options.memo_key),
+                                              to.options.memo_key, memo.first);
+                        issue_op.memo = temp_memo;
+                  }
+                  else
+                        issue_op.memo = memo.first;
             }
 
             signed_transaction tx;
@@ -3277,7 +3289,7 @@ brain_key_info wallet_api::suggest_brain_key() const
       fc::ecc::private_key priv_key = derive_private_key(brain_key, 0);
       result.brain_priv_key = brain_key;
       result.wif_priv_key = key_to_wif(priv_key);
-      result.address_info=priv_key.get_public_key();
+      result.address_info = priv_key.get_public_key();
       result.pub_key = priv_key.get_public_key();
       return result;
 }
@@ -3436,14 +3448,14 @@ pair<tx_hash_type, signed_transaction> wallet_api::create_account_with_brain_key
       return std::make_pair(tx.hash(), tx);
 }
 pair<tx_hash_type, signed_transaction> wallet_api::issue_asset(string to_account, string amount, string symbol,
-                                                               string memo, bool broadcast)
+                                                               pair<string, bool> memo, bool broadcast)
 {
       auto tx = my->issue_asset(to_account, amount, symbol, memo, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 
 pair<tx_hash_type, signed_transaction> wallet_api::transfer(string from, string to, string amount,
-                                                            string asset_symbol, string memo, bool broadcast /* = false */)
+                                                            string asset_symbol, pair<string, bool> memo, bool broadcast /* = false */)
 {
       auto tx = my->transfer(from, to, amount, asset_symbol, memo, broadcast);
       return std::make_pair(tx.hash(), tx);
@@ -3457,9 +3469,9 @@ fc::optional<processed_transaction> wallet_api::get_transaction_by_id(string id)
 {
       return my->_remote_db->get_transaction_by_id(id);
 }
-flat_set<public_key_type> wallet_api::get_signature_keys(const signed_transaction&trx)
+flat_set<public_key_type> wallet_api::get_signature_keys(const signed_transaction &trx)
 {
-       return my->_remote_db->get_signature_keys(trx);
+      return my->_remote_db->get_signature_keys(trx);
 }
 fc::optional<transaction_in_block_info> wallet_api::get_transaction_in_block_info(const string &id)
 {
@@ -4020,6 +4032,12 @@ bool wallet_api::set_node_deduce_in_verification_mode(const bool &params)
       my->use_network_node_api();
       (*(my->_remote_net_node))->set_deduce_in_verification_mode(params);
       return true;
+}
+void wallet_api::node_flush()
+{
+      FC_ASSERT(!is_locked());
+      my->use_network_node_api();
+      (*(my->_remote_net_node))->node_flush();
 }
 
 pair<tx_hash_type, signed_transaction> wallet_api::propose_parameter_change(

@@ -110,7 +110,7 @@ namespace graphene { namespace chain {
             update_collateral_for_gas_operation,                     //54
             account_authentication_operation                         //55   
          > operation;   
-
+   
    /// @} // operations group
 
    /**

@@ -84,8 +84,9 @@ namespace graphene { namespace chain {
       string serialize() const;
       static memo_message deserialize(const string& serial);
    };
+   typedef fc::static_variant<string,memo_data> memo_type;
 
 } } // namespace graphene::chain
-
+FC_REFLECT_TYPENAME( graphene::chain::memo_type )
 FC_REFLECT( graphene::chain::memo_message, (checksum)(text) )
 FC_REFLECT( graphene::chain::memo_data, (from)(to)(nonce)(message) )

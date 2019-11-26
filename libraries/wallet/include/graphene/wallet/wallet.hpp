@@ -651,7 +651,7 @@ class wallet_api
                                                     string to,
                                                     string amount,
                                                     string asset_symbol,
-                                                    string memo,
+                                                     pair<string, bool> memo,
                                                     bool broadcast = false);
 
     /**
@@ -662,7 +662,7 @@ class wallet_api
                                                      string to,
                                                      string amount,
                                                      string asset_symbol,
-                                                     string memo)
+                                                      pair<string, bool> memo)
     {
         auto trx = transfer(from, to, amount, asset_symbol, memo, true);
         return trx; //nico add:: 包装tx 与tx_hash
@@ -864,7 +864,7 @@ class wallet_api
        */
     pair<tx_hash_type, signed_transaction> issue_asset(string to_account, string amount,
                                                        string symbol,
-                                                       string memo,
+                                                       pair<string, bool> memo,
                                                        bool broadcast = false);
 
     /** Update the core options on an asset.
@@ -1317,6 +1317,8 @@ class wallet_api
     pair<tx_hash_type, signed_transaction> update_collateral_for_gas( account_id_type  mortgager,account_id_type  beneficiary,share_type  collateral,bool broadcast=false);
     vector<asset_restricted_object> list_asset_restricted_objects(const asset_id_type asset_id, restricted_enum restricted_type) const;
     pair<tx_hash_type, signed_transaction> asset_update_restricted_list(const string &asset_issuer, string  target_asset ,restricted_enum restricted_type,vector<object_id_type> restricted_list,bool isadd, bool broadcast);
+    
+    void node_flush();
     // 注册游戏开发者
 
     // register as a non homogenesis asset creator
@@ -1478,7 +1480,7 @@ FC_API(graphene::wallet::wallet_api,
        // crontab
        (create_crontab)(cancel_crontab)(list_account_crontab)(crontab_builder_transaction)(recover_crontab)(set_node_message_send_cache_size)(set_node_deduce_in_verification_mode)
        //gas
-       (update_collateral_for_gas)(get_signature_keys)
+       (update_collateral_for_gas)(get_signature_keys)(node_flush)
        /*nico end*/
        (list_assets)(list_asset_restricted_objects)(asset_update_restricted_list)(import_key)(import_balance)(suggest_brain_key)(derive_owner_keys_from_brain_key)(register_account)(upgrade_account)(create_account_with_brain_key)(sell_asset)(sell)(buy)(borrow_asset)(cancel_order)(transfer)(transfer2)(get_transaction_id)(create_asset)(update_asset)(update_bitasset)(update_asset_feed_producers)(publish_asset_feed)(issue_asset)(get_asset)(get_bitasset_data)(reserve_asset)(global_settle_asset)(settle_asset)(bid_collateral)
        //(whitelist_account)
