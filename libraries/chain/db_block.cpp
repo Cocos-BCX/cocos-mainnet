@@ -662,7 +662,7 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
     uint32_t skip = get_node_properties().skip_flags;
 
     auto &chain_parameters = get_global_properties().parameters;
-    FC_ASSERT(fc::raw::pack_size(trx) < chain_parameters.maximum_block_size / 100); //nico 交易尺寸验证，单笔交易最大尺寸不能超过区块最大尺寸的百分之一
+    FC_ASSERT(fc::raw::pack_size(trx) < chain_parameters.maximum_block_size / 50); //交易尺寸验证，单笔交易最大尺寸不能超过区块最大尺寸的百分之2
     if (!(skip & skip_validate))                                                    /* issue #505 explains why this skip_flag is disabled */
       trx.validate();
     auto &trx_idx = get_mutable_index_type<transaction_index>();

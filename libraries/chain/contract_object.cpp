@@ -257,8 +257,11 @@ void contract_object::do_contract_function(account_id_type caller, string functi
             auto &baseENV = contract_bin_code_id_type(0)(db);
             auto abi_itr = contract_ABI.find(lua_types(lua_string(function_name)));
             FC_ASSERT(abi_itr != contract_ABI.end(), "${function_name} maybe a internal function", ("function_name", function_name));
-            FC_ASSERT(value_list.size() >= abi_itr->second.get<lua_function>().arglist.size(),
+            if(!abi_itr->second.get<lua_function>().is_var_arg)
+                FC_ASSERT(value_list.size() == abi_itr->second.get<lua_function>().arglist.size(),
                       "${function_name}`s parameter list is ${plist}...", ("function_name", function_name)("plist", abi_itr->second.get<lua_function>().arglist));
+            FC_ASSERT(value_list.size()<=20,"value list is greater than 20 limit");
+
             contract_base_info cbi(*this, caller);
             lua_scheduler &context = db.get_luaVM();
             register_scheduler scheduler(db, caller, *this, this->mode, result, context, sigkeys, apply_result, account_data);
