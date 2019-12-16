@@ -403,6 +403,7 @@ public:
         flat_set<vote_id_type>  _candidates= fc::json::from_string(concerned_candidates).as<flat_set<vote_id_type>>();
         _chain_db->set_concerned_candidates(_candidates);
       }
+
       if(_options->count("message_cache_limit"))
       {
         auto limit_size=_options->at("message_cache_limit").as<uint16_t>();
@@ -1029,6 +1030,9 @@ void application::initialize_db(const fc::path &data_dir)
 void application::initialize(const boost::program_options::variables_map &options)
 {
   my->_options = &options;
+
+  chain_database()->set_option(options);
+
   if (options.count("version"))
   {
     std::cout << "Version: " << graphene::utilities::git_revision_description << "\n";
