@@ -1,0 +1,27 @@
+language: c++
+
+cache: ccache
+
+git:
+  depth: 1
+
+dist: xenial
+
+sudo: true
+
+install:
+ - sudo apt-get install --allow-unauthenticated autoconf cmake git vim libbz2-dev libdb++-dev libdb-dev libssl-dev openssl libreadline-dev libtool libcurl4-openssl-dev libboost-all-dev parallel
+
+env:
+  global:
+    - CCACHE_COMPRESS=exists_means_true
+    - CCACHE_MAXSIZE=1Gi
+    - CCACHE_SLOPPINESS=include_file_ctime,include_file_mtime,time_macros
+
+jobs:
+  include:
+    - stage: build for cache
+      script:
+      - ccache -s
+      - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_PROCESS_ENCRYPTION=NO .
+      - make -j 8
