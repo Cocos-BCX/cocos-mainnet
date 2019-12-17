@@ -84,7 +84,7 @@ API 0 提供对数据库的只读访问权限, 而API 1用于登录并获得对�
 
 
 # 贡献    
-感谢您考虑提供源代码帮助！我们欢迎互联网上的任何人做出贡献，甚至感谢最小的修复！如果您想为以太坊做贡献，请分叉，修复，提交并发送请求请求，以供维护者审查并合并到主要的代码库.  
+感谢您考虑提供源代码帮助！我们欢迎互联网上的任何人做出贡献，甚至感谢最小的修复！如果您想为cocos-mainnet做贡献，请分叉，修复，提交并发送请求请求，以供维护者审查并合并到主要的代码库.  
 
 # Resources  
 * [Cocos-BCX 浏览器](https://www.cocosabc.com/): We can view the corresponding information on the chain in the blockchain browser.

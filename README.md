@@ -86,7 +86,7 @@ API 0 is accessible using regular JSON-RPC:
 
 
 # Contribution    
-Thank you for considering to help out with the source code! We welcome contributions from anyone on the internet, and are grateful for even the smallest of fixes!If you'd like to contribute to go-ethereum, please fork, fix, commit and send a pull request for the maintainers to review and merge into the main code base.  
+Thank you for considering to help out with the source code! We welcome contributions from anyone on the internet, and are grateful for even the smallest of fixes!If you'd like to contribute to cocos-mainnet, please fork, fix, commit and send a pull request for the maintainers to review and merge into the main code base.  
 
 # Resources  
 * [Cocos-BCX scan](https://www.cocosabc.com/): We can view the corresponding information on the chain in the blockchain browser.
