@@ -673,7 +673,10 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
 
     if (_options->count("op_maxsize_proportion_percent"))
     {
-      op_maxsize_proportion_percent = _options->at("op_maxsize_proportion_percent").as<uint32_t>(); 
+      auto percent = _options->at("op_maxsize_proportion_percent").as<uint32_t>(); 
+
+      if(percent>=0 && percent<=100) //if percent out of range,just do nothing
+        op_maxsize_proportion_percent = percent;
     }
 
     int size = chain_parameters.maximum_block_size*op_maxsize_proportion_percent/100;
