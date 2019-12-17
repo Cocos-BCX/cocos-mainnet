@@ -71,6 +71,7 @@ void witness_plugin::plugin_set_program_options(
           "Tuple of [PublicKey, WIF private key] (may specify multiple times),The owner of the private key is nico")
          ("message_cache_limit", boost::program_options::value<uint16_t>()->default_value(3000), "Set the message delivery queue length, At least not less than 3000")
          ("concerned_candidates",bpo::value<string>()->composing(), "Set up candidates to be followed,eg:[\"0:1\",\"1:5\"]")
+         ("op_maxsize_proportion_percent",boost::program_options::value<uint32_t>()->default_value(1), "set the op max proportion of block maxsize" )
          ("deduce_in_verification_mode", boost::program_options::value<bool>()->default_value(false), "Whether to deduce in verification mode");
    config_file_options.add(command_line_options);
 }
