@@ -42,7 +42,7 @@ The node will automatically create a data directory including a config file. It 
 rpc-endpoint = 127.0.0.1:8090  
 ```  
 
-*notice*：Please note that currently(2019-11-19) a full node will need more than 160GB of RAM to operate and required memory is growing fast. Consider the following table as minimal requirements before running a node:
+*notice*：Please note that currently(2019-11-19) a full node will need more than 16GB of RAM to operate and required memory is growing fast. Consider the following table as minimal requirements before running a node:
 
 | Default | Full | Minimal  | ElasticSearch 
 | --- | --- | --- | ---
