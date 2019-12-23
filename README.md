@@ -1,7 +1,7 @@
 Cocos mainnet    
 ==============  
 
-Click [here](https://github.com/Cocos-BCX/cocos_mainnet/blob/master/README_CN.md) to see the Chinese document.  
+Click [here](https://github.com/Cocos-BCX/cocos_mainnet/blob/develop/README_CN.md) to see the Chinese document.  
 
 
 [Build Status](https://travis-ci.org/Cocos-BCX/cocos-mainnet/branches):
