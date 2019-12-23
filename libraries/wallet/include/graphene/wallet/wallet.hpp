@@ -660,7 +660,7 @@ class wallet_api
                                                     string to,
                                                     string amount,
                                                     string asset_symbol,
-                                                    string memo,
+                                                     pair<string, bool> memo,
                                                     bool broadcast = false);
 
     /**
@@ -671,7 +671,7 @@ class wallet_api
                                                      string to,
                                                      string amount,
                                                      string asset_symbol,
-                                                     string memo)
+                                                      pair<string, bool> memo)
     {
         auto trx = transfer(from, to, amount, asset_symbol, memo, true);
         return trx; //nico add:: 包装tx 与tx_hash
@@ -873,7 +873,7 @@ class wallet_api
        */
     pair<tx_hash_type, signed_transaction> issue_asset(string to_account, string amount,
                                                        string symbol,
-                                                       string memo,
+                                                       pair<string, bool> memo,
                                                        bool broadcast = false);
 
     /** Update the core options on an asset.
@@ -1326,6 +1326,8 @@ class wallet_api
      pair<tx_hash_type, signed_transaction> update_collateral_for_gas(const string& mortgager, const string& beneficiary, share_type collateral,bool broadcast=false);
     vector<asset_restricted_object> list_asset_restricted_objects(const asset_id_type asset_id, restricted_enum restricted_type) const;
     pair<tx_hash_type, signed_transaction> asset_update_restricted_list(const string &asset_issuer, string  target_asset ,restricted_enum restricted_type,vector<object_id_type> restricted_list,bool isadd, bool broadcast);
+    
+    //void node_flush();
     // 注册游戏开发者
 
     // register as a non homogenesis asset creator

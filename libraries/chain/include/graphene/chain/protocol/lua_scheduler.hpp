@@ -85,7 +85,7 @@ class VMcollapseErrorException //: public fc::exception
 {
     string msg;
 
-  public:
+public:
     const char *what() { return msg.c_str(); }
     VMcollapseErrorException(const std::string &msg) //: fc::exception(msg)
     {
@@ -105,7 +105,7 @@ class lua_scheduler
         Globals
     }; // tag for "global variables"
 
-  public:
+public:
     bool ismthread = false;
     /**
      * @param openDefaultLibs True if luaL_openlibs should be called
@@ -185,7 +185,7 @@ class lua_scheduler
      */
     class ExecutionErrorException : public fc::exception
     {
-      public:
+    public:
         ExecutionErrorException(const std::string &msg) : fc::exception(fc::log_message(msg))
         {
         }
@@ -196,7 +196,7 @@ class lua_scheduler
      */
     class SyntaxErrorException : public fc::exception
     {
-      public:
+    public:
         SyntaxErrorException(const std::string &msg) : fc::exception(fc::log_message(msg))
         {
         }
@@ -207,7 +207,7 @@ class lua_scheduler
      */
     class WrongTypeException : public fc::exception
     {
-      public:
+    public:
         WrongTypeException(std::string luaType, const std::type_info &destination) : fc::exception(fc::log_message("Trying to cast a lua variable from \"" + luaType + "\" to \"" + destination.name() + "\"")),
                                                                                      luaType(luaType),
                                                                                      destination(destination)
@@ -240,7 +240,7 @@ class lua_scheduler
             return *this;
         }
 
-      public:
+    public:
         friend lua_scheduler;
         lua_State *state;
         std::unique_ptr<ValueInRegistry> threadInRegistry;
@@ -677,7 +677,7 @@ class lua_scheduler
         return readTopAndPop<TType>(thread.state, PushedObject{thread.state, 1});
     }
 
-  private:
+private:
     ////////////////////////////////////////////////////////////////////
     //						write_helper							//
     ///////////////////////////////////////////////////////////////////
@@ -725,7 +725,7 @@ class lua_scheduler
         return scheduler.writeVariable(a[I]..., EmptyArray);
     }
 
-  public:
+public:
     template <typename Vector>
     static auto push_key_and_value_stack(lua_scheduler &scheduler, Vector values)
     {
@@ -758,7 +758,7 @@ class lua_scheduler
         return write_helper<Vector, lua_object_attribute_stack_depth>::write(scheduler, values);
     }
 
-  private:
+private:
     ////////////////////////////////////////////////////////////////////
     //						read_helper								//
     ///////////////////////////////////////////////////////////////////
@@ -788,7 +788,7 @@ class lua_scheduler
         return scheduler.readVariable<ReturnType>(table_name, a[I]...);
     }
 
-  public:
+public:
     template <typename ReturnType, typename Vector>
     static auto read_lua_value(lua_scheduler &scheduler, const char *table_name, Vector values) -> ReturnType
     {
@@ -918,7 +918,7 @@ class lua_scheduler
             num -= n;
         }
 
-      private:
+    private:
         lua_State *state;
         int num = 0;
     };
@@ -1020,7 +1020,7 @@ class lua_scheduler
         static_assert(Pusher<typename std::decay<TIndex1>::type>::minSize <= 1 && Pusher<typename std::decay<TIndex1>::type>::maxSize == 1, "Impossible to have a multiple-values index");
 
         auto p1 = Pusher<typename std::decay<TIndex1>::type>::push(state, std::forward<TIndex1>(index1));
-        auto gettable=lua_gettable(state, -2);
+        auto gettable = lua_gettable(state, -2);
         setTable<TDataType>(state, std::move(p1), std::forward<TIndex2>(index2), std::forward<TIndex3>(index3), std::forward<TIndices>(indices)...);
     }
 
@@ -1031,16 +1031,16 @@ class lua_scheduler
         static_assert(Pusher<typename std::decay<TIndex1>::type>::minSize <= 1 && Pusher<typename std::decay<TIndex1>::type>::maxSize == 1, "Impossible to have a multiple-values index");
 
         auto p1 = Pusher<typename std::decay<TIndex1>::type>::push(state, std::forward<TIndex1>(index1)) + std::move(pushedTable);
-        if(0==lua_gettable(state, -2))
+        if (0 == lua_gettable(state, -2))
         {
-            lua_pop(state,1);
+            lua_pop(state, 1);
             Pusher<typename std::decay<TIndex1>::type>::push(state, std::forward<TIndex1>(index1)).release();
             lua_newtable(state);
-            lua_settable(state,-3);
+            lua_settable(state, -3);
             Pusher<typename std::decay<TIndex1>::type>::push(state, std::forward<TIndex1>(index1)).release();
             lua_gettable(state, -2);
         }
-        
+
         setTable<TDataType>(state, std::move(p1), std::forward<TIndex2>(index2), std::forward<TIndex3>(index3), std::forward<TIndices>(indices)...);
     }
 
@@ -1228,7 +1228,7 @@ class lua_scheduler
         auto val = Reader<typename std::decay<TReturnType>::type>::read(state, -object.getNum());
         if (!val.is_initialized())
         {
-             WrongTypeException{lua_typename(state, lua_type(state, -object.getNum())), typeid(TReturnType)};
+            WrongTypeException{lua_typename(state, lua_type(state, -object.getNum())), typeid(TReturnType)};
         }
         return val.get();
     }
@@ -1240,7 +1240,7 @@ class lua_scheduler
         auto val = Reader<typename std::decay<TReturnType>::type>::read(state, index);
         if (!val.is_initialized())
         {
-             WrongTypeException{lua_typename(state, lua_type(state, index)), typeid(TReturnType)};
+            WrongTypeException{lua_typename(state, lua_type(state, index)), typeid(TReturnType)};
         }
         return val.get();
     }
@@ -1285,7 +1285,7 @@ class lua_scheduler
     static void luaError(lua_State *state)
     {
         lua_error(state);
-         C_ERROR();
+        C_ERROR();
         std::terminate(); // removes compilation warning
     }
 
@@ -1873,7 +1873,7 @@ class lua_scheduler
             return boost::optional<ReturnType>(*static_cast<TType *>(lua_touserdata(state, index)));
         }
 
-      private:
+    private:
         static bool test(lua_State *state, int index)
         {
             if (!lua_isuserdata(state, index))
@@ -1940,7 +1940,7 @@ class lua_scheduler
         return readIntoFunction(state, retValueTag, binder, index + 1, othersTags...);
     }
 
-  private:
+private:
     /**************************************************/
     /*                   UTILITIES                    */
     /**************************************************/
@@ -1974,7 +1974,7 @@ class lua_scheduler
         ValueInRegistry(const ValueInRegistry &) = delete;
         ValueInRegistry &operator=(const ValueInRegistry &) = delete;
 
-      private:
+    private:
         lua_State *lua;
     };
 
@@ -2175,18 +2175,18 @@ class lua_scheduler::LuaFunctionCaller
 template <typename TRetValue, typename... TParams>
 class lua_scheduler::LuaFunctionCaller<TRetValue(TParams...)>
 {
-  public:
+public:
     TRetValue operator()(TParams &&... params) const
     {
         auto obj = valueHolder->pop();
         return call<TRetValue>(state, std::move(obj), std::forward<TParams>(params)...);
     }
 
-  private:
+private:
     std::shared_ptr<ValueInRegistry> valueHolder;
     lua_State *state;
 
-  private:
+private:
     friend lua_scheduler;
     explicit LuaFunctionCaller(lua_State *state) : valueHolder(std::make_shared<ValueInRegistry>(state)),
                                                    state(state)
@@ -2355,7 +2355,7 @@ struct lua_scheduler::Pusher<lua_key>
         return std::move(obj);
     }
 
-  private:
+private:
     struct lua_key_push_visiter
     {
         typedef void result_type;
@@ -2422,7 +2422,7 @@ struct lua_scheduler::Pusher<lua_types>
         return std::move(obj);
     }
 
-  private:
+private:
     struct lua_types_push_visiter
     {
         typedef void result_type;
@@ -2687,7 +2687,7 @@ struct lua_scheduler::Pusher<TReturnType(TParameters...)>
         return push(state, &fn);
     }
 
-  private:
+private:
     // callback that calls the function object
     // this function is used by the callbacks and handles loading arguments from the stack and pushing the return value back
     template <typename TFunctionObject>
@@ -2738,7 +2738,7 @@ struct lua_scheduler::Pusher<TReturnType(TParameters...)>
             Pusher<std::exception_ptr>::push(state, std::current_exception()).release();
             luaError(state);
         }*/
-        return PushedObject{state,0};
+        return PushedObject{state, 0};
     }
 
     template <typename TFunctionObject>
@@ -2824,7 +2824,7 @@ struct lua_scheduler::Pusher<boost::variant<TTypes...>>
         return std::move(obj);
     }
 
-  private:
+private:
     struct VariantWriter : public boost::static_visitor<>
     {
         template <typename TType>
@@ -2897,7 +2897,7 @@ struct lua_scheduler::Pusher<std::tuple<TTypes...>>
         return PushedObject{state, push2(state, std::move(value), std::integral_constant<int, 0>{})};
     }
 
-  private:
+private:
     template <int N>
     static int push2(lua_State *state, const std::tuple<TTypes...> &value, std::integral_constant<int, N>) //noexcept
     {
@@ -2982,7 +2982,7 @@ struct lua_scheduler::Reader<lua_int>
 #if LUA_VERSION_NUM >= 502
 
         int success;
-        if (lua_type(state,index)!=LUA_TNUMBER)
+        if (lua_type(state, index) != LUA_TNUMBER)
             return boost::none;
         auto value = lua_tointegerx(state, index, &success);
         if (success == 0)
@@ -3037,7 +3037,7 @@ struct lua_scheduler::Reader<lua_number>
 #if LUA_VERSION_NUM >= 502
 
         int success;
-        if (lua_type(state,index)!=LUA_TNUMBER)
+        if (lua_type(state, index) != LUA_TNUMBER)
             return boost::none;
         auto value = lua_tonumberx(state, index, &success);
         if (success == 0)
@@ -3128,7 +3128,7 @@ struct lua_scheduler::Reader<static_variant<TTypes...>>
     typedef static_variant<TTypes...>
         ReturnType;
 
-  private:
+private:
     // class doing operations for a range of types from TIterBegin to TIterEnd
     template <typename TIterBegin, typename TIterEnd, typename = void>
     struct VariantReader
@@ -3165,7 +3165,7 @@ struct lua_scheduler::Reader<static_variant<TTypes...>>
     typedef VariantReader<typename boost::mpl::begin<typename ReturnType::boost_variant::types>::type, typename boost::mpl::end<typename ReturnType::boost_variant::types>::type>
         MainVariantReader;
 
-  public:
+public:
     static auto read(lua_State *state, int index)
         -> boost::optional<ReturnType>
     {
@@ -3304,10 +3304,7 @@ struct lua_scheduler::Reader<std::map<TKey, TValue>>
             {
                 auto key = Reader<TKey>::read(state, -2);
                 if (!key.is_initialized())
-                {
-                    lua_pop(state, 1);
-                    continue;
-                }
+                    FC_THROW("read TKey error");
                 if (std::is_same<TValue, lua_types>::value)
                     if (LUA_TFUNCTION == lua_type(state, -1))
                     {
@@ -3316,26 +3313,19 @@ struct lua_scheduler::Reader<std::map<TKey, TValue>>
                     }
                 auto value = Reader<TValue>::read(state, -1);
                 if (!value.is_initialized())
-                {
-                    lua_pop(state, 1);
-                    continue;
-                }
-                if (!discard_data)
-                    result[*key] = *value;
+                    FC_THROW("read TValue error");
+                result[*key] = *value;
                 lua_pop(state, 1);
             }
             catch (...)
             {
-                lua_pop(state, 2);
-                recursion_depth_v.pop_back();
-                return {};
+                discard_data = false;
+                recursion_depth_v.clear();
+                FC_THROW("read　map TKey：TValue error : Maybe there is a bad data");
             }
         }
         recursion_depth_v.pop_back();
-        if (!discard_data)
-            return {std::move(result)};
-        else
-            return {};
+        return {std::move(result)};
     }
 };
 template <>
@@ -3361,7 +3351,7 @@ struct lua_scheduler::Reader<std::unordered_map<TKey, TValue>>
         if (!lua_istable(state, index))
             return boost::none;
         std::unordered_map<TKey, TValue> result;
-         static vector<const void *> recursion_depth_v;
+        static vector<const void *> recursion_depth_v;
         static bool discard_data = false;
         const void *thisaddr = lua_topointer(state, index);
         if (find(recursion_depth_v.begin(), recursion_depth_v.end(), thisaddr) != recursion_depth_v.end())
@@ -3377,10 +3367,7 @@ struct lua_scheduler::Reader<std::unordered_map<TKey, TValue>>
             {
                 auto key = Reader<TKey>::read(state, -2);
                 if (!key.is_initialized())
-                {
-                    lua_pop(state, 1);
-                    continue;
-                }
+                    FC_THROW("read TKey error");
                 if (std::is_same<TValue, lua_types>::value)
                     if (LUA_TFUNCTION == lua_type(state, -1))
                     {
@@ -3389,26 +3376,19 @@ struct lua_scheduler::Reader<std::unordered_map<TKey, TValue>>
                     }
                 auto value = Reader<TValue>::read(state, -1);
                 if (!value.is_initialized())
-                {
-                    lua_pop(state, 1);
-                    continue;
-                }
-                if (!discard_data)
-                    result[*key] = *value;
+                    FC_THROW("read TValue error");
+                result[*key] = *value;
                 lua_pop(state, 1);
             }
             catch (...)
             {
-                lua_pop(state, 2);
-                recursion_depth_v.pop_back();
-                return {};
+                discard_data = false;
+                recursion_depth_v.clear();
+                FC_THROW("read　unordered_map TKey：TValue error : Maybe there is a bad data ");
             }
         }
         recursion_depth_v.pop_back();
-        if (!discard_data)
-            return {std::move(result)};
-        else
-            return {};
+        return {std::move(result)};
     }
 };
 
@@ -3438,7 +3418,7 @@ struct lua_scheduler::Reader<boost::variant<TTypes...>>
     typedef boost::variant<TTypes...>
         ReturnType;
 
-  private:
+private:
     // class doing operations for a range of types from TIterBegin to TIterEnd
     template <typename TIterBegin, typename TIterEnd, typename = void>
     struct VariantReader
@@ -3471,7 +3451,7 @@ struct lua_scheduler::Reader<boost::variant<TTypes...>>
     typedef VariantReader<typename boost::mpl::begin<typename ReturnType::types>::type, typename boost::mpl::end<typename ReturnType::types>::type>
         MainVariantReader;
 
-  public:
+public:
     static auto read(lua_State *state, int index)
         -> boost::optional<ReturnType>
     {

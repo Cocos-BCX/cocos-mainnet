@@ -654,6 +654,11 @@ processed_transaction database::apply_transaction(const signed_transaction &trx,
   return result;
 }
 
+void database::set_option(const boost::program_options::variables_map &options)
+{
+  _options = &options;
+}
+
 processed_transaction database::_apply_transaction(const signed_transaction &trx, transaction_apply_mode &run_mode, bool only_try_permissions)
 {
   //fc::microseconds start1 = fc::time_point::now().time_since_epoch();
@@ -662,7 +667,20 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
     uint32_t skip = get_node_properties().skip_flags;
 
     auto &chain_parameters = get_global_properties().parameters;
-    FC_ASSERT(fc::raw::pack_size(trx) < chain_parameters.maximum_block_size / 100); //nico 交易尺寸验证，单笔交易最大尺寸不能超过区块最大尺寸的百分之一
+
+
+    int op_maxsize_proportion_percent = 1; //default
+
+    if (_options->count("op_maxsize_proportion_percent"))
+    {
+      auto percent = _options->at("op_maxsize_proportion_percent").as<uint32_t>(); 
+
+      if(percent>=0 && percent<=100) //if percent out of range,just do nothing
+        op_maxsize_proportion_percent = percent;
+    }
+
+    int size = chain_parameters.maximum_block_size*op_maxsize_proportion_percent/100;
+    FC_ASSERT(fc::raw::pack_size(trx) < size);//交易尺寸验证，单笔交易最大尺寸不能超过区块最大尺寸的百分比
     if (!(skip & skip_validate))                                                    /* issue #505 explains why this skip_flag is disabled */
       trx.validate();
     auto &trx_idx = get_mutable_index_type<transaction_index>();

@@ -372,7 +372,7 @@ namespace graphene { namespace chain {
 
 
       /** user provided data encrypted to the memo key of the "to" account */
-      optional<memo_data>  memo;
+      optional<memo_type>  memo;
       extensions_type      extensions;
 
       account_id_type fee_payer()const { return issuer; }

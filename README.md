@@ -1,5 +1,15 @@
-Cocos mainnet  
+Cocos mainnet    
 ==============  
+
+Click [here](https://github.com/Cocos-BCX/cocos_mainnet/blob/master/README_CN.md) to see the Chinese document.  
+
+
+[Build Status](https://travis-ci.org/Cocos-BCX/cocos-mainnet/branches):
+
+`master` | `develop` 
+ --- | ---
+ [![](https://travis-ci.org/Cocos-BCX/cocos-mainnet.svg?branch=master)](https://travis-ci.org/Cocos-BCX/cocos-mainnet) | [![](https://travis-ci.org/Cocos-BCX/cocos-mainnet.svg?branch=develop)](https://travis-ci.org/Cocos-BCX/cocos-mainnet) 
+
 
 Cocos-BCX is the next generation gaming digital economy platform. The project aims to provide game developers with an easy-to-use, comprehensive blockchain gaming infrastructure. Provide gamers with a transparent, fair and open game environment. The underlying chain system is based on graphene for optimization of consensus mechanisms and the addition of intelligent contract systems. And provide a lot of game features, such as: random number, contract session mechanism, timer and heartbeat.  
 
@@ -84,14 +94,16 @@ API 0 is accessible using regular JSON-RPC:
 
 
 # Contribution    
-Thank you for considering to help out with the source code! We welcome contributions from anyone on the internet, and are grateful for even the smallest of fixes!If you'd like to contribute to go-ethereum, please fork, fix, commit and send a pull request for the maintainers to review and merge into the main code base.  
+Thank you for considering to help out with the source code! We welcome contributions from anyone on the internet, and are grateful for even the smallest of fixes!If you'd like to contribute to cocos-mainnet, please fork, fix, commit and send a pull request for the maintainers to review and merge into the main code base.  
 
 # Resources  
-1.  [Cocos-BCX scan](https://www.cocosabc.com/): We can view the corresponding information on the chain in the blockchain browser.
-2.  [SDK](https://cn-dev.cocosbcx.io/docs/711): We provide rich api connection support, including various sdk:js-sdk, ios-sdk, android-sdk, python-sdk, crytop API...  
-3.  [DAPP Sample](https://cn-dev.cocosbcx.io/docs/81-%E6%8A%BD%E5%A5%96%E7%A4%BA%E4%BE%8B): We provide DAPP cases, for example [cocos-dice-sample](https://github.com/Cocos-BCX/cocos-dice-sample)   
-4.  [White Paper](https://www.cocosbcx.io/static/Whitepaper_zh.pdf)  
+* [Cocos-BCX scan](https://www.cocosabc.com/): We can view the corresponding information on the chain in the blockchain browser.
+* [SDK](https://cn-dev.cocosbcx.io/docs/711): We provide rich api connection support, including various sdk:js-sdk, ios-sdk, android-sdk, python-sdk, crytop API...  
+* [DAPP Sample](https://cn-dev.cocosbcx.io/docs/81-%E6%8A%BD%E5%A5%96%E7%A4%BA%E4%BE%8B): We provide DAPP cases, for example [cocos-dice-sample](https://github.com/Cocos-BCX/cocos-dice-sample).   
+* [White Paper](https://www.cocosbcx.io/static/Whitepaper_zh.pdf)  
 
 
 # License  
 Cocos-BCX mainnet is under the MIT license. See COPYING for more information or see https://opensource.org/licenses/MIT.  
+   
+

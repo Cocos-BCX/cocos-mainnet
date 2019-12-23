@@ -148,6 +148,12 @@ asset asset_object::amount_from_string(string amount_string) const
 
 string asset_object::amount_to_string(share_type amount) const
 {
+   bool is_negative = false;
+   if(amount<0)
+   {
+      is_negative=true;
+      amount=-amount;
+   }
    share_type scaled_precision = 1;
    for( uint8_t i = 0; i < precision; ++i )
       scaled_precision *= 10;
@@ -157,5 +163,7 @@ string asset_object::amount_to_string(share_type amount) const
    auto decimals = amount.value % scaled_precision.value;
    if( decimals )
       result += "." + fc::to_string(scaled_precision.value + decimals).erase(0,1);
+   if(is_negative)
+      result = "-"+result;
    return result;
 }
