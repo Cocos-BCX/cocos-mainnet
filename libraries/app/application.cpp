@@ -1006,7 +1006,9 @@ void application::set_program_options(boost::program_options::options_descriptio
                                         ("genesis-json", bpo::value<boost::filesystem::path>(), "File to read Genesis State from")
                                         ("dbg-init-key", bpo::value<string>(), "Block signing key to use for init witnesses, overrides genesis file")
                                         ("api-access", bpo::value<boost::filesystem::path>(), "JSON file specifying API permissions")
-                                        ("plugins", bpo::value<string>(), "Space-separated list of plugins to activate");
+                                        ("plugins", bpo::value<string>(), "Space-separated list of plugins to activate")
+                                        ("contract_total_data_size", bpo::value<uint64_t>(), "limit the contract total data size")
+                                        ("contract_private_data_size", bpo::value<uint64_t>(), "limit the contract private data size");
   command_line_options.add(configuration_file_options);
   command_line_options.add_options()("create-genesis-json", bpo::value<boost::filesystem::path>(),
                                      "Path to create a Genesis State at. If a well-formed JSON file exists at the path, it will be parsed and any "
@@ -1021,10 +1023,10 @@ void application::set_program_options(boost::program_options::options_descriptio
   command_line_options.add(_cli_options);
   configuration_file_options.add(_cfg_options);
 }
-void application::initialize_db(const fc::path &data_dir)
+void application::initialize_db(const fc::path &data_dir, const boost::program_options::variables_map &options)
 {
   my->_data_dir = data_dir;
-  my->_chain_db=std::make_shared<chain::database>( my->_data_dir);
+  my->_chain_db=std::make_shared<chain::database>(my->_data_dir, options);
 }
 
 void application::initialize(const boost::program_options::variables_map &options)
