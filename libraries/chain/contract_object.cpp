@@ -246,6 +246,7 @@ vector<char> contract_object::set_result_process_value()
     return this->result.process_value;
 }
 
+
 void contract_object::do_contract_function(account_id_type caller, string function_name, vector<lua_types> value_list,
                                            lua_map &account_data, database &db, const flat_set<public_key_type> &sigkeys,
                                            contract_result &apply_result)
@@ -263,6 +264,70 @@ void contract_object::do_contract_function(account_id_type caller, string functi
             FC_ASSERT(value_list.size()<=20,"value list is greater than 20 limit");
 
             contract_base_info cbi(*this, caller);
+            lua_scheduler &context = db.get_luaVM();
+            register_scheduler scheduler(db, caller, *this, this->mode, result, context, sigkeys, apply_result, account_data);
+            context.new_sandbox(name, baseENV.lua_code_b.data(), baseENV.lua_code_b.size()); //sandbox
+            context.load_script_to_sandbox(name, lua_code_b.data(), lua_code_b.size());
+            context.writeVariable("current_contract", name);
+            register_function(context, &scheduler, &cbi);
+            context.writeVariable(name, "_G", "protected");
+            context.writeVariable(name, "private_data", lua_scheduler::EmptyArray /*,account_data*/);
+            context.writeVariable(name, "public_data", lua_scheduler::EmptyArray /*,contract_data*/);
+            context.writeVariable(name, "read_list", "private_data", lua_scheduler::EmptyArray);
+            context.writeVariable(name, "read_list", "public_data", lua_scheduler::EmptyArray);
+            context.writeVariable(name, "write_list", "private_data", lua_scheduler::EmptyArray);
+            context.writeVariable(name, "write_list", "public_data", lua_scheduler::EmptyArray);
+            context.get_function(name, function_name);
+            push_function_actual_parameters(context.mState, value_list);
+            int err = lua_pcall(context.mState, value_list.size(), 0, 0);
+            lua_types error_message;
+            try
+            {
+                if (err)
+                    error_message = lua_scheduler::readTopAndPop<lua_types>(context.mState, -1);
+            }
+            catch (...)
+            {
+                error_message = lua_string(" Unexpected errors ");
+            }
+            lua_pop(context.mState, -1);
+            context.close_sandbox(name);
+            if (err)
+                FC_THROW("Try the contract resolution execution failure,${message}", ("message", error_message));
+            if (this->result.existed_pv)
+                this->set_result_process_value();
+            for(auto&temp:result.contract_affecteds){
+                if(temp.which()==contract_affected_type::tag<contract_result>::value)
+                    result.relevant_datasize+=temp.get<contract_result>().relevant_datasize;
+            }
+            result.relevant_datasize+=fc::raw::pack_size(contract_data)+fc::raw::pack_size(account_data)+fc::raw::pack_size(result.contract_affecteds);
+        }
+        catch (VMcollapseErrorException e)
+        {
+            db.initialize_luaVM();
+            throw e;
+        }
+    }
+    FC_CAPTURE_AND_RETHROW()
+}
+
+void contract_object::do_contract_function(account_id_type caller, string function_name, vector<lua_types> value_list,
+                                           lua_map &account_data, database &db, const flat_set<public_key_type> &sigkeys,
+                                           contract_result &apply_result,object_id_type contract_id)
+{
+    try
+    {
+        try
+        {
+            auto &baseENV = contract_bin_code_id_type(0)(db);
+            auto abi_itr = contract_ABI.find(lua_types(lua_string(function_name)));
+            FC_ASSERT(abi_itr != contract_ABI.end(), "${function_name} maybe a internal function", ("function_name", function_name));
+            if(!abi_itr->second.get<lua_function>().is_var_arg)
+                FC_ASSERT(value_list.size() == abi_itr->second.get<lua_function>().arglist.size(),
+                      "${function_name}`s parameter list is ${plist}...", ("function_name", function_name)("plist", abi_itr->second.get<lua_function>().arglist));
+            FC_ASSERT(value_list.size()<=20,"value list is greater than 20 limit");
+
+            contract_base_info cbi(*this, caller,contract_id);
             lua_scheduler &context = db.get_luaVM();
             register_scheduler scheduler(db, caller, *this, this->mode, result, context, sigkeys, apply_result, account_data);
             context.new_sandbox(name, baseENV.lua_code_b.data(), baseENV.lua_code_b.size()); //sandbox
