@@ -1033,8 +1033,6 @@ void application::initialize(const boost::program_options::variables_map &option
 {
   my->_options = &options;
 
-  chain_database()->set_option(options);
-
   if (options.count("version"))
   {
     std::cout << "Version: " << graphene::utilities::git_revision_description << "\n";
