@@ -238,13 +238,15 @@ int main(int argc, char** argv)
             data_dir = fc::current_path() / data_dir;
          
       }
-      node->initialize_db(data_dir);
+
       fc::path config_ini_path = data_dir / "config.ini";
       if( !fc::exists(config_ini_path) )
          create_new_config_file( config_ini_path, data_dir, cfg_options );
       load_config_file( config_ini_path, cfg_options, options );
       fc::path log_cfg_ini_path = data_dir / "log_cfg.ini";
       load_log_config_file( log_cfg_ini_path );
+
+      node->initialize_db(data_dir, options);
 
       bpo::notify(options);
       node->initialize(options);

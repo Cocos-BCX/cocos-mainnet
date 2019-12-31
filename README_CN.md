@@ -1,7 +1,7 @@
 Cocos 主网  
 ==============  
 
-点击 [这里](https://github.com/Cocos-BCX/cocos_mainnet/blob/master/README_Chinese.md) 查看英文文档.    
+点击 [这里](https://github.com/Cocos-BCX/cocos-mainnet/blob/develop/README.md) 查看英文文档.    
 
 Cocos-BCX是下一代游戏数字经济平台。该项目旨在为游戏开发人员提供易于使用的，全面的区块链游戏基础设施。为游戏玩家提供透明，公平和开放的游戏环境。底层链系统基于石墨烯，用于优化共识机制和添加智能合约系统。并提供许多游戏功能，例如：随机数，合约会话机制，计时器和心跳。  
 
@@ -34,7 +34,7 @@ make
 rpc-endpoint = 127.0.0.1:8090  
 ```  
 
-*注意*: 请注意，当前（2019-11-19）一个完整的节点将需要超过160GB的RAM才能运行，并且所需的内存正在快速增长。在运行节点之前，请将下表视为最低要求:
+*注意*: 请注意，当前（2019-11-19）一个完整的节点将需要超过16GB的RAM才能运行，并且所需的内存正在快速增长。在运行节点之前，请将下表视为最低要求:
 
 | 默认 | 充分 | 最低要求  | ElasticSearch 
 | --- | --- | --- | ---
@@ -84,7 +84,7 @@ API 0 提供对数据库的只读访问权限, 而API 1用于登录并获得对�
 
 
 # 贡献    
-感谢您考虑提供源代码帮助！我们欢迎互联网上的任何人做出贡献，甚至感谢最小的修复！如果您想为以太坊做贡献，请分叉，修复，提交并发送请求请求，以供维护者审查并合并到主要的代码库.  
+感谢您考虑提供源代码帮助！我们欢迎互联网上的任何人做出贡献，甚至感谢最小的修复！如果您想为cocos-mainnet做贡献，请分叉，修复，提交并发送请求请求，以供维护者审查并合并到主要的代码库.  
 
 # Resources  
 * [Cocos-BCX 浏览器](https://www.cocosabc.com/): We can view the corresponding information on the chain in the blockchain browser.

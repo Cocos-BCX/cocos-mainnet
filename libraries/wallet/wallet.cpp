@@ -1954,16 +1954,19 @@ public:
       }
 
       /************************************************nico add**********************************************************************************/
-      signed_transaction update_collateral_for_gas(account_id_type mortgager, account_id_type beneficiary, share_type collateral, bool broadcast = false)
+      signed_transaction update_collateral_for_gas(const string& mortgager, const string& beneficiary, share_type collateral, bool broadcast = false)
       {
-
             try
             {
                   FC_ASSERT(!self.is_locked());
                   FC_ASSERT(collateral >= 0);
+
+                  account_id_type mortgager_id = get_account_id(mortgager);
+                  account_id_type beneficiary_id = get_account_id(beneficiary);
+
                   update_collateral_for_gas_operation op;
-                  op.mortgager = mortgager;
-                  op.beneficiary = beneficiary;
+                  op.mortgager = mortgager_id;
+                  op.beneficiary = beneficiary_id;
                   op.collateral = collateral;
                   signed_transaction tx;
                   tx.operations.push_back(op);
@@ -3294,6 +3297,37 @@ brain_key_info wallet_api::suggest_brain_key() const
       return result;
 }
 
+address_key_info wallet_api::suggest_brain_address_key() const
+{
+      address_key_info result;
+      // create a private address key for secure entropy
+      fc::sha256 sha_entropy1 = fc::ecc::private_key::generate().get_secret();
+      fc::sha256 sha_entropy2 = fc::ecc::private_key::generate().get_secret();
+      fc::bigint entropy1(sha_entropy1.data(), sha_entropy1.data_size());
+      fc::bigint entropy2(sha_entropy2.data(), sha_entropy2.data_size());
+      fc::bigint entropy(entropy1);
+      entropy <<= 8 * sha_entropy1.data_size();
+      entropy += entropy2;
+      string brain_key = "";
+
+      for (int i = 0; i < BRAIN_KEY_WORD_COUNT; i++)
+      {
+            fc::bigint choice = entropy % graphene::words::word_list_size;
+            entropy /= graphene::words::word_list_size;
+            if (i > 0) 
+                  brain_key += " ";
+            brain_key += graphene::words::word_list[choice.to_int64()];
+      }
+
+      brain_key = normalize_brain_key(brain_key);
+
+      auto address_key = fc::ecc::private_key::regenerate(fc::sha256::hash(brain_key));
+      result.brain_priv_key = brain_key;
+      result.wif_priv_key = utilities::key_to_wif(address_key);
+      result.pub_key = address_key.get_public_key();
+      return result;
+}
+
 vector<brain_key_info> wallet_api::derive_owner_keys_from_brain_key(string brain_key, int number_of_desired_keys) const
 {
       return graphene::wallet::utility::derive_owner_keys_from_brain_key(brain_key, number_of_desired_keys);
@@ -3492,7 +3526,7 @@ pair<tx_hash_type, signed_transaction> wallet_api::revise_contract(string revise
       return std::make_pair(tx.hash(), tx);
 }
 
-pair<tx_hash_type, signed_transaction> wallet_api::update_collateral_for_gas(account_id_type mortgager, account_id_type beneficiary, share_type collateral, bool broadcast)
+pair<tx_hash_type, signed_transaction> wallet_api::update_collateral_for_gas(const string& mortgager, const string& beneficiary, share_type collateral, bool broadcast)
 {
       auto tx = my->update_collateral_for_gas(mortgager, beneficiary, collateral, broadcast);
       return std::make_pair(tx.hash(), tx);

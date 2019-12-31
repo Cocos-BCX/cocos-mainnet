@@ -5,6 +5,9 @@ namespace graphene
 
 namespace chain
 {
+uint64_t contract_private_data_size = 3 * 1024;
+uint64_t contract_total_data_size = 10 * 1024 * 1024;
+uint64_t contract_max_data_size = 2 * 1024 * 1024 * 1024;
 
 void_result contract_create_evaluator::do_evaluate(const operation_type &o)
 {
@@ -156,6 +159,26 @@ contract_result call_contract_function_evaluator::do_apply_function(account_id_t
             op_acd = account_contract_data();   
 
         contract.do_contract_function(caller, function_name, value_list, op_acd->contract_data, _db, sigkeys, *_contract_result,contract_id);
+
+        if (_options->count("contract_private_data_size"))
+        {
+            auto tmp = _options->at("contract_private_data_size").as<uint64_t>();
+            if ( tmp < contract_max_data_size && tmp >= 0 ) 
+            {
+                contract_private_data_size = tmp;
+            }
+        }
+        FC_ASSERT(fc::raw::pack_size(op_acd->contract_data) <= contract_private_data_size, "call_contract_function_evaluator::apply, the contract private data size is too large.");
+
+         if (_options->count("contract_total_data_size"))
+        {
+            auto tmp = _options->at("contract_total_data_size").as<uint64_t>();
+            if ( tmp < contract_max_data_size && tmp >= 0 ) 
+            {
+                contract_total_data_size = tmp;
+            }
+        }
+        FC_ASSERT(fc::raw::pack_size(contract.contract_data) <= contract_total_data_size, "call_contract_function_evaluator::apply, the contract total data size is too large.");
 
         // wdump(("do_contract_function")(fc::time_point::now().time_since_epoch() - start));
         //start = fc::time_point::now().time_since_epoch();
