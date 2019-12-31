@@ -478,6 +478,9 @@ class database : public db::object_database
     vector<unique_ptr<op_evaluator>> _operation_evaluators;
     uint64_t _pending_size=0;
     map<account_id_type,bool> vote_result;
+    
+    vector<std::reference_wrapper<const witness_object>> _witness_refs;
+    vector<std::reference_wrapper<const committee_member_object>> _committee_refs;
     template <typename ObjectType>
     vector<std::reference_wrapper<const ObjectType>> sort_votable_objects(vector<std::reference_wrapper<const ObjectType>> &refs,size_t count) const;
 

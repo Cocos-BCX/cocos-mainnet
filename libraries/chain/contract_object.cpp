@@ -246,9 +246,10 @@ vector<char> contract_object::set_result_process_value()
     return this->result.process_value;
 }
 
-void contract_object::do_contract_function(account_id_type caller, string function_name, vector<lua_types> value_list,
+
+void contract_object::do_actual_contract_function(account_id_type caller, string function_name, vector<lua_types> value_list,
                                            lua_map &account_data, database &db, const flat_set<public_key_type> &sigkeys,
-                                           contract_result &apply_result)
+                                           contract_result &apply_result,contract_id_type contract_id)
 {
     try
     {
@@ -262,7 +263,8 @@ void contract_object::do_contract_function(account_id_type caller, string functi
                       "${function_name}`s parameter list is ${plist}...", ("function_name", function_name)("plist", abi_itr->second.get<lua_function>().arglist));
             FC_ASSERT(value_list.size()<=20,"value list is greater than 20 limit");
 
-            contract_base_info cbi(*this, caller);
+            contract_base_info cbi(*this, caller,contract_id);
+
             lua_scheduler &context = db.get_luaVM();
             register_scheduler scheduler(db, caller, *this, this->mode, result, context, sigkeys, apply_result, account_data);
             context.new_sandbox(name, baseENV.lua_code_b.data(), baseENV.lua_code_b.size()); //sandbox
@@ -308,6 +310,26 @@ void contract_object::do_contract_function(account_id_type caller, string functi
         }
     }
     FC_CAPTURE_AND_RETHROW()
+}
+
+void contract_object::do_contract_function(account_id_type caller, string function_name, vector<lua_types> value_list,
+                                           lua_map &account_data, database &db, const flat_set<public_key_type> &sigkeys,
+                                           contract_result &apply_result)
+{
+    contract_id_type contract_id;
+    do_actual_contract_function(caller,function_name,value_list,
+                                          account_data, db, sigkeys,
+                                          apply_result,contract_id);
+}
+
+void contract_object::do_contract_function(account_id_type caller, string function_name, vector<lua_types> value_list,
+                                           lua_map &account_data, database &db, const flat_set<public_key_type> &sigkeys,
+                                           contract_result &apply_result,contract_id_type contract_id)
+{
+    do_actual_contract_function(caller,function_name,value_list,
+                                          account_data, db, sigkeys,
+                                          apply_result,contract_id);
+   
 }
 void contract_object::push_function_actual_parameters(lua_State *L, vector<lua_types> &value_list)
 {

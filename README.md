@@ -1,5 +1,5 @@
 Cocos mainnet    
-==============  
+
 
 Click [here](https://github.com/Cocos-BCX/cocos_mainnet/blob/develop/README_CN.md) to see the Chinese document.  
 
@@ -9,6 +9,7 @@ Click [here](https://github.com/Cocos-BCX/cocos_mainnet/blob/develop/README_CN.m
 `master` | `develop` 
  --- | ---
  [![](https://travis-ci.org/Cocos-BCX/cocos-mainnet.svg?branch=master)](https://travis-ci.org/Cocos-BCX/cocos-mainnet) | [![](https://travis-ci.org/Cocos-BCX/cocos-mainnet.svg?branch=develop)](https://travis-ci.org/Cocos-BCX/cocos-mainnet) 
+
 
 
 Cocos-BCX is the next generation gaming digital economy platform. The project aims to provide game developers with an easy-to-use, comprehensive blockchain gaming infrastructure. Provide gamers with a transparent, fair and open game environment. The underlying chain system is based on graphene for optimization of consensus mechanisms and the addition of intelligent contract systems. And provide a lot of game features, such as: random number, contract session mechanism, timer and heartbeat.  
