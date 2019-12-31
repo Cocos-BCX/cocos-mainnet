@@ -177,44 +177,52 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
      
       //each unsuccessful candidates should got it's proportion at votes
       map<account_id_type, uint64_t> unsuccessful_candidates_and_votes;
-      uint64_t unsuccessful_candidates_totol_votes = 0;
+      uint64_t unsuccessful_candidates_total_votes = 0;
 
       if (unsuccessful_candidates.size())
       {
             for (auto unsuccessful_candidate : unsuccessful_candidates)
             {
-                  uint64_t unsuccessful_candidate_totol_vote = 0;
+                  uint64_t unsuccessful_candidate_vote = 0;
+
+                  uint64_t unsuccessful_witness_votes = 0;
+                  uint64_t unsuccessful_committee_votes = 0;
+
                   for (auto &_witness : _witness_refs)
                   {
                         if (_witness.get().witness_account == unsuccessful_candidate)
                         {
-                              unsuccessful_candidate_totol_vote = _witness.get().total_votes - get_global_properties().parameters.witness_candidate_freeze.value;
+                              unsuccessful_witness_votes = _witness.get().total_votes - get_global_properties().parameters.witness_candidate_freeze.value;
                         }
                   }
-                  if (unsuccessful_candidate_totol_vote == 0) //mean has not find in _witness_refs,should find in _committee_refs
+                  if (unsuccessful_witness_votes == 0) //mean has not find in _witness_refs,should find in _committee_refs
                   {
                         for (auto &_committee : _committee_refs)
                         {
                               if (_committee.get().committee_member_account == unsuccessful_candidate)
                               {
-                                    unsuccessful_candidate_totol_vote = _committee.get().total_votes - get_global_properties().parameters.committee_candidate_freeze.value;
+                                    unsuccessful_committee_votes = _committee.get().total_votes - get_global_properties().parameters.committee_candidate_freeze.value;
                               }
                         }
                   }
-                  FC_ASSERT(unsuccessful_candidate_totol_vote != 0, "have not find unsuccessful candidates votes");
+                  if(unsuccessful_witness_votes>0)
+                       unsuccessful_candidate_vote = unsuccessful_witness_votes;
+                  else if(unsuccessful_committee_votes>0)
+                       unsuccessful_candidate_vote = unsuccessful_committee_votes;
+               
 
-                  unsuccessful_candidates_totol_votes += unsuccessful_candidate_totol_vote;
+                  FC_ASSERT(unsuccessful_candidate_vote != 0, "have not find unsuccessful candidates votes");
 
-                  unsuccessful_candidates_and_votes.insert(make_pair(unsuccessful_candidate, unsuccessful_candidate_totol_vote));
+                  unsuccessful_candidates_total_votes += unsuccessful_candidate_vote;
+
+                  unsuccessful_candidates_and_votes.insert(make_pair(unsuccessful_candidate, unsuccessful_candidate_vote));
             }
             for (auto &unsuccessful_candidate_and_vote : unsuccessful_candidates_and_votes)
             {
-                  auto share = (double)unsuccessful_candidates_ratio.value * unsuccessful_candidate_and_vote.second / unsuccessful_candidates_totol_votes;
-                  share_type proportion = (double)share;
+                  share_type proportion = (double)unsuccessful_candidates_ratio.value * unsuccessful_candidate_and_vote.second / unsuccessful_candidates_total_votes;
                   adjust_balance(unsuccessful_candidate_and_vote.first, proportion);
                   unsuccessful_candidates_cumulative += proportion;
             }
-            FC_ASSERT(unsuccessful_candidates_cumulative <= unsuccessful_candidates_ratio);
       }
 
       budget = budget - (committee_cumulative + witness_cumulative + unsuccessful_candidates_cumulative);
