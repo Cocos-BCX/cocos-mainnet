@@ -32,6 +32,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <boost/program_options.hpp>
 
 namespace graphene
 {
@@ -40,6 +41,14 @@ namespace chain
 
 database::database(const fc::path& data_dir)
 {
+    _data_dir=data_dir/"blockchain";
+    initialize_indexes();
+    initialize_evaluators();
+}
+
+database::database(const fc::path& data_dir, const boost::program_options::variables_map &options)
+{
+    _options = &options;
     _data_dir=data_dir/"blockchain";
     initialize_indexes();
     initialize_evaluators();

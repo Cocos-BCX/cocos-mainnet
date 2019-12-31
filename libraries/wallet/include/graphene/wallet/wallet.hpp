@@ -65,6 +65,14 @@ struct brain_key_info
     public_key_type pub_key;
 };
 
+
+struct address_key_info
+{
+    string brain_priv_key;
+    string wif_priv_key;
+    address pub_key;
+};
+
 struct key_label
 {
     string label;
@@ -517,6 +525,7 @@ class wallet_api
        */
     brain_key_info suggest_brain_key() const;
 
+    address_key_info suggest_brain_address_key() const;
     /**
       * Derive any number of *possible* owner keys from a given brain key.
       *
@@ -1314,7 +1323,7 @@ class wallet_api
     pair<pair<tx_hash_type, pair<object_id_type, account_transaction_history_id_type>>, processed_transaction> get_account_transaction(const string account_id_or_name, account_transaction_history_id_type transaction_history_id);
     bool set_node_message_send_cache_size(const uint32_t &params);
     bool set_node_deduce_in_verification_mode(const bool &params);
-    pair<tx_hash_type, signed_transaction> update_collateral_for_gas( account_id_type  mortgager,account_id_type  beneficiary,share_type  collateral,bool broadcast=false);
+     pair<tx_hash_type, signed_transaction> update_collateral_for_gas(const string& mortgager, const string& beneficiary, share_type collateral,bool broadcast=false);
     vector<asset_restricted_object> list_asset_restricted_objects(const asset_id_type asset_id, restricted_enum restricted_type) const;
     pair<tx_hash_type, signed_transaction> asset_update_restricted_list(const string &asset_issuer, string  target_asset ,restricted_enum restricted_type,vector<object_id_type> restricted_list,bool isadd, bool broadcast);
     
@@ -1453,6 +1462,9 @@ FC_REFLECT(graphene::wallet::wallet_data,
 FC_REFLECT(graphene::wallet::brain_key_info,
            (brain_priv_key)(wif_priv_key)(address_info)(pub_key))
 
+FC_REFLECT(graphene::wallet::address_key_info,
+           (brain_priv_key)(wif_priv_key)(pub_key))
+
 FC_REFLECT(graphene::wallet::approval_delta,
            (active_approvals_to_add)(active_approvals_to_remove)(owner_approvals_to_add)(owner_approvals_to_remove)(key_approvals_to_add)(key_approvals_to_remove))
 
@@ -1482,7 +1494,7 @@ FC_API(graphene::wallet::wallet_api,
        //gas
        (update_collateral_for_gas)(get_signature_keys)
        /*nico end*/
-       (list_assets)(list_asset_restricted_objects)(asset_update_restricted_list)(import_key)(import_balance)(suggest_brain_key)(derive_owner_keys_from_brain_key)(register_account)(upgrade_account)(create_account_with_brain_key)(sell_asset)(sell)(buy)(borrow_asset)(cancel_order)(transfer)(transfer2)(get_transaction_id)(create_asset)(update_asset)(update_bitasset)(update_asset_feed_producers)(publish_asset_feed)(issue_asset)(get_asset)(get_bitasset_data)(reserve_asset)(global_settle_asset)(settle_asset)(bid_collateral)
+       (list_assets)(list_asset_restricted_objects)(asset_update_restricted_list)(import_key)(import_balance)(suggest_brain_key)(suggest_brain_address_key)(derive_owner_keys_from_brain_key)(register_account)(upgrade_account)(create_account_with_brain_key)(sell_asset)(sell)(buy)(borrow_asset)(cancel_order)(transfer)(transfer2)(get_transaction_id)(create_asset)(update_asset)(update_bitasset)(update_asset_feed_producers)(publish_asset_feed)(issue_asset)(get_asset)(get_bitasset_data)(reserve_asset)(global_settle_asset)(settle_asset)(bid_collateral)
        //(whitelist_account)
        (create_committee_member)(update_committee_member)(get_witness)(get_committee_member)(list_witnesses)(list_committee_members)(create_witness)(update_witness)(get_vesting_balances)(withdraw_vesting)(vote_for_committee_member)(vote_for_witness)(get_account)(get_account_id)(get_block)(get_account_count)(get_account_history)(get_relative_account_history)(get_collateral_bids)(is_public_key_registered)(get_market_history)(get_global_properties)(get_dynamic_global_properties)(get_object)(get_private_key)
        //
