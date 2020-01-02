@@ -160,8 +160,7 @@ contract_result call_contract_function_evaluator::do_apply_function(account_id_t
 
         contract.do_contract_function(caller, function_name, value_list, op_acd->contract_data, _db, sigkeys, *_contract_result,contract_id);
 
-        contract_id_type tmp;
-        if (tmp != contract_id){
+        if (contract_id != contract_id_type()){
             if (_options->count("contract_private_data_size"))
             {
                 auto tmp = _options->at("contract_private_data_size").as<uint64_t>();
