@@ -23,7 +23,6 @@
  */
 #include <graphene/app/application.hpp>
 #include <graphene/app/plugin.hpp>
-
 #include <graphene/utilities/tempdir.hpp>
 
 #include <graphene/account_history/account_history_plugin.hpp>
