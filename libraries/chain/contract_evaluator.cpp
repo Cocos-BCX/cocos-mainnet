@@ -169,7 +169,6 @@ contract_result call_contract_function_evaluator::do_apply_function(account_id_t
                     contract_private_data_size = tmp;
                 }
             }
-            FC_ASSERT(fc::raw::pack_size(op_acd->contract_data) <= contract_private_data_size, "call_contract_function_evaluator::apply, the contract private data size is too large.");
 
             if (_options->count("contract_total_data_size"))
             {
@@ -179,8 +178,9 @@ contract_result call_contract_function_evaluator::do_apply_function(account_id_t
                     contract_total_data_size = tmp;
                 }
             }
-            FC_ASSERT(fc::raw::pack_size(contract.contract_data) <= contract_total_data_size, "call_contract_function_evaluator::apply, the contract total data size is too large.");
         }
+        FC_ASSERT(fc::raw::pack_size(op_acd->contract_data) <= contract_private_data_size, "call_contract_function_evaluator::apply, the contract private data size is too large.");
+        FC_ASSERT(fc::raw::pack_size(contract.contract_data) <= contract_total_data_size, "call_contract_function_evaluator::apply, the contract total data size is too large.");
 
         // wdump(("do_contract_function")(fc::time_point::now().time_since_epoch() - start));
         //start = fc::time_point::now().time_since_epoch();
