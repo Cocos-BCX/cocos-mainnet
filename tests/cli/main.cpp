@@ -37,9 +37,7 @@
 #include <fc/rpc/websocket_api.hpp>
 #include <fc/rpc/cli.hpp>
 #include <fc/crypto/base58.hpp>
-
 #include <fc/crypto/aes.hpp>
-// /#include <fc/include/fc/variant.hpp>
 
 #ifdef _WIN32
    #ifndef _WIN32_WINNT
