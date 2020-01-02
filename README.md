@@ -1,7 +1,7 @@
 Cocos mainnet    
-==============  
 
-Click [here](https://github.com/Cocos-BCX/cocos_mainnet/blob/master/README_CN.md) to see the Chinese document.  
+
+Click [here](https://github.com/Cocos-BCX/cocos_mainnet/blob/develop/README_CN.md) to see the Chinese document.  
 
 
 [Build Status](https://travis-ci.org/Cocos-BCX/cocos-mainnet/branches):
@@ -9,6 +9,7 @@ Click [here](https://github.com/Cocos-BCX/cocos_mainnet/blob/master/README_CN.md
 `master` | `develop` 
  --- | ---
  [![](https://travis-ci.org/Cocos-BCX/cocos-mainnet.svg?branch=master)](https://travis-ci.org/Cocos-BCX/cocos-mainnet) | [![](https://travis-ci.org/Cocos-BCX/cocos-mainnet.svg?branch=develop)](https://travis-ci.org/Cocos-BCX/cocos-mainnet) 
+
 
 
 Cocos-BCX is the next generation gaming digital economy platform. The project aims to provide game developers with an easy-to-use, comprehensive blockchain gaming infrastructure. Provide gamers with a transparent, fair and open game environment. The underlying chain system is based on graphene for optimization of consensus mechanisms and the addition of intelligent contract systems. And provide a lot of game features, such as: random number, contract session mechanism, timer and heartbeat.  
@@ -42,7 +43,7 @@ The node will automatically create a data directory including a config file. It 
 rpc-endpoint = 127.0.0.1:8090  
 ```  
 
-*notice*：Please note that currently(2019-11-19) a full node will need more than 160GB of RAM to operate and required memory is growing fast. Consider the following table as minimal requirements before running a node:
+*notice*：Please note that currently(2019-11-19) a full node will need more than 16GB of RAM to operate and required memory is growing fast. Consider the following table as minimal requirements before running a node:
 
 | Default | Full | Minimal  | ElasticSearch 
 | --- | --- | --- | ---

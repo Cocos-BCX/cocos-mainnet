@@ -110,7 +110,7 @@ void register_scheduler::invoke_contract_function(string contract_id_or_name, st
             _contract_result = contract_result();
         }
         auto current_contract_name = context.readVariable<string>("current_contract");
-        auto ret = evaluator.apply(caller, function_name, value_list, mode, _contract_result, sigkeys);
+        auto ret = evaluator.apply(caller, this->contract.id,function_name, value_list, mode, _contract_result, sigkeys);
         context.writeVariable("current_contract", current_contract_name);
         if (ret.existed_pv)
             result.existed_pv = true;
@@ -306,6 +306,7 @@ void lua_scheduler::chain_function_bind()
     registerMember("caller", &contract_base_info::caller);
     registerMember("creation_date", &contract_base_info::creation_date);
     registerMember("contract_authority", &contract_base_info::contract_authority);
+    registerMember("invoker_contract_id", &contract_base_info::invoker_contract_id);
 
     registerFunction("log", &register_scheduler::log);
     registerFunction("number_max", &register_scheduler::nummax);

@@ -32,6 +32,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <boost/program_options.hpp>
 
 namespace graphene
 {
@@ -40,6 +41,14 @@ namespace chain
 
 database::database(const fc::path& data_dir)
 {
+    _data_dir=data_dir/"blockchain";
+    initialize_indexes();
+    initialize_evaluators();
+}
+
+database::database(const fc::path& data_dir, const boost::program_options::variables_map &options)
+{
+    _options = &options;
     _data_dir=data_dir/"blockchain";
     initialize_indexes();
     initialize_evaluators();
@@ -67,7 +76,6 @@ void database::reindex(fc::path data_dir)
         ilog("reindexing blockchain");
         auto start = fc::time_point::now();
         const auto last_block_num = last_block->block_num();
-        uint32_t flush_point = last_block_num < 10000 ? 0 : last_block_num - 10000;
         uint32_t undo_point = last_block_num < 50 ? 0 : last_block_num - 50;
 
         ilog("Replaying blocks, starting at ${next}...", ("next", head_block_num() + 1));
@@ -161,7 +169,6 @@ void database::reindex(fc::path data_dir,int roll_back_at_height)
         if(roll_back_at_height > 0)
             last_block_num = roll_back_at_height;
             
-        uint32_t flush_point = last_block_num < 10000 ? 0 : last_block_num - 10000;
         uint32_t undo_point = last_block_num < 50 ? 0 : last_block_num - 50;
 
         ilog("Replaying blocks, starting at ${next}...", ("next", head_block_num() + 1));

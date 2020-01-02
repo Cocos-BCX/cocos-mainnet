@@ -51,6 +51,11 @@ class contract_object : public graphene::db::abstract_object<contract_object>
     lua_table do_contract(string lua_code,lua_State *L=nullptr);
     void do_contract_function(account_id_type caller, string function_name, vector<lua_types> value_list,
                               lua_map &account_data, graphene::chain::database &db, const flat_set<public_key_type> &sigkeys, contract_result &apply_result);
+    void do_contract_function(account_id_type caller, string function_name, vector<lua_types> value_list,
+                              lua_map &account_data, graphene::chain::database &db, const flat_set<public_key_type> &sigkeys, contract_result &apply_result,contract_id_type contract_id);
+    void do_actual_contract_function(account_id_type caller, string function_name, vector<lua_types> value_list,
+                              lua_map &account_data, graphene::chain::database &db, const flat_set<public_key_type> &sigkeys, contract_result &apply_result,contract_id_type contract_id);
+   
     void set_mode(transaction_apply_mode tx_mode) { mode = tx_mode; }
     contract_result get_result() { return this->result; }
     struct process_variable &get_process_variable() { return _process_value; }
@@ -98,7 +103,8 @@ struct contract_base_info
     string caller;
     string creation_date;
     string contract_authority;
-    contract_base_info(const contract_object &co, account_id_type caller)
+    string invoker_contract_id;
+    contract_base_info(const contract_object &co, account_id_type caller,object_id_type contract_id)
     {
         this->name = co.name;
         this->id = string(co.id);
@@ -108,6 +114,7 @@ struct contract_base_info
         this->caller = string(temp);
         this->creation_date = string(co.creation_date);
         this->contract_authority = string(co.contract_authority);
+        this->invoker_contract_id = string(contract_id);
     }
 };
 /*

@@ -5,6 +5,9 @@ namespace graphene
 
 namespace chain
 {
+uint64_t contract_private_data_size = 3 * 1024;
+uint64_t contract_total_data_size = 10 * 1024 * 1024;
+uint64_t contract_max_data_size = 2 * 1024 * 1024 * 1024;
 
 void_result contract_create_evaluator::do_evaluate(const operation_type &o)
 {
@@ -129,8 +132,8 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     core_fee_paid += share_type(fc::to_int64(additional_cost));
 }
 
-contract_result call_contract_function_evaluator::apply(account_id_type caller, string function_name,
-                                                        vector<lua_types> value_list, transaction_apply_mode run_mode, optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys)
+contract_result call_contract_function_evaluator::do_apply_function(account_id_type caller, string function_name,vector<lua_types> value_list, transaction_apply_mode run_mode,
+                                                                    optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys,contract_id_type  contract_id)
 {
     try
     {
@@ -153,9 +156,30 @@ contract_result call_contract_function_evaluator::apply(account_id_type caller, 
         if (old_account_contract_data_itr != contract_udata_index.end())
             op_acd = *old_account_contract_data_itr;
         else
-            op_acd = account_contract_data();
-        
-        contract.do_contract_function(caller, function_name, value_list, op_acd->contract_data, _db, sigkeys, *_contract_result);
+            op_acd = account_contract_data();   
+
+        contract.do_contract_function(caller, function_name, value_list, op_acd->contract_data, _db, sigkeys, *_contract_result,contract_id);
+
+        if (_options->count("contract_private_data_size"))
+        {
+            auto tmp = _options->at("contract_private_data_size").as<uint64_t>();
+            if ( tmp < contract_max_data_size && tmp >= 0 ) 
+            {
+                contract_private_data_size = tmp;
+            }
+        }
+        FC_ASSERT(fc::raw::pack_size(op_acd->contract_data) <= contract_private_data_size, "call_contract_function_evaluator::apply, the contract private data size is too large.");
+
+         if (_options->count("contract_total_data_size"))
+        {
+            auto tmp = _options->at("contract_total_data_size").as<uint64_t>();
+            if ( tmp < contract_max_data_size && tmp >= 0 ) 
+            {
+                contract_total_data_size = tmp;
+            }
+        }
+        FC_ASSERT(fc::raw::pack_size(contract.contract_data) <= contract_total_data_size, "call_contract_function_evaluator::apply, the contract total data size is too large.");
+
         // wdump(("do_contract_function")(fc::time_point::now().time_since_epoch() - start));
         //start = fc::time_point::now().time_since_epoch();
         if (old_account_contract_data_itr == contract_udata_index.end())
@@ -176,6 +200,21 @@ contract_result call_contract_function_evaluator::apply(account_id_type caller, 
     }
     FC_CAPTURE_AND_RETHROW()
 }
+
+
+contract_result call_contract_function_evaluator::apply(account_id_type caller, string function_name,
+                                                        vector<lua_types> value_list, transaction_apply_mode run_mode, optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys)
+{
+    contract_id_type  contract_id;
+    return do_apply_function(caller,function_name,value_list,run_mode,_contract_result,sigkeys,contract_id);
+}
+
+contract_result call_contract_function_evaluator::apply(account_id_type caller, contract_id_type  contract_id,string function_name,
+                                                        vector<lua_types> value_list, transaction_apply_mode run_mode, optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys)
+{
+    return do_apply_function(caller,function_name,value_list,run_mode,_contract_result,sigkeys,contract_id);
+}
+
 
 } // namespace chain
 } // namespace graphene

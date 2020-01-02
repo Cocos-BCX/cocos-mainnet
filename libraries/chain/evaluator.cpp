@@ -58,10 +58,11 @@ struct operation_visiter_get_payer
   }
 };
 
-operation_result generic_evaluator::start_evaluate(transaction_evaluation_state &eval_state, const operation &op, bool apply)
+operation_result generic_evaluator::start_evaluate(transaction_evaluation_state &eval_state, const operation &op, bool apply, const boost::program_options::variables_map *options)
 {
   try
   {
+    _options = options;
     trx_state = &eval_state;
     bool _apply_transaction_is_success = false;
     uint16_t maximum_run_time_ratio = db().get_global_properties().parameters.maximum_run_time_ratio;

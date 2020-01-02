@@ -69,7 +69,7 @@ vector<std::reference_wrapper<const ObjectType>> database::sort_votable_objects(
                         [this](const ObjectType &a, const ObjectType &b) -> bool {
                               if (a.total_votes != b.total_votes)
                                     return a.total_votes > b.total_votes;
-                              return a.vote_id< b.vote_id;
+                              return a.vote_id < b.vote_id;
                         });
 
       //refs.resize(count, refs.front());
@@ -83,7 +83,7 @@ void database::perform_account_maintenance(std::tuple<Types...> helpers)
 {
       const auto &idx = get_index_type<account_index>().indices().get<by_name>();
       for (const account_object &a : idx)
-            if(a.options.votes.size())
+            if (a.options.votes.size())
                   detail::for_each(helpers, a, detail::gen_seq<sizeof...(Types)>()); //统计账户的投票
 }
 
@@ -106,30 +106,28 @@ public:
       }
 };
 
-
 void database::pay_workers(share_type &budget)
 {
-      auto index= get_index_type<worker_index>().indices().get<by_completed>().equal_range(false);
+      auto index = get_index_type<worker_index>().indices().get<by_completed>().equal_range(false);
       vector<std::reference_wrapper<const worker_object>> active_worker_refs;
       auto current_settlement_time = head_block_time();
-      for(auto& worker_ob:boost::make_iterator_range(index.first,index.second))
+      for (auto &worker_ob : boost::make_iterator_range(index.first, index.second))
       {
-            if (worker_ob.work_end_date<=current_settlement_time)
+            if (worker_ob.work_end_date <= current_settlement_time)
             {
-                  modify(worker_ob,[](worker_object &o){o.completed=true;}); 
-                  
-                  current_settlement_time=worker_ob.work_end_date;
-            }else if(worker_ob.is_active(current_settlement_time))
-            {
-                  active_worker_refs.emplace_back(std::cref(worker_ob));      
+                  modify(worker_ob, [](worker_object &o) { o.completed = true; });
+
+                  current_settlement_time = worker_ob.work_end_date;
             }
-                  
-                 
+            else if (worker_ob.is_active(current_settlement_time))
+            {
+                  active_worker_refs.emplace_back(std::cref(worker_ob));
+            }
       }
       for (uint32_t i = 0; i < active_worker_refs.size(); ++i)
       {
             const worker_object &active_worker = active_worker_refs[i];
-            if(!active_worker.issuance_or_destroy()&& budget <=share_type(0))
+            if (!active_worker.issuance_or_destroy() && budget <= share_type(0))
                   continue;
             share_type requested_pay = active_worker.daily_pay;
             if (current_settlement_time - get_dynamic_global_properties().last_budget_time != fc::days(1))
@@ -144,7 +142,7 @@ void database::pay_workers(share_type &budget)
             modify(active_worker, [&](worker_object &w) {
                   w.worker.visit(worker_pay_visitor(actual_pay, *this));
             });
-            if(!active_worker.issuance_or_destroy())
+            if (!active_worker.issuance_or_destroy())
                   budget -= actual_pay;
       }
 }
@@ -176,16 +174,58 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
             witness_cumulative += proportion;
       }
       auto &unsuccessful_candidates = get(unsuccessful_candidates_id_type()).unsuccessful_candidates;
+     
+      //each unsuccessful candidates should got it's proportion at votes
+      map<account_id_type, uint64_t> unsuccessful_candidates_and_votes;
+      uint64_t unsuccessful_candidates_total_votes = 0;
+
       if (unsuccessful_candidates.size())
       {
-            share_type proportion = ((double)unsuccessful_candidates_ratio.value) / unsuccessful_candidates.size();
-            unsuccessful_candidates_cumulative = proportion * unsuccessful_candidates.size();
-            FC_ASSERT(unsuccessful_candidates_cumulative<=unsuccessful_candidates_ratio);
-            for (auto &unsuccessful_candidate : unsuccessful_candidates)
-                  adjust_balance(unsuccessful_candidate, proportion);
-      }
-      budget=budget-(committee_cumulative+witness_cumulative+unsuccessful_candidates_cumulative);
+            for (auto unsuccessful_candidate : unsuccessful_candidates)
+            {
+                  uint64_t unsuccessful_candidate_vote = 0;
 
+                  uint64_t unsuccessful_witness_votes = 0;
+                  uint64_t unsuccessful_committee_votes = 0;
+
+                  for (auto &_witness : _witness_refs)
+                  {
+                        if (_witness.get().witness_account == unsuccessful_candidate)
+                        {
+                              unsuccessful_witness_votes = _witness.get().total_votes - get_global_properties().parameters.witness_candidate_freeze.value;
+                        }
+                  }
+                  if (unsuccessful_witness_votes == 0) //mean has not find in _witness_refs,should find in _committee_refs
+                  {
+                        for (auto &_committee : _committee_refs)
+                        {
+                              if (_committee.get().committee_member_account == unsuccessful_candidate)
+                              {
+                                    unsuccessful_committee_votes = _committee.get().total_votes - get_global_properties().parameters.committee_candidate_freeze.value;
+                              }
+                        }
+                  }
+                  if(unsuccessful_witness_votes>0)
+                       unsuccessful_candidate_vote = unsuccessful_witness_votes;
+                  else if(unsuccessful_committee_votes>0)
+                       unsuccessful_candidate_vote = unsuccessful_committee_votes;
+               
+
+                  FC_ASSERT(unsuccessful_candidate_vote != 0, "have not find unsuccessful candidates votes");
+
+                  unsuccessful_candidates_total_votes += unsuccessful_candidate_vote;
+
+                  unsuccessful_candidates_and_votes.insert(make_pair(unsuccessful_candidate, unsuccessful_candidate_vote));
+            }
+            for (auto &unsuccessful_candidate_and_vote : unsuccessful_candidates_and_votes)
+            {
+                  share_type proportion = (double)unsuccessful_candidates_ratio.value * unsuccessful_candidate_and_vote.second / unsuccessful_candidates_total_votes;
+                  adjust_balance(unsuccessful_candidate_and_vote.first, proportion);
+                  unsuccessful_candidates_cumulative += proportion;
+            }
+      }
+
+      budget = budget - (committee_cumulative + witness_cumulative + unsuccessful_candidates_cumulative);
 }
 
 void database::update_active_witnesses() //跟新出块人投票
@@ -194,15 +234,14 @@ void database::update_active_witnesses() //跟新出块人投票
       {
             const global_property_object &gpo = get_global_properties();
             const auto &all_witnesses = get_index_type<witness_index>().indices().get<by_work_status>().equal_range(true);
-            vector<std::reference_wrapper<const witness_object>> refs;
             std::transform(all_witnesses.first, all_witnesses.second,
-                           std::back_inserter(refs),
+                           std::back_inserter(_witness_refs),
                            [](const witness_object &o) { return std::cref(o); });
-            auto wits = sort_votable_objects<witness_object>(refs, gpo.parameters.witness_number_of_election);
-            if(wits.size()/2==0)wits.pop_back();
-            flat_set<account_id_type> unsuccessful_candidates_temp;
+            auto wits = sort_votable_objects<witness_object>(_witness_refs, gpo.parameters.witness_number_of_election);
+            if (wits.size() / 2 == 0)
+                  wits.pop_back();
             uint index = 0;
-            for (const witness_object &wit : refs)
+            for (const witness_object &wit : _witness_refs)
             {
                   if (wits.size() < ++index)
                   {
@@ -247,15 +286,14 @@ void database::update_active_committee_members()
       {
             const global_property_object &gpo = get_global_properties();
             const auto &all_committee = get_index_type<committee_member_index>().indices().get<by_work_status>().equal_range(true);
-            vector<std::reference_wrapper<const committee_member_object>> refs;
             std::transform(all_committee.first, all_committee.second,
-                           std::back_inserter(refs),
+                           std::back_inserter(_committee_refs),
                            [](const committee_member_object &o) { return std::cref(o); });
-            auto committee_members = sort_votable_objects<committee_member_object>(refs,(size_t)gpo.parameters.committee_number_of_election);
-            flat_set<account_id_type> unsuccessful_candidates_temp;
-            if(committee_members.size()/2==0)committee_members.pop_back();
+            auto committee_members = sort_votable_objects<committee_member_object>(_committee_refs, (size_t)gpo.parameters.committee_number_of_election);
+            if (committee_members.size() / 2 == 0)
+                  committee_members.pop_back();
             uint index = 0;
-            for (const committee_member_object &del : refs)
+            for (const committee_member_object &del : _committee_refs)
             {
                   if (committee_members.size() < ++index)
                   {
@@ -276,7 +314,7 @@ void database::update_active_committee_members()
                         {
                               vote_counter vc; // 更新理事会公共账户权限
                               for (const committee_member_object &cm : committee_members)
-                                    vc.add(cm.committee_member_account,1);
+                                    vc.add(cm.committee_member_account, 1);
                               vc.finish(a.active);
                         }
                   });
@@ -284,7 +322,7 @@ void database::update_active_committee_members()
                         {
                               vote_counter vc; // 更新理事会公共账户权限
                               for (const committee_member_object &cm : committee_members)
-                                    vc.add(cm.committee_member_account,cm.total_votes);
+                                    vc.add(cm.committee_member_account, cm.total_votes);
                               vc.finish(a.active);
                         }
                   });
@@ -311,7 +349,7 @@ void database::initialize_budget_record(fc::time_point_sec now, budget_record &r
 
       if ((dpo.last_budget_time == fc::time_point_sec()) || (now <= dpo.last_budget_time))
       {
-            rec.total_budget=rec.from_initial_reserve + core_dd.accumulated_fees;
+            rec.total_budget = rec.from_initial_reserve + core_dd.accumulated_fees;
             rec.time_since_last_budget = 0;
             return;
       }
@@ -400,35 +438,34 @@ void database::process_budget(const global_property_object old_gpo)
                   worker_budget = worker_budget_u128.to_uint64();
             rec.worker_budget = worker_budget;
             available_funds -= worker_budget;
-            share_type leftover_worker_funds=0;
-            share_type leftover_candidates_budget=0;
-            rec.candidates_budget=std::min(gpo.parameters.candidate_award_budget, available_funds);
-            auto next_budget_record_id=get_index(implementation_ids,impl_budget_record_object_type).get_next_id();
+            share_type leftover_worker_funds = 0;
+            share_type leftover_candidates_budget = 0;
+            rec.candidates_budget = std::min(gpo.parameters.candidate_award_budget, available_funds);
+            auto next_budget_record_id = get_index(implementation_ids, impl_budget_record_object_type).get_next_id();
             optional<budget_record> last_rec;
-            if(next_budget_record_id.instance()>=1)
+            if (next_budget_record_id.instance() >= 1)
             {
-                  last_rec=get( budget_record_id_type(next_budget_record_id.instance()-1)).record;
-                  leftover_worker_funds= last_rec->worker_budget;
-                  pay_workers(leftover_worker_funds); 
-                  leftover_candidates_budget=last_rec->candidates_budget;
-                  pay_candidates(leftover_candidates_budget,old_gpo.parameters.committee_percent_of_candidate_award,old_gpo.parameters.unsuccessful_candidates_percent);
-                 
+                  last_rec = get(budget_record_id_type(next_budget_record_id.instance() - 1)).record;
+                  leftover_worker_funds = last_rec->worker_budget;
+                  pay_workers(leftover_worker_funds);
+                  leftover_candidates_budget = last_rec->candidates_budget;
+                  pay_candidates(leftover_candidates_budget, old_gpo.parameters.committee_percent_of_candidate_award, old_gpo.parameters.unsuccessful_candidates_percent);
             }
-            rec.leftover_candidates_budget=leftover_candidates_budget;
+            rec.leftover_candidates_budget = leftover_candidates_budget;
             rec.leftover_worker_funds = leftover_worker_funds;
-            available_funds += leftover_worker_funds+leftover_candidates_budget;
+            available_funds += leftover_worker_funds + leftover_candidates_budget;
 
             //nico ::supply_delta：当前市场流动资金增量
-            rec.supply_delta = (rec.witness_budget + rec.worker_budget+rec.candidates_budget /*nico ::新增流出预算*/) -
-                               (rec.leftover_worker_funds + rec.from_accumulated_fees + rec.from_unused_witness_budget+ rec.leftover_candidates_budget/*nico ::上期预算剩余部分以及手续费，回流资金池*/);
+            rec.supply_delta = (rec.witness_budget + rec.worker_budget + rec.candidates_budget /*nico ::新增流出预算*/) -
+                               (rec.leftover_worker_funds + rec.from_accumulated_fees + rec.from_unused_witness_budget + rec.leftover_candidates_budget /*nico ::上期预算剩余部分以及手续费，回流资金池*/);
 
             modify(core, [&](asset_dynamic_data_object &_core) {
                   _core.current_supply = (_core.current_supply + rec.supply_delta);
 
                   assert(rec.supply_delta ==
-                         witness_budget + worker_budget +rec.candidates_budget- 
-                         leftover_worker_funds -
-                          _core.accumulated_fees - dpo.witness_budget-rec.leftover_candidates_budget);
+                         witness_budget + worker_budget + rec.candidates_budget -
+                             leftover_worker_funds -
+                             _core.accumulated_fees - dpo.witness_budget - rec.leftover_candidates_budget);
                   _core.accumulated_fees = 0;
             });
 
@@ -609,7 +646,7 @@ void database::perform_chain_maintenance(const signed_block &next_block, const g
                         unsuccessful_candidates.unsuccessful_candidates.insert(candidate.first);
             vote_result.clear();
       });
-      auto old_gpo=gpo;
+      auto old_gpo = gpo;
       modify(gpo, [this](global_property_object &p) {
             // Remove scaling of account registration fee
             const auto &dgpo = get_dynamic_global_properties();
@@ -672,6 +709,9 @@ void database::perform_chain_maintenance(const signed_block &next_block, const g
       // process_budget needs to run at the bottom because
       //  it needs to know the next_maintenance_time
       process_budget(old_gpo);
+      //clear vector
+      _witness_refs.clear();
+      _committee_refs.clear();
 }
 
 } // namespace chain

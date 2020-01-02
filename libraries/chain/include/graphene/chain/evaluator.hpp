@@ -26,6 +26,7 @@
 #include <graphene/chain/transaction_evaluation_state.hpp>
 #include <graphene/chain/protocol/operations.hpp>
 #include <fc/smart_ref_impl.hpp>
+#include <boost/program_options.hpp>
 
 namespace graphene
 {
@@ -62,7 +63,7 @@ class generic_evaluator
     void pay_fee_for_result(operation_result &result)
     {
     }
-    virtual operation_result start_evaluate(transaction_evaluation_state &eval_state, const operation &op, bool apply);
+    virtual operation_result start_evaluate(transaction_evaluation_state &eval_state, const operation &op, bool apply, const boost::program_options::variables_map *options);
 
     /**
        * @note derived classes should ASSUME that the default validation that is
@@ -91,6 +92,7 @@ class generic_evaluator
     operation_result result;
     operation_fee_visitor fee_visitor;
 
+    const boost::program_options::variables_map *_options = nullptr;
     //void check_required_authorities(const operation& op);
   protected:
     /**
@@ -134,10 +136,13 @@ template <typename T>
 class op_evaluator_impl : public op_evaluator
 {
   public:
+    const boost::program_options::variables_map *_options = nullptr;                                                 
+    op_evaluator_impl(const boost::program_options::variables_map *options):_options(options){}
+
     virtual operation_result evaluate(transaction_evaluation_state &eval_state, const operation &op, bool apply = true) override
     {
         T eval;
-        return eval.start_evaluate(eval_state, op, apply); //  ing
+        return eval.start_evaluate(eval_state, op, apply, _options); //  ing
     }
 };
 
