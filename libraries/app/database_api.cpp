@@ -122,6 +122,7 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
     // Keys
     vector<vector<account_id_type>> get_key_references(vector<public_key_type> key) const;
     bool is_public_key_registered(string public_key) const;
+    bool is_nh_asset_creator(account_id_type query_account);
 
     // Accounts
     vector<optional<account_object>> get_accounts(const vector<account_id_type> &account_ids) const;
@@ -667,7 +668,28 @@ bool database_api::is_public_key_registered(string public_key) const
 {
     return my->is_public_key_registered(public_key);
 }
+bool database_api::is_nh_asset_creator(account_id_type query_account)
+{
+    return my->is_nh_asset_creator(query_account);
+}
 
+bool database_api_impl::is_nh_asset_creator(account_id_type query_account)
+{
+    bool ret = false;
+    try 
+    {             
+	    auto& nh_asset_creator_idx = _db.get_index_type<nh_asset_creator_index>().indices().get<by_nh_asset_creator>();
+
+	    if(nh_asset_creator_idx.find(query_account) != nh_asset_creator_idx.end())
+        {
+            ret = true;
+        }
+    }catch (...)
+    {
+        return ret;
+    }
+    return ret;
+} 
 bool database_api_impl::is_public_key_registered(string public_key) const
 {
     // Short-circuit

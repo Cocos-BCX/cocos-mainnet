@@ -252,6 +252,7 @@ class database_api
       * @return Whether a public key is known
       */
       bool is_public_key_registered(string public_key) const;
+      bool is_nh_asset_creator(account_id_type query_account);
 
       //////////////
       // Accounts //
@@ -278,7 +279,6 @@ class database_api
        *
        */
       std::map<string, full_account> get_full_accounts(const vector<string> &names_or_ids, bool subscribe);
-
       optional<account_object> get_account_by_name(string name) const;
 
       /**
@@ -681,7 +681,7 @@ FC_API(graphene::app::database_api,
        (get_chain_properties)(get_global_properties)(get_config)(get_chain_id)(get_dynamic_global_properties)
 
        // Keys
-       (get_key_references)(is_public_key_registered)(get_signature_keys)
+       (get_key_references)(is_public_key_registered)(get_signature_keys)(is_nh_asset_creator)
 
        // Accounts
        (get_accounts)(get_full_accounts)(get_account_by_name)(get_account_references)(lookup_account_names)(lookup_accounts)(get_account_count)
