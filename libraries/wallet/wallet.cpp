@@ -4123,6 +4123,8 @@ string wallet_api::help() const
 {
       std::vector<std::string> method_names = my->method_documentation.get_method_names();
       std::stringstream ss;
+	  
+      ss << "All available commands:\n";
       for (const std::string method_name : method_names)
       {
             try
@@ -4134,6 +4136,8 @@ string wallet_api::help() const
                   ss << method_name << " (no help available)\n";
             }
       }
+      ss << " (You can use `gethelp command` for single command usage)\n";
+	  
       return ss.str();
 }
 
