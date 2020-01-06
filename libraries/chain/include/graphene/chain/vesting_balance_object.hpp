@@ -32,7 +32,7 @@
 
 #include <algorithm>
 
-
+#include <boost/multi_index/composite_key.hpp>
 
 namespace graphene { namespace chain {
    using namespace graphene::db;
@@ -162,7 +162,9 @@ namespace graphene { namespace chain {
           */
          void withdraw(const fc::time_point_sec& now, const asset& amount);
          bool is_withdraw_allowed(const fc::time_point_sec& now, const asset& amount)const;
+         bool fully_withdraw;
 
+         fc::time_point_sec create_time;
          /**
           * Get amount of allowed withdrawal.
           */
@@ -172,12 +174,20 @@ namespace graphene { namespace chain {
     * @ingroup object_index
     */
    struct by_account;
+   struct by_fully_withdraw{};
+   struct by_create_time{};
    typedef multi_index_container<
       vesting_balance_object,
       indexed_by<
          ordered_unique< tag<by_id>, member< object, object_id_type, &object::id > >,
          ordered_non_unique< tag<by_account>,
             member<vesting_balance_object, account_id_type, &vesting_balance_object::owner>
+         >,
+         ordered_non_unique< tag<by_fully_withdraw>,
+         member<vesting_balance_object, bool, &vesting_balance_object::fully_withdraw>
+         >,
+         ordered_non_unique< tag<by_create_time>,
+         member<vesting_balance_object, fc::time_point_sec, &vesting_balance_object::create_time>
          >
       >
    > vesting_balance_multi_index_type;
@@ -185,7 +195,7 @@ namespace graphene { namespace chain {
     * @ingroup object_index
     */
    typedef generic_index<vesting_balance_object, vesting_balance_multi_index_type> vesting_balance_index;
-
+   
 } } // graphene::chain
 
 FC_REFLECT(graphene::chain::linear_vesting_policy,
