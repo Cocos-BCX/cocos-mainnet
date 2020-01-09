@@ -73,6 +73,7 @@ bool database::_validate_block(signed_block &new_block, const fc::ecc::private_k
             if (maint_needed)
                 perform_chain_maintenance(new_block, global_props);
 
+            auto_gas();
             create_block_summary(new_block);
             clear_expired_transactions();
             clear_expired_nh_asset_orders();

@@ -1028,41 +1028,6 @@ void application::initialize_db(const fc::path &data_dir, const boost::program_o
   my->_data_dir = data_dir;
   my->_chain_db=std::make_shared<chain::database>(my->_data_dir, options);
 }
-void application::auto_gas_thread()
-{
-  boost::thread auto_gas([&](){ 
-      while(1){
-      if(my->_chain_db->head_block_num()%100==0)
-      {
-        //update fully_withdraw in all vesting_object
-
-        auto now = my->_chain_db->get_dynamic_global_properties().time;
-        //now-24
-        auto upper_time = now - my->_chain_db->get_global_properties().parameters.cashback_gas_period_seconds;
-        auto upper = my->_chain_db->get_index_type<vesting_balance_index>().indices().get<by_create_time>().upper_bound(upper_time);
-       
-        auto lower_time = now - my->_chain_db->get_global_properties().parameters.cashback_gas_period_seconds*2;
-        //now-48 
-        auto lower = my->_chain_db->get_index_type<vesting_balance_index>().indices().get<by_create_time>().lower_bound(lower_time);
-        
-        for(auto iter = lower;iter != upper;iter++)
-        {
-            auto elapse_seconds = now.sec_since_epoch() - iter->create_time.sec_since_epoch();
-            FC_ASSERT( elapse_seconds >= my->_chain_db->get_global_properties().parameters.cashback_gas_period_seconds,"time is not meet fully withdraw condition");
-            my->_chain_db->adjust_balance(iter->id,iter->balance);
-        }
-        //update account balance if 
-      /* auto vesting_ranges = my->_chain_db->get_index_type<vesting_balance_index>().indices().get<by_fully_withdraw>().equal_range(true);      
-      vector<vesting_balance_object> result;
-      std::for_each(vesting_ranges.first, vesting_ranges.second,
-                      [&result](const vesting_balance_object &balance) {
-                          result.emplace_back(balance);
-                      });*/
-      }
-      }
-  });
-}
-
 
 void application::initialize(const boost::program_options::variables_map &options)
 {
@@ -1134,9 +1099,6 @@ void application::initialize(const boost::program_options::variables_map &option
     }
     if (!it.empty())
       enable_plugin(it); // enable log plugin
-
-    //add gas withdraw thread
-    auto_gas_thread();
   }
 }
 
