@@ -646,13 +646,19 @@ void database::auto_gas()
        
         auto lower_time = now - get_global_properties().parameters.cashback_gas_period_seconds;
         //now-24
+        
         auto lower = get_index_type<vesting_balance_index>().indices().get<by_create_time>().lower_bound(lower_time);
         
         for(auto iter = lower;iter != upper;iter++)
         {
-            auto elapse_seconds = now.sec_since_epoch() - iter->create_time.sec_since_epoch();
-            FC_ASSERT( elapse_seconds >= get_global_properties().parameters.cashback_gas_period_seconds,"time is not meet fully withdraw condition");
-            adjust_balance(iter->id,iter->balance);
+            auto withdraw_balances = iter->get_allowed_withdraw(now);
+/*should withdraw 
+            d.modify( vbo, [&]( vesting_balance_object& vbo )
+           {
+              vbo.withdraw( now, op.amount );
+           } );
+  */         
+            adjust_balance(iter->owner,withdraw_balances);
         }
       }
 }
