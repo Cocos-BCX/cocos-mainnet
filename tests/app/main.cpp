@@ -67,7 +67,8 @@ BOOST_AUTO_TEST_CASE( two_node_network )
       cfg.emplace("p2p-endpoint", boost::program_options::variable_value(string("127.0.0.1:3939"), false));
       cfg.emplace("genesis-json", boost::program_options::variable_value(create_genesis_file(app_dir), false));
       cfg.emplace("seed-nodes", boost::program_options::variable_value(string("[]"), false));
-      app1.initialize(app_dir.path(), cfg);
+      // app1.initialize(app_dir.path(), cfg);
+      app1.initialize(cfg);
 
       BOOST_TEST_MESSAGE("Starting app1 and waiting 500 ms");
       app1.startup();
@@ -90,7 +91,8 @@ BOOST_AUTO_TEST_CASE( two_node_network )
       cfg2.emplace("genesis-json", boost::program_options::variable_value(create_genesis_file(app_dir), false));
       cfg2.emplace("seed-node", boost::program_options::variable_value(vector<string>{"127.0.0.1:3939"}, false));
       cfg2.emplace("seed-nodes", boost::program_options::variable_value(string("[]"), false));
-      app2.initialize(app2_dir.path(), cfg2);
+      // app2.initialize(app2_dir.path(), cfg2);
+      app2.initialize(cfg2);
 
       BOOST_TEST_MESSAGE("Starting app2 and waiting 500 ms");
       app2.startup();
@@ -119,14 +121,14 @@ BOOST_AUTO_TEST_CASE( two_node_network )
          claim_op.balance_owner_key = nico_key.get_public_key();
          claim_op.total_claimed = bid(*db1).balance;
          trx.operations.push_back( claim_op );
-         db1->current_fee_schedule().set_fee( trx.operations.back() );
+         // db1->current_fee_schedule().set_fee( trx.operations.back() );
 
          transfer_operation xfer_op;
          xfer_op.from = nico_id;
          xfer_op.to = GRAPHENE_NULL_ACCOUNT;
          xfer_op.amount = asset( 1000000 );
          trx.operations.push_back( xfer_op );
-         db1->current_fee_schedule().set_fee( trx.operations.back() );
+         // db1->current_fee_schedule().set_fee( trx.operations.back() );
 
          trx.set_expiration( db1->get_slot_time( 10 ) );
          trx.sign( nico_key, db1->get_chain_id() );
