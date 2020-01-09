@@ -58,7 +58,7 @@ using std::cout;
 using std::cerr;
 
 database_fixture::database_fixture()
-   : app(), db( *app.chain_database() )
+   : app()
 {
    try 
    {
@@ -101,10 +101,15 @@ database_fixture::database_fixture()
       }
       genesis_state.initial_parameters.current_fees->zero_all_fees();
       wlog("open_database before");
-      open_database();
 
       wlog("4. database_fixture app.initialize");
-      // app.initialize();
+      data_dir = fc::temp_directory( graphene::utilities::temp_directory_path() );
+      ilog("data_dir: " + data_dir->path().string());
+      app.initialize_db(data_dir->path(), options);
+      db = *app.chain_database();
+      open_database();
+
+      app.initialize();
       ahplugin->plugin_set_app(&app);
       ahplugin->plugin_initialize(options);
 
@@ -324,10 +329,8 @@ void database_fixture::open_database()
    if( !data_dir ) {
       data_dir = fc::temp_directory( graphene::utilities::temp_directory_path() );
       wlog("database_fixture::open_database data_dir");
-      db.open(data_dir->path(), 
-             [this]{ return genesis_state; }, 
-             "test");
    }
+   db.open(data_dir->path(), [this]{ return genesis_state; }, "test");
    wlog("database_fixture::open_database end");
 }
 
