@@ -138,6 +138,7 @@ namespace graphene { namespace chain {
          /// Total amount remaining in this vesting balance
          /// Includes the unvested funds, and the vested funds which have not yet been withdrawn
          asset balance;
+         fc::time_point_sec create_time;
          /// The vesting policy stores details on when funds vest, and controls when they may be withdrawn
          vesting_policy policy;
          fc::optional<string> describe;
@@ -162,9 +163,7 @@ namespace graphene { namespace chain {
           */
          void withdraw(const fc::time_point_sec& now, const asset& amount);
          bool is_withdraw_allowed(const fc::time_point_sec& now, const asset& amount)const;
-         bool fully_withdraw;
 
-         fc::time_point_sec create_time;
          /**
           * Get amount of allowed withdrawal.
           */
@@ -174,7 +173,6 @@ namespace graphene { namespace chain {
     * @ingroup object_index
     */
    struct by_account;
-   struct by_fully_withdraw{};
    struct by_create_time{};
    typedef multi_index_container<
       vesting_balance_object,
@@ -182,9 +180,6 @@ namespace graphene { namespace chain {
          ordered_unique< tag<by_id>, member< object, object_id_type, &object::id > >,
          ordered_non_unique< tag<by_account>,
             member<vesting_balance_object, account_id_type, &vesting_balance_object::owner>
-         >,
-         ordered_non_unique< tag<by_fully_withdraw>,
-         member<vesting_balance_object, bool, &vesting_balance_object::fully_withdraw>
          >,
          ordered_non_unique< tag<by_create_time>,
          member<vesting_balance_object, fc::time_point_sec, &vesting_balance_object::create_time>

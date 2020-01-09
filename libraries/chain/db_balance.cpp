@@ -158,6 +158,7 @@ optional<vesting_balance_id_type> database::deposit_lazy_vesting(
     const vesting_balance_object &vbo = create<vesting_balance_object>([&](vesting_balance_object &_vbo) {
         _vbo.owner = req_owner;
         _vbo.balance = amount;
+        _vbo.create_time = now;
 
         cdd_vesting_policy policy;
         policy.vesting_seconds = req_vesting_seconds;
