@@ -651,28 +651,9 @@ void database::auto_gas()
         
         std::for_each(lower, upper,
             [&](const vesting_balance_object &balance) {
-                  auto tmp = balance.get_allowed_withdraw(now);
-                  if(tmp.amount.value>0)
-                  {
                       adjust_balance(balance.owner,balance.get_allowed_withdraw(now));
                       const_cast<vesting_balance_object &>(balance).withdraw( now, balance.get_allowed_withdraw(now));
-                  }
-                  else
-                  {
-                     auto create_time = balance.create_time;
-                     auto tmp = create_time.sec_since_epoch();
-                     tmp ++;
-                  }
         });
-
-        /* for(auto iter = lower;iter != upper;iter++)
-        {
-            auto withdraw_balances = iter->get_allowed_withdraw(now);
-           
-            const_cast<vesting_balance_object*>(lower)->withdraw( now, withdraw_balances );
-           
-            adjust_balance(iter->owner,withdraw_balances);
-        }*/
       }
 }
 
