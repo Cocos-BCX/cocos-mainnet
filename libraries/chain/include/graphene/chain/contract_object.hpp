@@ -34,6 +34,7 @@ class contract_object : public graphene::db::abstract_object<contract_object>
     time_point_sec creation_date;
     account_id_type owner;
     string name;
+    uint32_t user_invoke_share_percent;
     bool is_release=false;
     tx_hash_type current_version;
     bool check_contract_authority = false;

@@ -1976,7 +1976,7 @@ public:
             FC_CAPTURE_AND_RETHROW((mortgager)(beneficiary)(collateral)(broadcast))
       }
 
-      signed_transaction create_contract(string owner, string name, public_key_type contract_authority, string data, bool broadcast = false) // wallet 合约 API
+      signed_transaction create_contract(string owner, string name, public_key_type contract_authority, string data, uint32_t user_invoke_share_percent,bool broadcast = false) // wallet 合约 API
       {
             try
             {
@@ -1991,6 +1991,7 @@ public:
                   op.owner = owner_id;
                   op.data = data;
                   op.contract_authority = contract_authority;
+                  op.user_invoke_share_percent = user_invoke_share_percent;
 
                   signed_transaction tx;
                   tx.operations.push_back(op);
@@ -3515,7 +3516,7 @@ chain_property_object wallet_api::get_chain_properties()
 {
       return my->_remote_db->get_chain_properties();
 }
-pair<tx_hash_type, signed_transaction> wallet_api::create_contract(string owner, string name, public_key_type contract_authority, string data, bool broadcast /* = false */)
+pair<tx_hash_type, signed_transaction> wallet_api::create_contract(string owner, string name, public_key_type contract_authority, string data, uint32_t user_invoke_share_percent,bool broadcast /* = false */)
 {
       auto tx = my->create_contract(owner, name, contract_authority, data, broadcast);
       return std::make_pair(tx.hash(), tx);

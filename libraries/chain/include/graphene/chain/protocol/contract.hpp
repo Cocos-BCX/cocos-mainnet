@@ -14,6 +14,7 @@ namespace graphene { namespace chain {
       account_id_type  owner;      // 合约创建者
       string           name;       // 合约名字
       string           data;       // 合约内容
+      uint32_t         user_invoke_share_percent; //合约调用者消耗费用的占比
       public_key_type  contract_authority;//合约权限
       extensions_type  extensions;
       account_id_type fee_payer()const { return owner; }
