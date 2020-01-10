@@ -644,7 +644,8 @@ void database::auto_gas()
         auto upper_time = now;
         auto upper = get_index_type<vesting_balance_index>().indices().get<by_create_time>().upper_bound(upper_time);
        
-        auto lower_time = now - get_global_properties().parameters.cashback_gas_period_seconds;
+        //auto lower_time = now - get_global_properties().parameters.cashback_gas_period_seconds;
+        auto lower_time = now - 1200;
         //now-24
         
         auto lower = get_index_type<vesting_balance_index>().indices().get<by_create_time>().lower_bound(lower_time);

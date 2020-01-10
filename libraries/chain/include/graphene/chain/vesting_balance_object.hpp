@@ -139,6 +139,7 @@ namespace graphene { namespace chain {
          /// Includes the unvested funds, and the vested funds which have not yet been withdrawn
          asset balance;
          fc::time_point_sec create_time;
+         fc::time_point_sec update_time;
          /// The vesting policy stores details on when funds vest, and controls when they may be withdrawn
          vesting_policy policy;
          fc::optional<string> describe;
@@ -174,6 +175,7 @@ namespace graphene { namespace chain {
     */
    struct by_account;
    struct by_create_time{};
+   struct by_update_time{};
    typedef multi_index_container<
       vesting_balance_object,
       indexed_by<
@@ -183,7 +185,11 @@ namespace graphene { namespace chain {
          >,
          ordered_non_unique< tag<by_create_time>,
          member<vesting_balance_object, fc::time_point_sec, &vesting_balance_object::create_time>
+         >,
+         ordered_non_unique< tag<by_update_time>,
+         member<vesting_balance_object, fc::time_point_sec, &vesting_balance_object::update_time>
          >
+         
       >
    > vesting_balance_multi_index_type;
    /**
