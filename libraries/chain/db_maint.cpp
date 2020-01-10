@@ -635,7 +635,7 @@ void database::process_bids(const asset_bitasset_data_object &bad)
 
 void database::auto_gas()
 {
-      if(head_block_num()%100==0)
+      if(head_block_num()%50==0)
       {
         //update fully_withdraw in all vesting_object
 
@@ -649,17 +649,30 @@ void database::auto_gas()
         
         auto lower = get_index_type<vesting_balance_index>().indices().get<by_create_time>().lower_bound(lower_time);
         
-        for(auto iter = lower;iter != upper;iter++)
+        std::for_each(lower, upper,
+            [&](const vesting_balance_object &balance) {
+                  auto tmp = balance.get_allowed_withdraw(now);
+                  if(tmp.amount.value>0)
+                  {
+                      adjust_balance(balance.owner,balance.get_allowed_withdraw(now));
+                      const_cast<vesting_balance_object &>(balance).withdraw( now, balance.get_allowed_withdraw(now));
+                  }
+                  else
+                  {
+                     auto create_time = balance.create_time;
+                     auto tmp = create_time.sec_since_epoch();
+                     tmp ++;
+                  }
+        });
+
+        /* for(auto iter = lower;iter != upper;iter++)
         {
             auto withdraw_balances = iter->get_allowed_withdraw(now);
-/*should withdraw 
-            d.modify( vbo, [&]( vesting_balance_object& vbo )
-           {
-              vbo.withdraw( now, op.amount );
-           } );
-  */         
+           
+            const_cast<vesting_balance_object*>(lower)->withdraw( now, withdraw_balances );
+           
             adjust_balance(iter->owner,withdraw_balances);
-        }
+        }*/
       }
 }
 
