@@ -131,6 +131,21 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     temp += op->calculate_run_time_fee(*result.real_running_time, op_fee.price_per_millisecond);
     auto additional_cost = fc::uint128(temp.value) * fee_schedule_ob.scale / GRAPHENE_100_PERCENT;
     core_fee_paid += share_type(fc::to_int64(additional_cost));
+
+    contract_id_type db_index = result.contract_id;
+    auto &contract_obj = db_index(db);
+    
+    auto user_invoke_share_fee =  core_fee_paid* contract_obj.user_invoke_share_percent/100;
+    user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
+    core_fee_paid = user_invoke_share_fee;
+}
+
+void call_contract_function_evaluator::contract_creator_pay_fee(contract_result &result)
+{
+    contract_id_type db_index = result.contract_id;
+    auto &contract_obj = db_index(db);
+
+    this->db_adjust_balance(contract_obj.owner,user_invoke_creator_fee);
 }
 
 contract_result call_contract_function_evaluator::do_apply_function(account_id_type caller, string function_name,vector<lua_types> value_list, transaction_apply_mode run_mode,
