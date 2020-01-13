@@ -1910,6 +1910,7 @@ public:
       }
 
       signed_transaction transfer(string from, string to, string amount,
+
                                   string asset_symbol, pair<string, bool> memo, bool broadcast = false)
       {
             try
@@ -1917,7 +1918,6 @@ public:
                   FC_ASSERT(!self.is_locked());
                   fc::optional<asset_object> asset_obj = get_asset(asset_symbol);
                   FC_ASSERT(asset_obj, "Could not find asset matching ${asset}", ("asset", asset_symbol));
-
                   account_object from_account = get_account(from);
                   account_object to_account = get_account(to);
                   account_id_type from_id = from_account.id;
@@ -1946,23 +1946,40 @@ public:
 
                   signed_transaction tx;
 
-                  fc::optional<vesting_balance_id_type> vbid = maybe_id<vesting_balance_id_type>(from);
+                  
+                  fc::optional<account_id_type> acct_id = maybe_id<account_id_type>(from);
+                  if (!acct_id)
+                        acct_id = get_account(from).id;
+
+                  vector<vesting_balance_object> vbos = _remote_db->get_vesting_balances(*acct_id);
+
+                  fc::optional<vesting_balance_id_type> vbid = maybe_id<vesting_balance_id_type>(string(vbos.begin()->id));
                   if(vbid)
-                  {
-                  //auto vesting_range = _db.get_index_type<vesting_balance_index>().indices().get<by_account>().equal_range(account->id);
+                  {                       
+                        signed_transaction vesting_tx;
 
-                  auto now = time_point::now();
-                  std::cout<<"1+++++++"<<endl;
-                  vesting_balance_object vbo = get_object<vesting_balance_object>(*vbid);
-                  std::cout<<"2+++++++"<<endl;
-                  vesting_balance_withdraw_operation vesting_balance_withdraw_op;
+                        //auto now = time_point::now();
+                  
+                        auto dynamic_props = get_dynamic_global_properties();
+                        auto b = _remote_db->get_block_header(dynamic_props.head_block_number;);
+                        FC_ASSERT(b);
+                        now = b->timestamp;
 
-                  vesting_balance_withdraw_op.vesting_balance = *vbid;
-                  vesting_balance_withdraw_op.owner = vbo.owner;
-                  vesting_balance_withdraw_op.amount = vbo.get_allowed_withdraw(now);
+                        std::cout<<now.sec_since_epoch()<<endl;
+                        
+                        vesting_balance_object vbo1 = get_object<vesting_balance_object>(*vbid);
+                        vesting_balance_withdraw_operation vesting_balance_withdraw_op;
 
-                  tx.operations.push_back(vesting_balance_withdraw_op);
+                        vesting_balance_withdraw_op.vesting_balance = *vbid;
+                        vesting_balance_withdraw_op.owner = vbo1.owner;
+                        vesting_balance_withdraw_op.amount = vbo1.get_allowed_withdraw(now);
+                        
+                        std::cout<<vesting_balance_withdraw_op.amount.amount.value<<endl;
+                        vesting_tx.operations.push_back(vesting_balance_withdraw_op);
+                        sign_transaction(vesting_tx, broadcast);
                   }
+                  else
+                  FC_ASSERT( 1==0, "vbid is null:${from}",("from", from));
                  
                   tx.operations.push_back(xfer_op);
                   tx.validate();
