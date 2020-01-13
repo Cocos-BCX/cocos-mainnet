@@ -1957,13 +1957,11 @@ public:
                   if(vbid)
                   {                       
                         signed_transaction vesting_tx;
-
-                        //auto now = time_point::now();
-                  
+    
                         auto dynamic_props = get_dynamic_global_properties();
                         auto b = _remote_db->get_block_header(dynamic_props.head_block_number;);
                         FC_ASSERT(b);
-                        now = b->timestamp;
+                        auto now = b->timestamp;
 
                         std::cout<<now.sec_since_epoch()<<endl;
                         
@@ -1978,8 +1976,6 @@ public:
                         vesting_tx.operations.push_back(vesting_balance_withdraw_op);
                         sign_transaction(vesting_tx, broadcast);
                   }
-                  else
-                  FC_ASSERT( 1==0, "vbid is null:${from}",("from", from));
                  
                   tx.operations.push_back(xfer_op);
                   tx.validate();
