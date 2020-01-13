@@ -1944,24 +1944,26 @@ public:
                               xfer_op.memo = memo.first;
                   }
 
+                  signed_transaction tx;
+
                   fc::optional<vesting_balance_id_type> vbid = maybe_id<vesting_balance_id_type>(from);
-                  if (!vbid)
+                  if(vbid)
                   {
-                        witness_object wit = get_witness(from);
-                        FC_ASSERT(wit.pay_vb);
-                        vbid = wit.pay_vb;
-                  }
+                  //auto vesting_range = _db.get_index_type<vesting_balance_index>().indices().get<by_account>().equal_range(account->id);
 
                   auto now = time_point::now();
+                  std::cout<<"1+++++++"<<endl;
                   vesting_balance_object vbo = get_object<vesting_balance_object>(*vbid);
+                  std::cout<<"2+++++++"<<endl;
                   vesting_balance_withdraw_operation vesting_balance_withdraw_op;
 
                   vesting_balance_withdraw_op.vesting_balance = *vbid;
                   vesting_balance_withdraw_op.owner = vbo.owner;
                   vesting_balance_withdraw_op.amount = vbo.get_allowed_withdraw(now);
 
-                  signed_transaction tx;
                   tx.operations.push_back(vesting_balance_withdraw_op);
+                  }
+                 
                   tx.operations.push_back(xfer_op);
                   tx.validate();
 
