@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(is_registered) {
       /***
        * Assert
        */
-      graphene::app::database_api db_api(db);
+      graphene::app::database_api db_api(*db);
 
       BOOST_CHECK(db_api.is_public_key_registered((string) nathan_public));
       BOOST_CHECK(db_api.is_public_key_registered((string) dan_public));
@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE( get_potential_signatures_owner_and_active ) {
          op.owner = authority(1, pub_key2, 1);
          trx.operations.push_back(op);
          sign(trx, nathan_key1);
-         PUSH_TX( db, trx, database::skip_transaction_dupe_check );
+         PUSH_TX( db.get(), trx, database::skip_transaction_dupe_check );
          trx.operations.clear();
          trx.signatures.clear();
       } FC_CAPTURE_AND_RETHROW ((nathan.active))
@@ -95,7 +95,7 @@ BOOST_AUTO_TEST_CASE( get_potential_signatures_owner_and_active ) {
       op.to = account_id_type();
       trx.operations.push_back(op);
 
-      graphene::app::database_api db_api(db);
+      graphene::app::database_api db_api(*db);
       set<public_key_type> pub_keys = db_api.get_potential_signatures( trx );
 
       BOOST_CHECK( pub_keys.find( pub_key1 ) != pub_keys.end() );
@@ -116,7 +116,7 @@ BOOST_AUTO_TEST_CASE( get_potential_signatures_other ) {
       op.balance_owner_key = pub_key1;
       trx.operations.push_back(op);
 
-      graphene::app::database_api db_api(db);
+      graphene::app::database_api db_api(*db);
       set<public_key_type> pub_keys = db_api.get_potential_signatures( trx );
 
       BOOST_CHECK( pub_keys.find( pub_key1 ) != pub_keys.end() );

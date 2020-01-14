@@ -31,6 +31,7 @@
 
 #include <graphene/chain/operation_history_object.hpp>
 #include <graphene/market_history/market_history_plugin.hpp>
+#include <graphene/utilities/tempdir.hpp>
 
 #include <iostream>
 
@@ -59,7 +60,7 @@ extern uint32_t GRAPHENE_TESTING_GENESIS_TIMESTAMP;
    op.field = value; \
    trx.operations.back() = op; \
    op.field = temp; \
-   db.push_transaction( trx, ~0 ); \
+   db->push_transaction( trx, ~0 ); \
 }
 
 #define GRAPHENE_REQUIRE_THROW( expr, exc_type )          \
@@ -114,7 +115,7 @@ extern uint32_t GRAPHENE_TESTING_GENESIS_TIMESTAMP;
    op.field = value; \
    trx.operations.back() = op; \
    op.field = bak; \
-   GRAPHENE_REQUIRE_THROW(db.push_transaction(trx, ~0), exc_type); \
+   GRAPHENE_REQUIRE_THROW(db->push_transaction(trx, ~0), exc_type); \
 }
 
 #define REQUIRE_THROW_WITH_VALUE( op, field, value ) \
@@ -170,7 +171,8 @@ namespace graphene {
          // the reason we use an app is to exercise the indexes of built-in plugins
          graphene::app::application app;
          genesis_state_type genesis_state;
-         chain::database &db;
+         std::shared_ptr<chain::database> db;
+         // chain::database &db;
          signed_transaction trx;
          public_key_type committee_key;
          account_id_type committee_account;
@@ -178,7 +180,7 @@ namespace graphene {
          fc::ecc::private_key init_account_priv_key = fc::ecc::private_key::regenerate(
             fc::sha256::hash(string("null_key")) );
          public_key_type init_account_pub_key;
-         optional<fc::temp_directory> data_dir;
+         optional<fc::temp_directory> data_dir = fc::temp_directory(graphene::utilities::temp_directory_path());
          bool skip_key_index_test = false;
          uint32_t anon_acct_count;
 
@@ -190,11 +192,11 @@ namespace graphene {
 
          string generate_anon_acct_name();
          
-         static void verify_asset_supplies( const database& db );
+         static void verify_asset_supplies( chain::database* db );
          
          void verify_account_history_plugin_index( )const;
          
-         void open_database();
+         void open_database(const boost::program_options::variables_map& options);
          
          signed_block generate_block(uint32_t skip = ~0,
                                     const fc::ecc::private_key& key = generate_private_key("null_key"),
@@ -219,27 +221,27 @@ namespace graphene {
 
          void force_global_settle(const asset_object& what, const price& p);
 
-         operation_result force_settle(account_id_type who, asset what) { return force_settle(who(db), what); }
+         operation_result force_settle(account_id_type who, asset what) { return force_settle(who(*db), what); }
 
          operation_result force_settle(const account_object& who, asset what);
          
          void update_feed_producers(asset_id_type mia, flat_set<account_id_type> producers)
-         { update_feed_producers(mia(db), producers); }
+         { update_feed_producers(mia(*db), producers); }
          
          void update_feed_producers(const asset_object& mia, flat_set<account_id_type> producers);
          
          void publish_feed(asset_id_type mia, account_id_type by, const price_feed& f)
-         { publish_feed(mia(db), by(db), f); }
+         { publish_feed(mia(*db), by(*db), f); }
          
          void publish_feed(const asset_object& mia, const account_object& by, const price_feed& f);
          
          const call_order_object* borrow(account_id_type who, asset what, asset collateral)
-         { return borrow(who(db), what, collateral); }
+         { return borrow(who(*db), what, collateral); }
          
          const call_order_object* borrow(const account_object& who, asset what, asset collateral);
          
          void cover(account_id_type who, asset what, asset collateral_freed)
-         { cover(who(db), what, collateral_freed); }
+         { cover(who(*db), what, collateral_freed); }
          
          void cover(const account_object& who, asset what, asset collateral_freed);
          
@@ -341,13 +343,13 @@ namespace graphene {
 
       namespace test {
          /// set a reasonable expiration time for the transaction
-         void set_expiration( const database& db, transaction& tx );
+         void set_expiration( chain::database* db, transaction& tx );
 
-         bool _push_block( database& db, 
+         bool _push_block( chain::database* db, 
                            const signed_block& b, 
                            uint32_t skip_flags = 0 );
 
-         processed_transaction _push_transaction( database& db, 
+         processed_transaction _push_transaction( chain::database* db, 
                                                   const signed_transaction& tx, 
                                                   uint32_t skip_flags = 0 );
       }  // graphene::chain::test

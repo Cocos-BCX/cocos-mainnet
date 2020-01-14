@@ -41,17 +41,17 @@ BOOST_AUTO_TEST_CASE( undo_test )
    // try 
    // {
    //    database db;
-   //    auto ses = db._undo_db.start_undo_session();
-   //    const auto& bal_obj1 = db.create<account_balance_object>( [&]( account_balance_object& obj ){
+   //    auto ses = db->_undo_db->start_undo_session();
+   //    const auto& bal_obj1 = db->create<account_balance_object>( [&]( account_balance_object& obj ){
    //             /* no balances right now */
    //    });
    //    auto id1 = bal_obj1.id;
    //    // abandon changes
    //    ses.undo();
    //    // start a new session
-   //    ses = db._undo_db.start_undo_session();
+   //    ses = db->_undo_db->start_undo_session();
 
-   //    const auto& bal_obj2 = db.create<account_balance_object>( [&]( account_balance_object& obj ){
+   //    const auto& bal_obj2 = db->create<account_balance_object>( [&]( account_balance_object& obj ){
    //             /* no balances right now */
    //    });
    //    auto id2 = bal_obj2.id;
@@ -72,10 +72,10 @@ BOOST_AUTO_TEST_CASE( flat_index_test )
    // current_feed.settlement_price = bitusd.amount(100) / asset(100);
    // publish_feed(bitusd, sam, current_feed);
    // FC_ASSERT( (int)bitusd.bitasset_data_id->instance == 0 );
-   // FC_ASSERT( !(*bitusd.bitasset_data_id)(db).current_feed.settlement_price.is_null() );
+   // FC_ASSERT( !(*bitusd.bitasset_data_id)(*db).current_feed.settlement_price.is_null() );
    // try {
-   //    auto ses = db._undo_db.start_undo_session();
-   //    const auto& obj1 = db.create<asset_bitasset_data_object>( [&]( asset_bitasset_data_object& obj ){
+   //    auto ses = db->_undo_db->start_undo_session();
+   //    const auto& obj1 = db->create<asset_bitasset_data_object>( [&]( asset_bitasset_data_object& obj ){
    //        obj.settlement_fund = 17;
    //    });
    //    FC_ASSERT( obj1.settlement_fund == 17 );
@@ -86,10 +86,10 @@ BOOST_AUTO_TEST_CASE( flat_index_test )
    // }
 
    // // force maintenance
-   // const auto& dynamic_global_props = db.get<dynamic_global_property_object>(dynamic_global_property_id_type());
+   // const auto& dynamic_global_props = db->get<dynamic_global_property_object>(dynamic_global_property_id_type());
    // generate_blocks(dynamic_global_props.next_maintenance_time, true);
 
-   // FC_ASSERT( !(*bitusd_id(db).bitasset_data_id)(db).current_feed.settlement_price.is_null() );
+   // FC_ASSERT( !(*bitusd_id(*db).bitasset_data_id)(*db).current_feed.settlement_price.is_null() );
 }
 
 BOOST_AUTO_TEST_CASE( merge_test )
@@ -97,13 +97,13 @@ BOOST_AUTO_TEST_CASE( merge_test )
    // try 
    // {
    //    database db;
-   //    auto ses = db._undo_db.start_undo_session();
-   //    db.create<account_balance_object>( [&]( account_balance_object& obj ){
+   //    auto ses = db->_undo_db->start_undo_session();
+   //    db->create<account_balance_object>( [&]( account_balance_object& obj ){
    //        obj.balance = 42;
    //    });
    //    ses.merge();
 
-   //    auto balance = db.get_balance( account_id_type(), asset_id_type() );
+   //    auto balance = db->get_balance( account_id_type(), asset_id_type() );
    //    BOOST_CHECK_EQUAL( 42, balance.amount.value );
    // } catch ( const fc::exception& e ) {
    //    edump( (e.to_detail_string()) );
