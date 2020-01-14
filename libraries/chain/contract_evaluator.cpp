@@ -133,7 +133,8 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     core_fee_paid += share_type(fc::to_int64(additional_cost));
 
     contract_id_type db_index = result.contract_id;
-    auto &contract_obj = db_index(db);
+    database &_db = db();
+    const contract_object &contract_obj = db_index(_db);
     
     auto user_invoke_share_fee =  core_fee_paid* contract_obj.user_invoke_share_percent/100;
     user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
@@ -143,7 +144,8 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
 void call_contract_function_evaluator::contract_creator_pay_fee(contract_result &result)
 {
     contract_id_type db_index = result.contract_id;
-    auto &contract_obj = db_index(db);
+    database &_db = db();
+    const contract_object &contract_obj = db_index(_db);
 
     this->db_adjust_balance(contract_obj.owner,user_invoke_creator_fee);
 }

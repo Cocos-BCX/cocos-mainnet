@@ -34,7 +34,7 @@ class call_contract_function_evaluator : public evaluator<call_contract_function
     const operation_type* op;
 
   private:
-    share_type user_invoke_creator_fee
+    share_type user_invoke_creator_fee;
 
 };
 
