@@ -87,11 +87,11 @@ database_fixture::database_fixture()
       wlog("3. database_fixture genesis_state");
       // genesis_state
       genesis_state.initial_timestamp = time_point_sec( GRAPHENE_TESTING_GENESIS_TIMESTAMP );
-      genesis_state.initial_active_witnesses = 11;
+      genesis_state.initial_active_witnesses = 10;
       for( unsigned int i = 0; i < genesis_state.initial_active_witnesses; ++i )
       {
          auto name = "init"+fc::to_string(i);
-         wlog("[initial_active_witnesses] name: " + name);
+         // wlog("[initial_active_witnesses] name: " + name);
          genesis_state.initial_accounts.emplace_back(name,
                                                    init_account_priv_key.get_public_key(),
                                                    init_account_priv_key.get_public_key(),
@@ -335,7 +335,7 @@ void database_fixture::open_database(const boost::program_options::variables_map
       data_dir = fc::temp_directory( graphene::utilities::temp_directory_path() );
       wlog("database_fixture::open_database data_dir");
    }
-   db.open(data_dir->path(), [this]{ return genesis_state; }, "test");
+   db->open(data_dir->path(), [this]{ return genesis_state; }, "test");
    wlog("database_fixture::open_database end");
 }
 
