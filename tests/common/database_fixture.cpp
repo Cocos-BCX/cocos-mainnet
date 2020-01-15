@@ -87,7 +87,7 @@ database_fixture::database_fixture()
       wlog("3. database_fixture genesis_state");
       // genesis_state
       genesis_state.initial_timestamp = time_point_sec( GRAPHENE_TESTING_GENESIS_TIMESTAMP );
-      genesis_state.initial_active_witnesses = 10;
+      genesis_state.initial_active_witnesses = 11;
       for( unsigned int i = 0; i < genesis_state.initial_active_witnesses; ++i )
       {
          auto name = "init"+fc::to_string(i);
