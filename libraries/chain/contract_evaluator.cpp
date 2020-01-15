@@ -172,6 +172,7 @@ contract_result call_contract_function_evaluator::do_apply_function(account_id_t
             }
 
             if (_options->count("contract_total_data_size"))
+
             {
                 auto tmp = _options->at("contract_total_data_size").as<uint64_t>();
                 if ( tmp < contract_max_data_size && tmp >= 0 ) 
@@ -179,6 +180,7 @@ contract_result call_contract_function_evaluator::do_apply_function(account_id_t
                     contract_total_data_size = tmp;
                 }
             }
+
         }
         FC_ASSERT(fc::raw::pack_size(op_acd->contract_data) <= contract_private_data_size, "call_contract_function_evaluator::apply, the contract private data size is too large.");
         FC_ASSERT(fc::raw::pack_size(contract.contract_data) <= contract_total_data_size, "call_contract_function_evaluator::apply, the contract total data size is too large.");

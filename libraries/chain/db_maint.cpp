@@ -147,7 +147,7 @@ void database::pay_workers(share_type &budget)
       }
 }
 
-void database::pay_candidates(share_type &budget, const uint16_t &committee_percent_of_candidate_award, const uint16_t &unsuccessful_candidates_percent)
+void database::pay_candidates(share_type &budget, const uint16_t &committee_percent_of_candidate_award, const uint16_t &unsuccessful_candidates_percent, uint64_t block_num)
 {
       fc::uint128 temp_value = budget.value * committee_percent_of_candidate_award;
       share_type committee_ratio = (temp_value / GRAPHENE_100_PERCENT).to_uint64();
@@ -174,54 +174,66 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
             witness_cumulative += proportion;
       }
       auto &unsuccessful_candidates = get(unsuccessful_candidates_id_type()).unsuccessful_candidates;
-     
-      //each unsuccessful candidates should got it's proportion at votes
-      map<account_id_type, uint64_t> unsuccessful_candidates_and_votes;
-      uint64_t unsuccessful_candidates_total_votes = 0;
 
-      if (unsuccessful_candidates.size())
+      if (block_num <= UNSUCCESSFUL_CANDIDATE_DIFFPOINT)
       {
-            for (auto unsuccessful_candidate : unsuccessful_candidates)
+            if (unsuccessful_candidates.size())
             {
-                  uint64_t unsuccessful_candidate_vote = 0;
+                  share_type proportion = ((double)unsuccessful_candidates_ratio.value) / unsuccessful_candidates.size();
+                  unsuccessful_candidates_cumulative = proportion * unsuccessful_candidates.size();
+                  FC_ASSERT(unsuccessful_candidates_cumulative <= unsuccessful_candidates_ratio);
+                  for (auto &unsuccessful_candidate : unsuccessful_candidates)
+                        adjust_balance(unsuccessful_candidate, proportion);
+            }
+      }
+      else
+      {
+            //each unsuccessful candidates should got it's proportion at votes
+            map<account_id_type, uint64_t> unsuccessful_candidates_and_votes;
+            uint64_t unsuccessful_candidates_total_votes = 0;
 
-                  uint64_t unsuccessful_witness_votes = 0;
-                  uint64_t unsuccessful_committee_votes = 0;
+            if (unsuccessful_candidates.size())
+            {
+                  for (auto unsuccessful_candidate : unsuccessful_candidates)
+                  {
+                        uint64_t unsuccessful_candidate_vote = 0;
 
-                  for (auto &_witness : _witness_refs)
-                  {
-                        if (_witness.get().witness_account == unsuccessful_candidate)
+                        uint64_t unsuccessful_witness_votes = 0;
+                        uint64_t unsuccessful_committee_votes = 0;
+
+                        for (auto &_witness : _witness_refs)
                         {
-                              unsuccessful_witness_votes = _witness.get().total_votes - get_global_properties().parameters.witness_candidate_freeze.value;
-                        }
-                  }
-                  if (unsuccessful_witness_votes == 0) //mean has not find in _witness_refs,should find in _committee_refs
-                  {
-                        for (auto &_committee : _committee_refs)
-                        {
-                              if (_committee.get().committee_member_account == unsuccessful_candidate)
+                              if (_witness.get().witness_account == unsuccessful_candidate)
                               {
-                                    unsuccessful_committee_votes = _committee.get().total_votes - get_global_properties().parameters.committee_candidate_freeze.value;
+                                    unsuccessful_witness_votes = _witness.get().total_votes - get_global_properties().parameters.witness_candidate_freeze.value;
                               }
                         }
+                        if (unsuccessful_witness_votes == 0) //mean has not find in _witness_refs,should find in _committee_refs
+                        {
+                              for (auto &_committee : _committee_refs)
+                              {
+                                    if (_committee.get().committee_member_account == unsuccessful_candidate)
+                                    {
+                                          unsuccessful_committee_votes = _committee.get().total_votes - get_global_properties().parameters.committee_candidate_freeze.value;
+                                    }
+                              }
+                        }
+                        if (unsuccessful_witness_votes > 0)
+                              unsuccessful_candidate_vote = unsuccessful_witness_votes;
+                        else if (unsuccessful_committee_votes > 0)
+                              unsuccessful_candidate_vote = unsuccessful_committee_votes;
+
+
+                        unsuccessful_candidates_total_votes += unsuccessful_candidate_vote;
+
+                        unsuccessful_candidates_and_votes.insert(make_pair(unsuccessful_candidate, unsuccessful_candidate_vote));
                   }
-                  if(unsuccessful_witness_votes>0)
-                       unsuccessful_candidate_vote = unsuccessful_witness_votes;
-                  else if(unsuccessful_committee_votes>0)
-                       unsuccessful_candidate_vote = unsuccessful_committee_votes;
-               
-
-                  FC_ASSERT(unsuccessful_candidate_vote != 0, "have not find unsuccessful candidates votes");
-
-                  unsuccessful_candidates_total_votes += unsuccessful_candidate_vote;
-
-                  unsuccessful_candidates_and_votes.insert(make_pair(unsuccessful_candidate, unsuccessful_candidate_vote));
-            }
-            for (auto &unsuccessful_candidate_and_vote : unsuccessful_candidates_and_votes)
-            {
-                  share_type proportion = (double)unsuccessful_candidates_ratio.value * unsuccessful_candidate_and_vote.second / unsuccessful_candidates_total_votes;
-                  adjust_balance(unsuccessful_candidate_and_vote.first, proportion);
-                  unsuccessful_candidates_cumulative += proportion;
+                  for (auto &unsuccessful_candidate_and_vote : unsuccessful_candidates_and_votes)
+                  {
+                        share_type proportion = (double)unsuccessful_candidates_ratio.value * unsuccessful_candidate_and_vote.second / unsuccessful_candidates_total_votes;
+                        adjust_balance(unsuccessful_candidate_and_vote.first, proportion);
+                        unsuccessful_candidates_cumulative += proportion;
+                  }
             }
       }
 
@@ -389,7 +401,7 @@ void database::initialize_budget_record(fc::time_point_sec now, budget_record &r
 /**
  * Update the budget for witnesses and workers.
  */
-void database::process_budget(const global_property_object old_gpo)
+void database::process_budget(const global_property_object old_gpo, uint64_t block_num)
 {
       try
       {
@@ -449,7 +461,7 @@ void database::process_budget(const global_property_object old_gpo)
                   leftover_worker_funds = last_rec->worker_budget;
                   pay_workers(leftover_worker_funds);
                   leftover_candidates_budget = last_rec->candidates_budget;
-                  pay_candidates(leftover_candidates_budget, old_gpo.parameters.committee_percent_of_candidate_award, old_gpo.parameters.unsuccessful_candidates_percent);
+                  pay_candidates(leftover_candidates_budget, old_gpo.parameters.committee_percent_of_candidate_award, old_gpo.parameters.unsuccessful_candidates_percent, block_num);
             }
             rec.leftover_candidates_budget = leftover_candidates_budget;
             rec.leftover_worker_funds = leftover_worker_funds;
@@ -705,10 +717,9 @@ void database::perform_chain_maintenance(const signed_block &next_block, const g
             if (d.has_settlement())
                   process_bids(d);
       }
-
       // process_budget needs to run at the bottom because
       //  it needs to know the next_maintenance_time
-      process_budget(old_gpo);
+      process_budget(old_gpo, next_block.block_num());
       //clear vector
       _witness_refs.clear();
       _committee_refs.clear();
