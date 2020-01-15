@@ -1,0 +1,15 @@
+# Base image
+FROM registry-vpc.cn-beijing.aliyuncs.com/ck_chain/base
+
+# MAINTAINER
+MAINTAINER cocos-bcx
+
+WORKDIR /root/witness 
+COPY  witness_node  .
+#COPY config config
+COPY init.sh init.sh
+# node run env
+CMD bash ./init.sh
+
+EXPOSE 8049
+EXPOSE 8050
