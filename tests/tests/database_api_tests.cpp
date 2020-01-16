@@ -43,8 +43,8 @@ BOOST_AUTO_TEST_CASE(is_registered) {
       auto nathan_private_key = generate_private_key("nathan");
       public_key_type nathan_public = nathan_private_key.get_public_key();
 
-      auto dan_private_key = generate_private_key("dan");
-      public_key_type dan_public = dan_private_key.get_public_key();
+      auto champagne_private_key = generate_private_key("champagne");
+      public_key_type champagne_public = champagne_private_key.get_public_key();
 
       auto unregistered_private_key = generate_private_key("unregistered");
       public_key_type unregistered_public = unregistered_private_key.get_public_key();
@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(is_registered) {
       /***
        * Act
        */
-      create_account("dan", dan_private_key.get_public_key()).id;
+      create_account("chamange", champagne_private_key.get_public_key()).id;
       create_account("nathan", nathan_private_key.get_public_key()).id;
       // Unregistered key will not be registered with any account
 
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(is_registered) {
       graphene::app::database_api db_api(*db);
 
       BOOST_CHECK(db_api.is_public_key_registered((string) nathan_public));
-      BOOST_CHECK(db_api.is_public_key_registered((string) dan_public));
+      BOOST_CHECK(db_api.is_public_key_registered((string) champagne_public));
       BOOST_CHECK(!db_api.is_public_key_registered((string) unregistered_public));
 
    } FC_LOG_AND_RETHROW()
@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE( get_potential_signatures_owner_and_active ) {
       public_key_type pub_key1( nathan_key1.get_public_key() );
       public_key_type pub_key2( nathan_key2.get_public_key() );
       const account_object& nathan = create_account("nathan", nathan_key1.get_public_key() );
-
+      wdump((nathan));
       try {
          account_update_operation op;
          op.account = nathan.id;
@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE( get_potential_signatures_other ) {
       public_key_type pub_key1( priv_key1.get_public_key() );
 
       const account_object& nathan = create_account( "nathan" );
-
+      wdump((nathan));
       balance_claim_operation op;
       op.deposit_to_account = nathan.id;
       op.balance_owner_key = pub_key1;

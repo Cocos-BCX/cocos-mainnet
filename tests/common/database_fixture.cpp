@@ -60,8 +60,7 @@ using std::cerr;
 database_fixture::database_fixture()
    : app()
 {
-   try 
-   {
+   try {
       wlog("1. database_fixture start");
       int argc = boost::unit_test::framework::master_test_suite().argc;
       char** argv = boost::unit_test::framework::master_test_suite().argv;
@@ -72,17 +71,19 @@ database_fixture::database_fixture()
          if( arg == "--record-assert-trip" )
             fc::enable_record_assert_trip = true;
          if( arg == "--show-test-names" )
-         
             std::cout << "running test " << boost::unit_test::framework::current_test_case().p_name << std::endl;
       }
 
       wlog("2. database_fixture plugins");
-      // plugins 
+      // plugins
       // auto ahplugin = app.register_plugin<graphene::account_history::account_history_plugin>();
       // auto mhplugin = app.register_plugin<graphene::market_history::market_history_plugin>();
 
       init_account_pub_key = init_account_priv_key.get_public_key();
       boost::program_options::variables_map options;
+      //options.emplace("op_maxsize_proportion_percent", boost::program_options::variable_value(int(2), false));
+      options.insert(std::make_pair("bucket-size",
+                     boost::program_options::variable_value(string("[15]"), false)));
 
       wlog("3. database_fixture genesis_state");
       // genesis_state
@@ -779,6 +780,9 @@ void database_fixture::transfer(
 {
    try
    {
+      auto transfer_asset = amount.asset_id(*db);
+      auto from_balances = db->get_balance(from, transfer_asset);
+      wdump((from_balances));
       set_expiration( db.get(), trx );
       transfer_operation trans;
       trans.from = from.id;
