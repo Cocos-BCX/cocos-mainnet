@@ -129,6 +129,21 @@ void_result transfer_nh_asset_evaluator::do_apply(const transfer_nh_asset_operat
 			g.nh_asset_active = o.to;
 			g.dealership = o.to;
         });
+        asset creator_share;
+        auto vec = d.get_global_properties().parameters.extensions;
+        
+        for(auto iter = vec.begin();iter!=vec.end();iter++){
+            auto  element = fc::json::from_string(*iter);
+            const auto& var_obj = element.get_object();
+ 
+            if( var_obj.contains( "nh_creator_share_percent" ) )
+            {
+                auto tmp = var_obj["nh_creator_share_percent"].as_int64();
+                creator_share.amount = tmp;
+                FC_ASSERT(o.fee.amount > creator_share.amount, "the fee can not supply nh creator share when transfer nh, so you can't transfer it,current fee:${o.fee.amount}", ("o.fee.amount", o.fee.amount)); 
+                db_adjust_balance(o.nh_asset(d).nh_asset_creator,creator_share);
+            }
+        }
         return void_result();
     }
     FC_CAPTURE_AND_RETHROW((o))
