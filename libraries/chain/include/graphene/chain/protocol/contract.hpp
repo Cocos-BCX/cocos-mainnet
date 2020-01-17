@@ -93,7 +93,7 @@ namespace graphene { namespace chain {
 }} // graphene::chain
 
 FC_REFLECT( graphene::chain::contract_create_operation::fee_parameters_type, (fee)(price_per_kbyte) )
-FC_REFLECT( graphene::chain::contract_create_operation, (owner)(name)(data)(contract_authority)(extensions) )
+FC_REFLECT( graphene::chain::contract_create_operation, (owner)(name)(data)(user_invoke_share_percent)(contract_authority)(extensions) )
 
 FC_REFLECT( graphene::chain::revise_contract_operation::fee_parameters_type, (fee)(price_per_kbyte) )
 FC_REFLECT( graphene::chain::revise_contract_operation, (reviser)(contract_id)(data)(extensions) )
