@@ -16,12 +16,12 @@ struct register_scheduler
     account_id_type caller;
     contract_result &result;
     struct process_variable& _process_value;
-    transaction_apply_mode mode;
+    const transaction_evaluation_state * trx_state;
     lua_scheduler &context;
     const flat_set<public_key_type>& sigkeys;
     contract_result& apply_result;
     map<lua_key,lua_types>& account_conntract_data;
-    register_scheduler(database &db,account_id_type caller ,contract_object &contract,transaction_apply_mode mode, 
+    register_scheduler(database &db,account_id_type caller ,contract_object &contract,const transaction_evaluation_state * mode, 
         contract_result &result,lua_scheduler &context,const flat_set<public_key_type>& sigkeys, contract_result& apply_result,map<lua_key,lua_types>& account_data)
         : db(db),contract(contract),caller(caller), result(result),_process_value(contract.get_process_variable()),mode(mode),context(context),sigkeys(sigkeys),
         apply_result(apply_result),account_conntract_data(account_data){

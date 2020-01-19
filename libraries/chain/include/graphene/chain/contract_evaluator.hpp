@@ -20,17 +20,21 @@ class call_contract_function_evaluator : public evaluator<call_contract_function
     typedef call_contract_function_operation operation_type;
     void_result evaluate_contract_authority(contract_id_type contract_id,const flat_set<public_key_type> &sigkeys);
     contract_result apply(account_id_type caller,string function_name, vector<lua_types> value_list,
-                          transaction_apply_mode run_mode, optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys);
+                          optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys);
     contract_result apply(account_id_type caller, contract_id_type  contract_id,string function_name, vector<lua_types> value_list,
-                          transaction_apply_mode run_mode, optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys);
+                          optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys);
     contract_result do_apply_function(account_id_type caller,string function_name, vector<lua_types> value_list,
-                          transaction_apply_mode run_mode, optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys,contract_id_type  contract_id);
+                          optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys,contract_id_type  contract_id);
     void_result do_evaluate(const operation_type &o);
     contract_result do_apply(const operation_type &o);
     void pay_fee_for_result(contract_result& result);
+    void contract_creator_pay_fee(contract_result &result);
     const contract_object *contract_pir= nullptr;
     const contract_bin_code_object *contract_code_pir= nullptr;
     const operation_type* op;
+
+  private:
+    share_type user_invoke_creator_fee;
 
 };
 
