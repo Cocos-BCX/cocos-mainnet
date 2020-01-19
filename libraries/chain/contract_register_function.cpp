@@ -110,7 +110,7 @@ void register_scheduler::invoke_contract_function(string contract_id_or_name, st
             _contract_result = contract_result();
         }
         auto current_contract_name = context.readVariable<string>("current_contract");
-        auto ret = evaluator.apply(caller, this->contract.id,function_name, value_list, _contract_result, _contract_result, sigkeys);
+        auto ret = evaluator.apply(caller, this->contract.id,function_name, value_list, _contract_result, sigkeys);
         context.writeVariable("current_contract", current_contract_name);
         if (ret.existed_pv)
             result.existed_pv = true;

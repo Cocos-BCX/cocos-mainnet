@@ -131,7 +131,6 @@ operation_result generic_evaluator::start_evaluate(transaction_evaluation_state 
       }
     }
     pay_fee_for_operation(op);
-    static_cast<graphene::chain::call_contract_function_evaluator *>(this)->contract_creator_pay_fee(result.get<contract_result>());
     return result;
   }
   FC_CAPTURE_AND_RETHROW()
