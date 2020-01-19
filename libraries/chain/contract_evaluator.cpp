@@ -27,7 +27,6 @@ object_id_result contract_create_evaluator::do_apply(const operation_type &o)
         contract_object contract = d.create<contract_object>([&](contract_object &c) {
             c.owner = o.owner;
             c.name = o.name;
-            c.user_invoke_share_percent = o.user_invoke_share_percent;
             if (next_id != contract_id_type())
             {
                 c.contract_authority = o.contract_authority;
@@ -138,19 +137,6 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     contract_id_type db_index = result.contract_id;
     database &_db = db();
     const contract_object &contract_obj = db_index(_db);
-    
-    auto user_invoke_share_fee =  core_fee_paid* contract_obj.user_invoke_share_percent/100;
-    user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
-    core_fee_paid = user_invoke_share_fee;
-}
-
-void call_contract_function_evaluator::contract_creator_pay_fee(contract_result &result)
-{
-    contract_id_type db_index = result.contract_id;
-    database &_db = db();
-    const contract_object &contract_obj = db_index(_db);
-
-    this->db_adjust_balance(contract_obj.owner,user_invoke_creator_fee);
 }
 
 contract_result call_contract_function_evaluator::do_apply_function(account_id_type caller, string function_name,vector<lua_types> value_list,
