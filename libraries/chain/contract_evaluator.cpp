@@ -139,6 +139,8 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     auto user_invoke_share_fee =  core_fee_paid* contract_obj.user_invoke_share_percent/100;
     user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
     core_fee_paid = user_invoke_share_fee;
+    printf("user_invoke_share_fee :%d\n",user_invoke_share_fee.value);
+    printf("user_invoke_creator_fee :%d\n",user_invoke_creator_fee.value);
 }
 
 void call_contract_function_evaluator::contract_creator_pay_fee(contract_result &result)
@@ -147,7 +149,7 @@ void call_contract_function_evaluator::contract_creator_pay_fee(contract_result 
     database &_db = db();
     const contract_object &contract_obj = db_index(_db);
 
-    this->db_adjust_balance(contract_obj.owner,user_invoke_creator_fee);
+    this->db_adjust_balance(contract_obj.owner,-user_invoke_creator_fee);
 }
 
 contract_result call_contract_function_evaluator::do_apply_function(account_id_type caller, string function_name,vector<lua_types> value_list, transaction_apply_mode run_mode,

@@ -84,6 +84,7 @@ operation_result generic_evaluator::start_evaluate(transaction_evaluation_state 
           if (op.which() == operation::tag<call_contract_function_operation>::value && result.which() == operation_result::tag<contract_result>::value) //合约附加费用contract_result
           {
             static_cast<graphene::chain::call_contract_function_evaluator *>(this)->pay_fee_for_result(result.get<contract_result>());
+            static_cast<graphene::chain::call_contract_function_evaluator *>(this)->contract_creator_pay_fee(result.get<contract_result>());
             FC_ASSERT(core_fee_paid.value < db().get_global_properties().parameters.current_fees->maximun_handling_fee);
           }
         }
@@ -131,7 +132,6 @@ operation_result generic_evaluator::start_evaluate(transaction_evaluation_state 
       }
     }
     pay_fee_for_operation(op);
-    static_cast<graphene::chain::call_contract_function_evaluator *>(this)->contract_creator_pay_fee(result.get<contract_result>());
     return result;
   }
   FC_CAPTURE_AND_RETHROW()
