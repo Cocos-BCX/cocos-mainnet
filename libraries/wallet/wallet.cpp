@@ -1959,11 +1959,11 @@ public:
                         signed_transaction vesting_tx;
     
                         auto dynamic_props = get_dynamic_global_properties();
-                        auto b = _remote_db->get_block_header(dynamic_props.head_block_number;);
+                        auto b = _remote_db->get_block_header(dynamic_props.head_block_number);
                         FC_ASSERT(b);
                         auto now = b->timestamp;
 
-                        std::cout<<now.sec_since_epoch()<<endl;
+                        //std::cout<<now.sec_since_epoch()<<endl;
                         
                         vesting_balance_object vbo1 = get_object<vesting_balance_object>(*vbid);
                         vesting_balance_withdraw_operation vesting_balance_withdraw_op;
@@ -1972,7 +1972,7 @@ public:
                         vesting_balance_withdraw_op.owner = vbo1.owner;
                         vesting_balance_withdraw_op.amount = vbo1.get_allowed_withdraw(now);
                         
-                        std::cout<<vesting_balance_withdraw_op.amount.amount.value<<endl;
+                        //std::cout<<vesting_balance_withdraw_op.amount.amount.value<<endl;
                         vesting_tx.operations.push_back(vesting_balance_withdraw_op);
                         sign_transaction(vesting_tx, broadcast);
                   }
