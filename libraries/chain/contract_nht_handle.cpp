@@ -337,7 +337,8 @@ void register_scheduler::relate_nh_asset(account_id_type nht_creator, const nh_a
 {
     try
     {
-        FC_ASSERT(sigkeys.find(contract.contract_authority)!=sigkeys.end());
+        if (!(trx_state->skip & (database::validation_steps::skip_transaction_signatures |database::validation_steps::skip_authority_check)))
+        FC_ASSERT(sigkeys.find(contract.contract_authority)!=sigkeys.end(),"${contract_authority},${sigkeys}",("contract_authority",contract.contract_authority)("sigkeys",sigkeys));
         FC_ASSERT(parent_nh_asset.nh_asset_owner==nht_creator,"You're not the parent nh asset's creator, so you can't relate it.${id}",("id",parent_nh_asset.id));
         FC_ASSERT(child_nh_asset.nh_asset_owner==nht_creator,"You're not the child nh asset's creator, so you can't relate it.${id}",("id",child_nh_asset.id));
         // Verify that the trader is the creator of nh asset

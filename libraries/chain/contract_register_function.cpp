@@ -14,7 +14,7 @@ int register_scheduler::contract_random()
         srand(fc::time_point::now().time_since_epoch().count());
         auto temp = rand();
         int index = _process_value.next_random_index();
-        if (mode == transaction_apply_mode::apply_block_mode)
+        if (trx_state->run_mode == transaction_apply_mode::apply_block_mode)
         {
             return _process_value.random[index];
         }
@@ -38,7 +38,7 @@ uint64_t register_scheduler::real_time()
         this->result.existed_pv = true;
         auto temp = fc::time_point::now().time_since_epoch().count();
         int index = _process_value.next_time_index();
-        if (mode == transaction_apply_mode::apply_block_mode)
+        if (trx_state->run_mode == transaction_apply_mode::apply_block_mode)
         {
             return _process_value.timetable[index];
         }
@@ -88,12 +88,12 @@ void register_scheduler::invoke_contract_function(string contract_id_or_name, st
         FC_ASSERT(contract_id != this->contract.id, " You can't use it to make recursive calls. ");
         auto value_list = fc::json::from_string(value_list_json).as<vector<lua_types>>();
         call_contract_function_evaluator evaluator;
-        auto state = transaction_evaluation_state(&db);
+        auto state = *trx_state;
         state.sigkeys = sigkeys;
         evaluator.trx_state = &state;
         evaluator.evaluate_contract_authority(contract_id, state.sigkeys);
         optional<contract_result> _contract_result;
-        if (mode == transaction_apply_mode::apply_block_mode)
+        if (trx_state->run_mode == transaction_apply_mode::apply_block_mode)
         {
             for (auto contract_afd = apply_result.contract_affecteds.begin(); contract_afd != apply_result.contract_affecteds.end(); contract_afd++)
             {
@@ -110,7 +110,7 @@ void register_scheduler::invoke_contract_function(string contract_id_or_name, st
             _contract_result = contract_result();
         }
         auto current_contract_name = context.readVariable<string>("current_contract");
-        auto ret = evaluator.apply(caller, this->contract.id,function_name, value_list, mode, _contract_result, sigkeys);
+        auto ret = evaluator.apply(caller, this->contract.id,function_name, value_list, _contract_result, sigkeys);
         context.writeVariable("current_contract", current_contract_name);
         if (ret.existed_pv)
             result.existed_pv = true;
