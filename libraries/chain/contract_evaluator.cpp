@@ -27,6 +27,7 @@ object_id_result contract_create_evaluator::do_apply(const operation_type &o)
         contract_object contract = d.create<contract_object>([&](contract_object &c) {
             c.owner = o.owner;
             c.name = o.name;
+            c.user_invoke_share_percent = o.user_invoke_share_percent;
             if (next_id != contract_id_type())
             {
                 c.contract_authority = o.contract_authority;
@@ -126,7 +127,6 @@ contract_result call_contract_function_evaluator::do_apply(const operation_type 
 }
 void call_contract_function_evaluator::pay_fee_for_result(contract_result &result)
 {
-
     auto &fee_schedule_ob = db().current_fee_schedule();
     auto &op_fee = fee_schedule_ob.get<operation_type>();
     share_type temp = op->calculate_data_fee(result.relevant_datasize, op_fee.price_per_kbyte);
@@ -137,6 +137,19 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     contract_id_type db_index = result.contract_id;
     database &_db = db();
     const contract_object &contract_obj = db_index(_db);
+  
+    auto user_invoke_share_fee =  core_fee_paid* contract_obj.user_invoke_share_percent/100;
+    user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
+    core_fee_paid = user_invoke_share_fee;
+}
+
+void call_contract_function_evaluator::contract_creator_pay_fee(contract_result &result)
+{
+    contract_id_type db_index = result.contract_id;
+    database &_db = db();
+    const contract_object &contract_obj = db_index(_db);
+
+    this->db_adjust_balance(contract_obj.owner,-user_invoke_creator_fee);
 }
 
 contract_result call_contract_function_evaluator::do_apply_function(account_id_type caller, string function_name,vector<lua_types> value_list,
@@ -167,24 +180,29 @@ contract_result call_contract_function_evaluator::do_apply_function(account_id_t
 
         contract.do_contract_function(caller, function_name, value_list, op_acd->contract_data, _db, sigkeys, *_contract_result,contract_id);
 
-        /* if (_options->count("contract_private_data_size"))
+        if (_options != nullptr)
         {
-            auto tmp = _options->at("contract_private_data_size").as<uint64_t>();
-            if ( tmp < contract_max_data_size && tmp >= 0 ) 
+            if (_options->count("contract_private_data_size"))
             {
-                contract_private_data_size = tmp;
+                auto tmp = _options->at("contract_private_data_size").as<uint64_t>();
+                if ( tmp < contract_max_data_size && tmp >= 0 ) 
+                {
+                    contract_private_data_size = tmp;
+                }
             }
-        }*/
-        FC_ASSERT(fc::raw::pack_size(op_acd->contract_data) <= contract_private_data_size, "call_contract_function_evaluator::apply, the contract private data size is too large.");
 
-        /* if (_options->count("contract_total_data_size"))
-        {
-            auto tmp = _options->at("contract_total_data_size").as<uint64_t>();
-            if ( tmp < contract_max_data_size && tmp >= 0 ) 
+            if (_options->count("contract_total_data_size"))
+
             {
-                contract_total_data_size = tmp;
+                auto tmp = _options->at("contract_total_data_size").as<uint64_t>();
+                if ( tmp < contract_max_data_size && tmp >= 0 ) 
+                {
+                    contract_total_data_size = tmp;
+                }
             }
-        }*/
+
+        }
+        FC_ASSERT(fc::raw::pack_size(op_acd->contract_data) <= contract_private_data_size, "call_contract_function_evaluator::apply, the contract private data size is too large.");
         FC_ASSERT(fc::raw::pack_size(contract.contract_data) <= contract_total_data_size, "call_contract_function_evaluator::apply, the contract total data size is too large.");
 
         // wdump(("do_contract_function")(fc::time_point::now().time_since_epoch() - start));
