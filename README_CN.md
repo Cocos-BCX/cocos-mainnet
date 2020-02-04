@@ -16,7 +16,6 @@ sudo apt-get install autoconf cmake git vim libbz2-dev libdb++-dev libdb-dev
 libssl-dev openssl libreadline-dev libtool libcurl4-openssl-dev libboost-all-dev
 ```  
 
-
 ## 构建源码   
 ```  
 cmake -DBUILD_PROCESS_ENCRYPTION=NO .  
