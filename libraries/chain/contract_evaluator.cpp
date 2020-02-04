@@ -164,7 +164,7 @@ contract_result call_contract_function_evaluator::do_apply_function(account_id_t
         //FC_ASSERT(contract_itr != contract_core_index.end(), "The specified contract does not exist.contract_id:${contract_id}", ("contract_id", contract_id));
         contract_object contract = *contract_pir;
         contract.set_code(contract_code_pir->lua_code_b);        
-        contract.set_mode(trx_state);
+        contract.set_trx_state(trx_state);
         contract.set_process_encryption_helper(process_encryption_helper(_db.get_chain_id().str(), string(CONTRACT_PROCESS_CIPHER), _db.head_block_time()));
         if (trx_state->run_mode == transaction_apply_mode::apply_block_mode && _contract_result->existed_pv)
         {
