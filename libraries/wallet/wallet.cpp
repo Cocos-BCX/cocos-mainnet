@@ -3516,9 +3516,9 @@ chain_property_object wallet_api::get_chain_properties()
 {
       return my->_remote_db->get_chain_properties();
 }
-pair<tx_hash_type, signed_transaction> wallet_api::create_contract(string owner, string name, public_key_type contract_authority, string data,double user_invoke_share_percent,bool broadcast /* = false */)
+pair<tx_hash_type, signed_transaction> wallet_api::create_contract(string owner, string name, public_key_type contract_authority, string data,bool broadcast /* = false */,double user_invoke_share_percent /* = 100 */)
 {
-      auto tx = my->create_contract(owner, name, contract_authority, data, user_invoke_share_percent, broadcast);
+      auto tx = my->create_contract(owner, name, contract_authority, data, broadcast,user_invoke_share_percent);
       return std::make_pair(tx.hash(), tx);
 }
 pair<tx_hash_type, signed_transaction> wallet_api::revise_contract(string reviser, string contract_id_or_name, string data, bool broadcast /*= false*/)
