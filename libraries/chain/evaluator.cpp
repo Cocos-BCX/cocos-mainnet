@@ -83,7 +83,7 @@ operation_result generic_evaluator::start_evaluate(transaction_evaluation_state 
           result.visit(result_visitor);
           if (op.which() == operation::tag<call_contract_function_operation>::value && result.which() == operation_result::tag<contract_result>::value) //合约附加费用contract_result
           {
-            static_cast<graphene::chain::call_contract_function_evaluator *>(this)->pay_fee_for_result(result.get<contract_result>());
+            static_cast<graphene::chain::call_contract_function_evaluator *>(this)->pay_fee_for_result(result.get<contract_result>());   
             FC_ASSERT(core_fee_paid.value < db().get_global_properties().parameters.current_fees->maximun_handling_fee);
           }
         }
@@ -165,7 +165,7 @@ void generic_evaluator::pay_fee()
     auto &d = db();
     fee_visitor.fees.clear();
     FC_ASSERT(d.GAS->options.core_exchange_rate,"GAS->options.core_exchange_rate is null");
-    if ((!trx_state->skip_fee) && core_fee_paid > 0)
+    if (core_fee_paid > 0)
     {
       const auto &total_gas = d.get_balance(*fee_paying_account, *d.GAS);
       asset require_gas(double(core_fee_paid.value) * (*d.GAS->options.core_exchange_rate).to_real(), d.GAS->id);

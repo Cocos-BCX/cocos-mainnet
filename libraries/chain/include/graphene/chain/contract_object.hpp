@@ -56,7 +56,7 @@ class contract_object : public graphene::db::abstract_object<contract_object>
     void do_actual_contract_function(account_id_type caller, string function_name, vector<lua_types> value_list,
                               lua_map &account_data, graphene::chain::database &db, const flat_set<public_key_type> &sigkeys, contract_result &apply_result,contract_id_type contract_id);
    
-    void set_mode(transaction_apply_mode tx_mode) { mode = tx_mode; }
+    void set_mode(const transaction_evaluation_state * tx_mode) { trx_state = tx_mode; }
     contract_result get_result() { return this->result; }
     struct process_variable &get_process_variable() { return _process_value; }
     void set_process_value(vector<char> process_value);
@@ -74,7 +74,7 @@ class contract_object : public graphene::db::abstract_object<contract_object>
     process_encryption_helper encryption_helper; 
     vector<char> lua_code_b;
     contract_result result;
-    transaction_apply_mode mode;
+    const transaction_evaluation_state * trx_state;
     struct process_variable _process_value;
 };
 
