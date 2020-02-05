@@ -1308,7 +1308,7 @@ class wallet_api
     void encrypt_keys();
     /*********************************************nico add*************************************************************************/
     pair<tx_hash_type, signed_transaction> 
-    create_contract(string owner, string name, public_key_type contract_authority, string data,double user_invoke_share_percent,bool broadcast = false); //nico add :: 创建合约
+    create_contract(string owner, string name, public_key_type contract_authority, string data,double user_invoke_share_percent = 100 ,bool broadcast = false); //nico add :: 创建合约
     pair<tx_hash_type, signed_transaction> revise_contract(string reviser, string contract_id_or_name, string data, bool broadcast = false);
     fc::variant get_account_contract_data(const string &account_id, string contract_id_or_name); //获取用户合约数据
     lua_map get_contract_public_data(string contract_id_or_name, lua_map filter);

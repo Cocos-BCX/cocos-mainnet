@@ -1976,7 +1976,7 @@ public:
             FC_CAPTURE_AND_RETHROW((mortgager)(beneficiary)(collateral)(broadcast))
       }
 
-      signed_transaction create_contract(string owner, string name, public_key_type contract_authority, string data,double user_invoke_share_percent,bool broadcast = false) // wallet 合约 API
+      signed_transaction create_contract(string owner, string name, public_key_type contract_authority, string data,double user_invoke_share_percent = 100,bool broadcast = false) // wallet 合约 API
       {
             try
             {
