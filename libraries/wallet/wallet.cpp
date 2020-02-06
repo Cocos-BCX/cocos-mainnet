@@ -1976,7 +1976,7 @@ public:
             FC_CAPTURE_AND_RETHROW((mortgager)(beneficiary)(collateral)(broadcast))
       }
 
-      signed_transaction create_contract(string owner, string name, public_key_type contract_authority, string data, bool broadcast = false) // wallet 合约 API
+      signed_transaction create_contract(string owner, string name, public_key_type contract_authority, string data,bool broadcast = false) // wallet 合约 API
       {
             try
             {
@@ -3515,7 +3515,7 @@ chain_property_object wallet_api::get_chain_properties()
 {
       return my->_remote_db->get_chain_properties();
 }
-pair<tx_hash_type, signed_transaction> wallet_api::create_contract(string owner, string name, public_key_type contract_authority, string data, bool broadcast /* = false */)
+pair<tx_hash_type, signed_transaction> wallet_api::create_contract(string owner, string name, public_key_type contract_authority, string data,bool broadcast /* = false */)
 {
       auto tx = my->create_contract(owner, name, contract_authority, data, broadcast);
       return std::make_pair(tx.hash(), tx);
@@ -4123,6 +4123,8 @@ string wallet_api::help() const
 {
       std::vector<std::string> method_names = my->method_documentation.get_method_names();
       std::stringstream ss;
+	  
+      ss << "All available commands:\n";
       for (const std::string method_name : method_names)
       {
             try
@@ -4134,6 +4136,8 @@ string wallet_api::help() const
                   ss << method_name << " (no help available)\n";
             }
       }
+      ss << " (You can use `gethelp command` for single command usage)\n";
+	  
       return ss.str();
 }
 
