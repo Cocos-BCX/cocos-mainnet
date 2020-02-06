@@ -239,7 +239,7 @@ public:
 
   void new_connection(const fc::http::websocket_connection_ptr &c) // new websocket connection
   {
-    auto wsc = std::make_shared<fc::rpc::websocket_api_connection>(*c);
+    auto wsc = std::make_shared<fc::rpc::websocket_api_connection>(c);
     auto login = std::make_shared<graphene::app::login_api>(std::ref(*_self));
     login->enable_api("database_api");
 
