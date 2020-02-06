@@ -34,6 +34,7 @@ class contract_object : public graphene::db::abstract_object<contract_object>
     time_point_sec creation_date;
     account_id_type owner;
     string name;
+    uint32_t user_invoke_share_percent;
     bool is_release=false;
     tx_hash_type current_version;
     bool check_contract_authority = false;
@@ -56,7 +57,7 @@ class contract_object : public graphene::db::abstract_object<contract_object>
     void do_actual_contract_function(account_id_type caller, string function_name, vector<lua_types> value_list,
                               lua_map &account_data, graphene::chain::database &db, const flat_set<public_key_type> &sigkeys, contract_result &apply_result,contract_id_type contract_id);
    
-    void set_mode(transaction_apply_mode tx_mode) { mode = tx_mode; }
+    void set_mode(const transaction_evaluation_state * tx_mode) { trx_state = tx_mode; }
     contract_result get_result() { return this->result; }
     struct process_variable &get_process_variable() { return _process_value; }
     void set_process_value(vector<char> process_value);
@@ -74,7 +75,7 @@ class contract_object : public graphene::db::abstract_object<contract_object>
     process_encryption_helper encryption_helper; 
     vector<char> lua_code_b;
     contract_result result;
-    transaction_apply_mode mode;
+    const transaction_evaluation_state * trx_state;
     struct process_variable _process_value;
 };
 
@@ -198,7 +199,7 @@ typedef generic_index<contract_bin_code_object, contract_bin_code_multi_index_ty
 
 FC_REFLECT_DERIVED(graphene::chain::contract_object,
                    (graphene::db::object),
-                   (creation_date)(owner)(name)(current_version)(contract_authority)(is_release)(check_contract_authority)(contract_data)(contract_ABI)(lua_code_b_id))
+                   (creation_date)(owner)(name)(user_invoke_share_percent)(current_version)(contract_authority)(is_release)(check_contract_authority)(contract_data)(contract_ABI)(lua_code_b_id))
 FC_REFLECT_DERIVED(graphene::chain::account_contract_data,
                    (graphene::db::object),
                    (owner)(contract_id)(contract_data))
