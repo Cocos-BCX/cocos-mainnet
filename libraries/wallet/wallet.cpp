@@ -1976,12 +1976,12 @@ public:
             FC_CAPTURE_AND_RETHROW((mortgager)(beneficiary)(collateral)(broadcast))
       }
 
-      signed_transaction create_contract(string owner, string name, public_key_type contract_authority, string data,bool broadcast = false,double user_invoke_share_percent = 100) // wallet 合约 API
+      signed_transaction create_contract(string owner, string name, public_key_type contract_authority, string data,bool broadcast = false) // wallet 合约 API
       {
             try
             {
                   FC_ASSERT(!self.is_locked());
-
+                  
                   account_object owner_account = get_account(owner);
                   account_id_type owner_id = owner_account.id;
 
@@ -1991,7 +1991,6 @@ public:
                   op.owner = owner_id;
                   op.data = data;
                   op.contract_authority = contract_authority;
-                  op.user_invoke_share_percent = user_invoke_share_percent;
 
                   signed_transaction tx;
                   tx.operations.push_back(op);
@@ -3516,9 +3515,9 @@ chain_property_object wallet_api::get_chain_properties()
 {
       return my->_remote_db->get_chain_properties();
 }
-pair<tx_hash_type, signed_transaction> wallet_api::create_contract(string owner, string name, public_key_type contract_authority, string data,bool broadcast /* = false */,double user_invoke_share_percent /* = 100 */)
+pair<tx_hash_type, signed_transaction> wallet_api::create_contract(string owner, string name, public_key_type contract_authority, string data,bool broadcast /* = false */)
 {
-      auto tx = my->create_contract(owner, name, contract_authority, data, broadcast,user_invoke_share_percent);
+      auto tx = my->create_contract(owner, name, contract_authority, data, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 pair<tx_hash_type, signed_transaction> wallet_api::revise_contract(string reviser, string contract_id_or_name, string data, bool broadcast /*= false*/)
