@@ -27,7 +27,7 @@ object_id_result contract_create_evaluator::do_apply(const operation_type &o)
         contract_object contract = d.create<contract_object>([&](contract_object &c) {
             c.owner = o.owner;
             c.name = o.name;
-            c.user_invoke_share_percent = o.user_invoke_share_percent;
+
             if (next_id != contract_id_type())
             {
                 c.contract_authority = o.contract_authority;
