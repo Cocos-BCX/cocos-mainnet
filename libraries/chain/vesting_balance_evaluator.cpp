@@ -130,7 +130,7 @@ void_result vesting_balance_withdraw_evaluator::do_apply( const vesting_balance_
 
    d.modify( vbo, [&]( vesting_balance_object& vbo )
    {
-      vbo.withhdraw( now, op.amount );
+      vbo.withdraw( now, op.amount );
    } );
 
    d.adjust_balance( op.owner, op.amount );
