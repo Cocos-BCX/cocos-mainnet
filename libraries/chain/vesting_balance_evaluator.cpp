@@ -26,7 +26,6 @@
 #include <graphene/chain/database.hpp>
 #include <graphene/chain/vesting_balance_evaluator.hpp>
 #include <graphene/chain/vesting_balance_object.hpp>
-#include <fc/log/logger.hpp>
 
 namespace graphene { namespace chain {
 
