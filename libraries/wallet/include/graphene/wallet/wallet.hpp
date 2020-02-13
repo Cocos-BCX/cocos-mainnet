@@ -221,6 +221,11 @@ class wallet_api
     fc::ecc::private_key derive_private_key(const std::string &prefix_string, int sequence_number) const;
 
     variant info();
+
+    /** Exit cli wallet.
+       */
+    void exit() const;
+
     /** Returns info such as client version, git version of graphene/fc, version of boost, openssl.
        * @returns compile time info and client and dependencies versions
        */
@@ -1499,4 +1504,7 @@ FC_API(graphene::wallet::wallet_api,
        //(whitelist_account)
        (create_committee_member)(update_committee_member)(get_witness)(get_committee_member)(list_witnesses)(list_committee_members)(create_witness)(update_witness)(get_vesting_balances)(withdraw_vesting)(vote_for_committee_member)(vote_for_witness)(get_account)(get_account_id)(get_block)(get_account_count)(get_account_history)(get_relative_account_history)(get_collateral_bids)(is_public_key_registered)(get_market_history)(get_global_properties)(get_dynamic_global_properties)(get_object)(get_private_key)
        //
-       (load_wallet_file)(normalize_brain_key)(get_limit_orders)(get_call_orders)(get_settle_orders)(save_wallet_file)(serialize_transaction)(sign_transaction)(get_prototype_operation_by_name)(get_prototype_operation_by_idx)(propose_parameter_change)(propose_fee_change)(approve_proposal)(dbg_push_blocks)(dbg_generate_blocks)(dbg_stream_json_objects)(dbg_update_object)(network_add_nodes)(network_get_connected_peers)(sign_memo)(read_memo)(set_key_label)(get_key_label)(get_public_key)(get_order_book))
+       (load_wallet_file)(normalize_brain_key)(get_limit_orders)(get_call_orders)(get_settle_orders)(save_wallet_file)(serialize_transaction)(sign_transaction)(get_prototype_operation_by_name)(get_prototype_operation_by_idx)(propose_parameter_change)(propose_fee_change)(approve_proposal)(dbg_push_blocks)(dbg_generate_blocks)(dbg_stream_json_objects)(dbg_update_object)(network_add_nodes)(network_get_connected_peers)(sign_memo)(read_memo)(set_key_label)(get_key_label)(get_public_key)(get_order_book)
+       /* liqun add */
+       (exit)
+      )

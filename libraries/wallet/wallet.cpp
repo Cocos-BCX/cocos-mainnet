@@ -29,6 +29,7 @@
 #include <sstream>
 #include <string>
 #include <list>
+#include <csignal>
 
 #include <boost/version.hpp>
 #include <boost/lexical_cast.hpp>
@@ -3455,6 +3456,10 @@ variant wallet_api::info()
       return my->info();
 }
 
+void wallet_api::exit() const {
+      std::raise(SIGTERM);
+}
+
 variant_object wallet_api::about() const
 {
       return my->about();
@@ -4137,8 +4142,8 @@ string wallet_api::help() const
                   ss << method_name << " (no help available)\n";
             }
       }
-      ss << " (You can use `gethelp command` for single command usage)\n";
-	  
+      ss << " (You can use `gethelp command` for single command usage or `exit` to quit)\n";
+
       return ss.str();
 }
 
