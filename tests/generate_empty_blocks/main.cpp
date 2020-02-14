@@ -36,7 +36,7 @@
 #include <graphene/chain/protocol/protocol.hpp>
 #include <graphene/egenesis/egenesis.hpp>
 #include <graphene/utilities/key_conversion.hpp>
-
+#include <graphene/chain/database.hpp>
 #include <boost/filesystem.hpp>
 
 #ifndef WIN32
@@ -120,51 +120,51 @@ int main( int argc, char** argv )
       uint32_t miss_rate = options["miss-rate"].as<uint32_t>();
       fc::ecc::private_key nico_priv_key = fc::ecc::private_key::regenerate(fc::sha256::hash(string("nico")));
 
-      // database db;
-      // fc::path db_path = data_dir / "db";
-      // db.open(db_path, [&]() { return genesis; }, "TEST" );
+      fc::path db_path = data_dir / "db";
+      database db(db_path);
+      db.open(db_path, [&]() { return genesis; }, "TEST" );
 
-      // uint32_t slot = 1;
-      // uint32_t missed = 0;
+      uint32_t slot = 1;
+      uint32_t missed = 0;
 
-      // for( uint32_t i = 1; i < num_blocks; ++i )
-      // {
-      //    wdump( ("[generate block] ")(db.head_block_id())( i ) );
-      //    signed_block b = db.generate_block(db.get_slot_time(slot), db.get_scheduled_witness(slot), nico_priv_key, database::skip_nothing);
-      //    FC_ASSERT( db.head_block_id() == b.make_id() );
-      //    fc::sha256 h = b.digest();
-      //    uint64_t rand = h._hash[0];
-      //    slot = 1;
-      //    while(true)
-      //    {
-      //       if( (rand % 100) < miss_rate )
-      //       {
-      //          slot++;
-      //          rand = (rand/100) ^ h._hash[slot&3];
-      //          missed++;
-      //       } else {
-      //          //wdump( ("slot: ")(slot) );
-      //          break;
-      //       }
-      //    }
+      for( uint32_t i = 1; i < num_blocks; ++i )
+      {
+         wdump( ("[generate block] ")(db.head_block_id())( i ) );
+         signed_block b = db.generate_block(db.get_slot_time(slot), db.get_scheduled_witness(slot), nico_priv_key, database::skip_nothing);
+         FC_ASSERT( db.head_block_id() == b.make_id() );
+         fc::sha256 h = b.digest();
+         uint64_t rand = h._hash[0];
+         slot = 1;
+         while(true)
+         {
+            if( (rand % 100) < miss_rate )
+            {
+               slot++;
+               rand = (rand/100) ^ h._hash[slot&3];
+               missed++;
+            } else {
+               //wdump( ("slot: ")(slot) );
+               break;
+            }
+         }
 
-      //    witness_id_type prev_witness = b.witness;
-      //    witness_id_type cur_witness = db.get_scheduled_witness(1);
-      //    if( verbose )
-      //    {
-      //       wdump( (prev_witness)(cur_witness) );
-      //    }
-      //    else if( (i%10000) == 0 )
-      //    {
-      //       std::cerr << "\rblock #" << i << "   missed " << missed;
-      //    }
-      //    if( slot == 1 )  // can possibly get consecutive production if block missed
-      //    {
-      //       FC_ASSERT( cur_witness != prev_witness );
-      //    }
-      // }
-      // std::cerr << "\n";
-      // db.close();
+         witness_id_type prev_witness = b.witness;
+         witness_id_type cur_witness = db.get_scheduled_witness(1);
+         if( verbose )
+         {
+            wdump( (prev_witness)(cur_witness) );
+         }
+         else if( (i%10000) == 0 )
+         {
+            std::cerr << "\rblock #" << i << "   missed " << missed;
+         }
+         if( slot == 1 )  // can possibly get consecutive production if block missed
+         {
+            FC_ASSERT( cur_witness != prev_witness );
+         }
+      }
+      std::cerr << "\n";
+      db.close();
    }
    catch ( const fc::exception& e )
    {
