@@ -2042,50 +2042,73 @@ public:
                   op.contract_id = contract.id;
                   op.function_name = function_name;
                   op.value_list = value_list;
-
                   signed_transaction tx;
                   tx.operations.push_back(op);
-
-                  contract_share_operation op1;
-
-                  op1.sharer = contract.owner;
-
-
-                  tx.operations.push_back(op1);
                   tx.validate();
 
                   auto ret = sign_transaction(tx, broadcast);
 
                   auto id = ret.id().str();
- 
+                  fc::exception_ptr exp;
+		  bool share_success = false;
                   printf("++++++++++++++++++the id of tx is++++++++++++++:%s\n",id.c_str());
-                  boost::thread apply_transaction_thread([&]() {
-                  try
-                  {
-                        usleep(10000000);
+                  fc::microseconds now, start = fc::time_point::now().time_since_epoch();
+		  
+			printf("+++in theread 1++");
+                        
                         auto query_tx = ptr->get_transaction_by_id(id);
-                 
 
+			while(query_tx->operation_results.size() == 0)
+                        {
+				printf("+++in theread 2++");
+                                query_tx = ptr->get_transaction_by_id(id);
+			}
                         //auto contract_result = query_tx->operation_results[0].get<contract_result>();
                         auto tmp = query_tx->operation_results[0];
                         auto tmp1 = tmp.get<contract_result>();
-                        
-                        wlog("+++11111 ${x}", ("x",tmp1.fees));
-                        printf("++++++++");
-                        /* for (auto obj : query_tx->operation_results)
+
+                        //wlog("+++11111 ${x}", ("x",tmp1.fees));
+                        printf("+++in theread++");
+			auto fees = tmp1.fees;
+                        for(auto fee:*fees)
                         {
-                        obj->
-                             wlog("+++11111 ${x}", ("x", obj));
-                        
-			     // printf("enter here share op,obj:%x\n",obj);
-			}*/
+                                printf("fee.amount:%d",fee.amount);
+                        }
+
+                        signed_transaction tx1;
+
+                        contract_share_operation op1;
+
+                        op1.sharer = contract.owner;
+                        tx1.operations.push_back(op1);
+                        tx1.validate();
+
+                        sign_transaction(tx, true);
+			share_success = true;
                   }
                   catch (fc::exception &e)
                   {
-                        //exp = e.dynamic_copy_exception(); //nico add 多线程父子进程异常传递，1, 拷贝异常
+                        exp = e.dynamic_copy_exception(); //nico add 多线程父子进程异常传递，1, 拷贝异常
                   }
-
-                  });
+		  });
+   		  /*do 
+		  {   
+		       usleep(100); //主线程超时检测，检测间隔0.1毫秒,子线程平均执行时间为0.5毫秒        
+		       now = fc::time_point::now().time_since_epoch();   
+ 	    	  } while (now.count() - start.count() <= 2000 && (!share_success));*/
+		  if(exp)
+		  {
+			share_thread.interrupt();
+ 			share_thread.join();
+			printf("++1 join++");
+			//exp->dynamic_rethrow_exception();
+		  }
+		  if(!share_success)
+		   {
+                        share_thread.interrupt();
+                        share_thread.join();
+                        printf("++2 join++");
+                  }
 
                   return ret;
             }

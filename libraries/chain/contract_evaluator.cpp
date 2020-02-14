@@ -51,7 +51,7 @@ void_result contract_share_evaluator::do_evaluate(const operation_type &o)
 }
 void_result contract_share_evaluator::do_apply(const operation_type &o)
 {
-   printf("++++contract_share_operation in do_apply:++++++");
+   printf("++++contract_share_operation in do_apply:++++++\n");
    //db().adjust_balances(o.sharer,-1000);
    return void_result(); 
 }
