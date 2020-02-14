@@ -89,6 +89,7 @@ class generic_evaluator
 
     database &db() const;
     transaction_evaluation_state *trx_state;
+  
     operation_result result;
     operation_fee_visitor fee_visitor;
 

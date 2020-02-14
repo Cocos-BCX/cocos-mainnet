@@ -61,10 +61,12 @@ namespace graphene { namespace chain {
          uint32_t price_per_millisecond=10 * GRAPHENE_BLOCKCHAIN_PRECISION;
       };
       account_id_type       caller;       // 合约调用者
+      account_id_type       creator;
       contract_id_type      contract_id;  // 合约ID
       string                function_name;// 目标函数名
       vector<lua_types>     value_list;   // 参数列表
       extensions_type       extensions;   
+      double                amount;
       account_id_type       fee_payer()const { return caller; }
       void                  validate()const
       {
@@ -93,22 +95,20 @@ namespace graphene { namespace chain {
    struct contract_share_operation : public base_operation
    {
      struct fee_parameters_type {
-         uint64_t fee       = 0 * GRAPHENE_BLOCKCHAIN_PRECISION;
+         uint64_t fee       = 10 * GRAPHENE_BLOCKCHAIN_PRECISION;
       };
       account_id_type       sharer;       // 费用承担者
       
+ 
       account_id_type       fee_payer()const { return sharer; }
       void                  validate()const
       {
                                             //后期考虑加入合约权限
       }
-      uint64_t calculate_run_time_fee( uint64_t run_time_by_us, uint64_t price_per_millisecond )const
-      {
-        return 0;
-      }
       share_type      calculate_fee(const fee_parameters_type& schedule)const
       {
-        return 0;
+        share_type core_fee_required = schedule.fee;
+        return core_fee_required;
       };
    };
 }} // graphene::chain

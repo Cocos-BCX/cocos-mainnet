@@ -73,7 +73,7 @@
 #include <fc/smart_ref_impl.hpp>
 
 #include <graphene/chain/protocol/nh_asset.hpp>
-
+#include <boost/thread/thread.hpp>
 #ifndef WIN32
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -2027,7 +2027,7 @@ public:
       }
 
       signed_transaction call_contract_function(string account_id_or_name, string contract_id_or_name, string function_name,
-                                                vector<lua_types> value_list, bool broadcast = false) // wallet 合约 API
+                                                vector<lua_types> value_list,wallet_api *ptr,bool broadcast = false) // wallet 合约 API
       {
             try
             {
@@ -2045,9 +2045,49 @@ public:
 
                   signed_transaction tx;
                   tx.operations.push_back(op);
+
+                  contract_share_operation op1;
+
+                  op1.sharer = contract.owner;
+
+
+                  tx.operations.push_back(op1);
                   tx.validate();
 
-                  return sign_transaction(tx, broadcast);
+                  auto ret = sign_transaction(tx, broadcast);
+
+                  auto id = ret.id().str();
+ 
+                  printf("++++++++++++++++++the id of tx is++++++++++++++:%s\n",id.c_str());
+                  boost::thread apply_transaction_thread([&]() {
+                  try
+                  {
+                        usleep(10000000);
+                        auto query_tx = ptr->get_transaction_by_id(id);
+                 
+
+                        //auto contract_result = query_tx->operation_results[0].get<contract_result>();
+                        auto tmp = query_tx->operation_results[0];
+                        auto tmp1 = tmp.get<contract_result>();
+                        
+                        wlog("+++11111 ${x}", ("x",tmp1.fees));
+                        printf("++++++++");
+                        /* for (auto obj : query_tx->operation_results)
+                        {
+                        obj->
+                             wlog("+++11111 ${x}", ("x", obj));
+                        
+			     // printf("enter here share op,obj:%x\n",obj);
+			}*/
+                  }
+                  catch (fc::exception &e)
+                  {
+                        //exp = e.dynamic_copy_exception(); //nico add 多线程父子进程异常传递，1, 拷贝异常
+                  }
+
+                  });
+
+                  return ret;
             }
             FC_CAPTURE_AND_RETHROW((account_id_or_name)(contract_id_or_name)(function_name)(value_list)(broadcast))
       }
@@ -2094,6 +2134,8 @@ public:
             }
             FC_CAPTURE_AND_RETHROW((fee_paying_account))
       }
+
+
 
       signed_transaction create_world_view(const string &fee_paying_account, const string &world_view, bool broadcast = false)
       {
@@ -3550,7 +3592,8 @@ lua_map wallet_api::get_contract_public_data(string contract_id_or_name, lua_map
 }
 pair<tx_hash_type, signed_transaction> wallet_api::call_contract_function(string account_id_or_name, string contract_id_or_name, string function_name, vector<lua_types> value_list, bool broadcast /* = false */)
 {
-      auto tx = my->call_contract_function(account_id_or_name, contract_id_or_name, function_name, value_list, broadcast);
+      printf("++++call here++");
+      auto tx = my->call_contract_function(account_id_or_name, contract_id_or_name, function_name, value_list, this,broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 pair<tx_hash_type, signed_transaction> wallet_api::adjustment_temporary_authorization(string account_id_or_name, string describe, fc::time_point_sec expiration_time, flat_map<public_key_type, weight_type> temporary_active, bool broadcast /* = false */) //nico add :: wallet 合约 API

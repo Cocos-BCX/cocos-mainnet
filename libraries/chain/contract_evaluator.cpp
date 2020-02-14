@@ -1,5 +1,8 @@
 #include <graphene/chain/contract_evaluator.hpp>
 #include <graphene/chain/database.hpp>
+//#include <fc/rpc/websocket_api.hpp>
+//#include <fc/network/http/websocket.hpp>
+//#include <graphene/wallet/wallet.hpp>
 namespace graphene
 {
 
@@ -44,13 +47,13 @@ object_id_result contract_create_evaluator::do_apply(const operation_type &o)
 
 void_result contract_share_evaluator::do_evaluate(const operation_type &o)
 {
-
     return void_result(); //TODO: add verification in future
 }
-object_id_result contract_share_evaluator::do_apply(const operation_type &o)
+void_result contract_share_evaluator::do_apply(const operation_type &o)
 {
-   int i = 0;
-   i++;
+   printf("++++contract_share_operation in do_apply:++++++");
+   //db().adjust_balances(o.sharer,-1000);
+   return void_result(); 
 }
 
 
@@ -148,12 +151,14 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     contract_id_type db_index = result.contract_id;
     database &_db = db();
     const contract_object &contract_obj = db_index(_db);
-    
+     
+    result.sharer = contract_obj.owner; 
     auto user_invoke_share_fee =  core_fee_paid* contract_obj.user_invoke_share_percent/100;
     user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
     core_fee_paid = user_invoke_share_fee;
-    printf("user_invoke_share_fee :%d\n",user_invoke_share_fee.value);
-    printf("user_invoke_creator_fee :%d\n",user_invoke_creator_fee.value);
+    printf("--user_invoke_share_fee :%d\n",user_invoke_share_fee.value);
+    printf("--user_invoke_creator_fee :%d\n",user_invoke_creator_fee.value);
+
 }
 
 void call_contract_function_evaluator::contract_creator_pay_fee(contract_result &result)
@@ -162,7 +167,24 @@ void call_contract_function_evaluator::contract_creator_pay_fee(contract_result 
     database &_db = db();
     const contract_object &contract_obj = db_index(_db);
 
-    this->db_adjust_balance(contract_obj.owner,-user_invoke_creator_fee);
+    contract_share_operation op;
+
+    op.sharer = contract_obj.owner;
+    //op.amount = user_invoke_creator_fee;
+
+    signed_transaction tx;
+    tx.operations.push_back(op);
+
+
+    auto dyn_props = _db.get_dynamic_global_properties();
+    uint32_t expiration_time_offset = 1200;
+    tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
+
+    //tx.validate();
+    
+    //_db.push_transaction(tx,database::skip_transaction_signatures,transaction_push_state::from_me);
+    //fc::api<network_broadcast_api> _broadcast;
+
 }
 
 contract_result call_contract_function_evaluator::do_apply_function(account_id_type caller, string function_name,vector<lua_types> value_list, transaction_apply_mode run_mode,

@@ -19,7 +19,7 @@ class contract_share_evaluator : public evaluator<contract_share_evaluator>
   public:
     typedef contract_share_operation operation_type;
     void_result do_evaluate(const operation_type &o);
-    object_id_result do_apply(const operation_type &o);
+    void_result do_apply(const operation_type &o);
 };
 
 class call_contract_function_evaluator : public evaluator<call_contract_function_evaluator>
