@@ -34,7 +34,7 @@
 #include <graphene/chain/market_object.hpp>
 #include <graphene/chain/transaction_object.hpp>
 #include <graphene/chain/worker_object.hpp>
-
+#include <thread>
 #include <fc/crypto/hex.hpp>
 #include <fc/smart_ref_impl.hpp>
 #include <fc/thread/future.hpp>
@@ -176,10 +176,10 @@ tx_hash_type network_broadcast_api::broadcast_transaction(const signed_transacti
 fc::variant network_broadcast_api::broadcast_transaction_synchronous(const signed_transaction &trx)
 {
   fc::promise<fc::variant>::ptr prom(new fc::promise<fc::variant>());
-  broadcast_transaction_with_callback([=](const fc::variant &v) {
+   /*  broadcast_transaction_with_callback([=](const fc::variant &v) {
     prom->set_value(v);
   },
-                                      trx);
+                                    trx);*/
 
   return fc::future<fc::variant>(prom).wait();
 }
@@ -190,15 +190,81 @@ void network_broadcast_api::broadcast_block(const signed_block &b)
   _app.p2p_node()->broadcast(net::block_message(b));
 }
 
+void share(application *_app,string id)
+{
+  printf("in share thread 1\n");
+
+  usleep(2000000);
+  int ret = -1;
+  auto info = _app->chain_database()->get_transaction_in_block_info(id,ret);
+  
+  while(ret == 0)
+  {
+    usleep(2000000);
+    printf("+++in while sleep 2s+++\n");
+    info = _app->chain_database()->get_transaction_in_block_info(id,ret);
+  }
+
+  auto block = _app->chain_database()->fetch_block_by_number(info.block_num);
+  contract_id_type contract_id;
+  asset share_amount;
+ 
+  for(auto tx : block->transactions)
+  {
+    auto processed_tx = tx.second;
+
+    for(auto op :processed_tx.operation_results)
+    {
+      auto contract_ret = op.get<contract_result>();
+      contract_id = contract_ret.contract_id;
+      auto fees0 = contract_ret.fees;
+      auto fees = *fees0;
+      ilog("got fees in op_results ${x}", ("x", fees));
+      share_amount = fees[0].amount;
+    }
+  }
+  auto &con_index = _app->chain_database()->get_index_type<contract_index>().indices().get<by_id>();
+  auto contract_itr = con_index.find(contract_id);
+
+  contract_object contract = *contract_itr;
+
+  signed_transaction tx1;
+  contract_share_operation op1;
+  op1.sharer = contract.owner;
+
+  auto tmp = share_amount.amount*(100-contract.user_invoke_share_percent);
+  auto fee = tmp/contract.user_invoke_share_percent;
+
+  op1.amount = fee;
+
+  ilog("after compute fees in op_share ${x}", ("x", op1.amount));
+  tx1.operations.push_back(op1);
+
+  auto dyn_props = _app->chain_database()->get_dynamic_global_properties();
+  uint32_t expiration_time_offset = 1200;
+  tx1.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
+
+  _app->chain_database()->push_transaction(tx1, database::skip_transaction_signatures, transaction_push_state::from_me);
+  _app->p2p_node()->broadcast_transaction(tx1);
+}
+
 void network_broadcast_api::broadcast_transaction_with_callback(confirmation_callback cb, const signed_transaction &trx)
 {
   FC_ASSERT(maybe_allow_transaction, "The current network quality is poor, and any transaction will be refused. \
       node appears to be on a minority fork with only ${pct}/10000 witness participation",
             ("pct", participating));
+
   _app.chain_database()->push_transaction(trx, 0, transaction_push_state::from_me);
   auto hash = trx.hash();
   _callbacks[hash] = cb;
   _app.p2p_node()->broadcast_transaction(trx);
+
+  auto id = trx.id().str();
+  ilog("++ hash in net trx ${x}", ("x", hash));
+   
+  std::thread share_thread(share,&_app,hash.str());
+
+  share_thread.detach();
 }
 
 network_node_api::network_node_api(application &a, bool enable_set) : _app(a), enable_set(enable_set)

@@ -29,7 +29,7 @@
 #include <sstream>
 #include <string>
 #include <list>
-
+#include <thread>
 #include <boost/version.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -2046,74 +2046,12 @@ public:
                   tx.operations.push_back(op);
                   tx.validate();
 
-                  auto ret = sign_transaction(tx, broadcast);
-
-                  auto id = ret.id().str();
-                  fc::exception_ptr exp;
-		  bool share_success = false;
-                  printf("++++++++++++++++++the id of tx is++++++++++++++:%s\n",id.c_str());
-                  fc::microseconds now, start = fc::time_point::now().time_since_epoch();
-		  
-			printf("+++in theread 1++");
-                        
-                        auto query_tx = ptr->get_transaction_by_id(id);
-
-			while(query_tx->operation_results.size() == 0)
-                        {
-				printf("+++in theread 2++");
-                                query_tx = ptr->get_transaction_by_id(id);
-			}
-                        //auto contract_result = query_tx->operation_results[0].get<contract_result>();
-                        auto tmp = query_tx->operation_results[0];
-                        auto tmp1 = tmp.get<contract_result>();
-
-                        //wlog("+++11111 ${x}", ("x",tmp1.fees));
-                        printf("+++in theread++");
-			auto fees = tmp1.fees;
-                        for(auto fee:*fees)
-                        {
-                                printf("fee.amount:%d",fee.amount);
-                        }
-
-                        signed_transaction tx1;
-
-                        contract_share_operation op1;
-
-                        op1.sharer = contract.owner;
-                        tx1.operations.push_back(op1);
-                        tx1.validate();
-
-                        sign_transaction(tx, true);
-			share_success = true;
-                  }
-                  catch (fc::exception &e)
-                  {
-                        exp = e.dynamic_copy_exception(); //nico add 多线程父子进程异常传递，1, 拷贝异常
-                  }
-		  });
-   		  /*do 
-		  {   
-		       usleep(100); //主线程超时检测，检测间隔0.1毫秒,子线程平均执行时间为0.5毫秒        
-		       now = fc::time_point::now().time_since_epoch();   
- 	    	  } while (now.count() - start.count() <= 2000 && (!share_success));*/
-		  if(exp)
-		  {
-			share_thread.interrupt();
- 			share_thread.join();
-			printf("++1 join++");
-			//exp->dynamic_rethrow_exception();
-		  }
-		  if(!share_success)
-		   {
-                        share_thread.interrupt();
-                        share_thread.join();
-                        printf("++2 join++");
-                  }
-
-                  return ret;
+                  return sign_transaction(tx, broadcast);
             }
             FC_CAPTURE_AND_RETHROW((account_id_or_name)(contract_id_or_name)(function_name)(value_list)(broadcast))
       }
+     
+     
 
       signed_transaction adjustment_temporary_authorization(string account_id_or_name, string describe, fc::time_point_sec expiration_time,
                                                             flat_map<public_key_type, weight_type> temporary_active, bool broadcast = false) //nico add :: wallet 合约 API
