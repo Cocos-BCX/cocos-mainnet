@@ -58,7 +58,7 @@ using std::cout;
 using std::cerr;
 
 database_fixture::database_fixture()
-   : app()
+:app()
 {
    try {
       wlog("1. database_fixture start");
@@ -73,15 +73,15 @@ database_fixture::database_fixture()
          if( arg == "--show-test-names" )
             std::cout << "running test " << boost::unit_test::framework::current_test_case().p_name << std::endl;
       }
-
       wlog("2. database_fixture plugins");
       // plugins
-      // auto ahplugin = app.register_plugin<graphene::account_history::account_history_plugin>();
-      // auto mhplugin = app.register_plugin<graphene::market_history::market_history_plugin>();
+      auto ahplugin = app.register_plugin<graphene::account_history::account_history_plugin>();
+      auto mhplugin = app.register_plugin<graphene::market_history::market_history_plugin>();
 
       init_account_pub_key = init_account_priv_key.get_public_key();
       boost::program_options::variables_map options;
-      //options.emplace("op_maxsize_proportion_percent", boost::program_options::variable_value(int(2), false));
+      // options.insert("op_maxsize_proportion_percent",
+      //                 boost::program_options::variable_value(int(2), false));
       options.insert(std::make_pair("bucket-size",
                      boost::program_options::variable_value(string("[15]"), false)));
 
@@ -102,37 +102,34 @@ database_fixture::database_fixture()
       }
       genesis_state.initial_parameters.current_fees->zero_all_fees();
 
-      wlog("open_database before");
+      wlog("open database");
       // open_database(options);
+      bool is_open_db = false;
+      if( !data_dir ) {
+         data_dir = fc::temp_directory( graphene::utilities::temp_directory_path() );
+         is_open_db = true;
+      }
       app.initialize_db(data_dir->path(), options);
       db = app.chain_database();
-      db->open(data_dir->path(), [this]{return genesis_state;}, "test" );
+      if(is_open_db) {
+         db->open(data_dir->path(), [this]{return genesis_state;}, "test");
+      }
+
+      ahplugin->plugin_set_app(&app);
+      ahplugin->plugin_initialize(options);
+
+      options.insert(std::make_pair("bucket-size",
+                                    boost::program_options::variable_value(string("[15]"), false)));
+      mhplugin->plugin_set_app(&app);
+      mhplugin->plugin_initialize(options);
+
+      ahplugin->plugin_startup();
+      mhplugin->plugin_startup();
+
+      wlog("4. database_fixture generate_block");
       generate_block();
       set_expiration( db.get(), trx );
-
-      wlog("4. database_fixture app.initialize");
-      // app.initialize_db(data_dir->path(), options);
-      // app.initialize(options);
-      // app.initialize_plugins( options );
-      // app.startup();   //节点网络初始化
-      // app.startup_plugins(); //插件初始化
-
-      // ahplugin->plugin_set_app(&app);
-      // ahplugin->plugin_initialize(options);
-
-      // options.insert(std::make_pair("bucket-size", 
-      //                               boost::program_options::variable_value(string("[15]"), false)));
-      // mhplugin->plugin_set_app(&app);
-      // mhplugin->plugin_initialize(options);
-
-      // ahplugin->plugin_startup();
-      // mhplugin->plugin_startup();
-
-      // wlog("5. database_fixture generate_block");
-      // generate_block();
-
-      // set_expiration( db.get(), trx );
-   } 
+   }
    catch ( const fc::exception& e )
    {
       edump( (e.to_detail_string()) );

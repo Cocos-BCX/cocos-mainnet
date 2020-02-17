@@ -104,8 +104,10 @@ int main( int argc, char** argv )
          read_file_contents( genesis_json_filename, genesis_json );
          genesis = fc::json::from_string( genesis_json ).as< genesis_state_type >();
       }
-      else
+      else {
+         wdump(("use default genesis generate by create_example_genesis()"));
          genesis = graphene::app::detail::create_example_genesis();
+      }
       uint32_t timestamp = options["genesis-time"].as<uint32_t>();
       if( timestamp != 0 )
       {

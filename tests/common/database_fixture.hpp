@@ -28,7 +28,7 @@
 #include <fc/io/json.hpp>
 #include <fc/smart_ref_impl.hpp>
 #include <fc/safe.hpp>
-
+#include <graphene/witness/witness.hpp>
 #include <graphene/chain/operation_history_object.hpp>
 #include <graphene/market_history/market_history_plugin.hpp>
 #include <graphene/utilities/tempdir.hpp>
@@ -165,7 +165,7 @@ extern uint32_t GRAPHENE_TESTING_GENESIS_TIMESTAMP;
          如果要求更高效率，可使用BOOST_PP_SEQ_FOR_EACH_R
 */
 
-namespace graphene { 
+namespace graphene {
    namespace chain {
       struct database_fixture {
          // the reason we use an app is to exercise the indexes of built-in plugins
@@ -180,7 +180,7 @@ namespace graphene {
          fc::ecc::private_key init_account_priv_key = fc::ecc::private_key::regenerate(
             fc::sha256::hash(string("null_key")) );
          public_key_type init_account_pub_key;
-         optional<fc::temp_directory> data_dir = fc::temp_directory(graphene::utilities::temp_directory_path());
+         optional<fc::temp_directory> data_dir; //= fc::temp_directory(graphene::utilities::temp_directory_path());
          bool skip_key_index_test = false;
          uint32_t anon_acct_count;
 

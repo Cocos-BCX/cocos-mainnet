@@ -76,12 +76,10 @@ BOOST_AUTO_TEST_CASE( serialization_json_test )
 
 BOOST_AUTO_TEST_CASE( json_tests )
 {
-   try 
-   {
+   try {
       auto var = fc::json::variants_from_string( "10.6 " );
       var = fc::json::variants_from_string( "10.5" );
-   } catch ( const fc::exception& e )
-   {
+   } catch ( const fc::exception& e ) {
       edump((e.to_detail_string()));
       throw;
    }
@@ -89,8 +87,7 @@ BOOST_AUTO_TEST_CASE( json_tests )
 
 BOOST_AUTO_TEST_CASE( extended_private_key_type_test )
 {
-   try
-   {
+   try {
      fc::ecc::extended_private_key key = fc::ecc::extended_private_key( fc::ecc::private_key::generate(),
                                                                        fc::sha256(),
                                                                        0, 0, 0 );
@@ -98,8 +95,7 @@ BOOST_AUTO_TEST_CASE( extended_private_key_type_test )
       std::string packed = std::string( type );
       extended_private_key_type unpacked = extended_private_key_type( packed );
       BOOST_CHECK( type == unpacked );
-   } catch ( const fc::exception& e )
-   {
+   } catch ( const fc::exception& e ) {
       edump((e.to_detail_string()));
       throw;
    }
@@ -107,8 +103,7 @@ BOOST_AUTO_TEST_CASE( extended_private_key_type_test )
 
 BOOST_AUTO_TEST_CASE( extended_public_key_type_test )
 {
-   try
-   {
+   try {
       fc::ecc::extended_public_key key = fc::ecc::extended_public_key( fc::ecc::private_key::generate().get_public_key(),
                                                                        fc::sha256(),
                                                                        0, 0, 0 );
