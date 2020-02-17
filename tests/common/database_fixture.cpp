@@ -61,7 +61,9 @@ database_fixture::database_fixture()
 :app()
 {
    try {
-      wlog("1. database_fixture start");
+      auto current_test_name = boost::unit_test::framework::current_test_case().p_name.value;
+      ilog("current_test_name: " + current_test_name);
+      ilog("1. database_fixture start");
       int argc = boost::unit_test::framework::master_test_suite().argc;
       char** argv = boost::unit_test::framework::master_test_suite().argv;
       for( int i=1; i<argc; i++ )
@@ -73,26 +75,24 @@ database_fixture::database_fixture()
          if( arg == "--show-test-names" )
             std::cout << "running test " << boost::unit_test::framework::current_test_case().p_name << std::endl;
       }
-      wlog("2. database_fixture plugins");
-      // plugins
+
+      ilog("2. database_fixture plugins");
       auto ahplugin = app.register_plugin<graphene::account_history::account_history_plugin>();
       auto mhplugin = app.register_plugin<graphene::market_history::market_history_plugin>();
 
       init_account_pub_key = init_account_priv_key.get_public_key();
       boost::program_options::variables_map options;
-      // options.insert("op_maxsize_proportion_percent",
-      //                 boost::program_options::variable_value(int(2), false));
       options.insert(std::make_pair("bucket-size",
                      boost::program_options::variable_value(string("[15]"), false)));
+      options.insert(std::make_pair("op_maxsize_proportion_percent",
+                     boost::program_options::variable_value((uint32_t)2, false)));
 
-      wlog("3. database_fixture genesis_state");
-      // genesis_state
+      ilog("3. database_fixture genesis_state");
       genesis_state.initial_timestamp = time_point_sec( GRAPHENE_TESTING_GENESIS_TIMESTAMP );
       genesis_state.initial_active_witnesses = 11;
       for( unsigned int i = 0; i < genesis_state.initial_active_witnesses; ++i )
       {
          auto name = "init"+fc::to_string(i);
-         // wlog("[initial_active_witnesses] name: " + name);
          genesis_state.initial_accounts.emplace_back(name,
                                                    init_account_priv_key.get_public_key(),
                                                    init_account_priv_key.get_public_key(),
@@ -102,8 +102,7 @@ database_fixture::database_fixture()
       }
       genesis_state.initial_parameters.current_fees->zero_all_fees();
 
-      wlog("open database");
-      // open_database(options);
+      ilog("4. initialize database and plugins");
       bool is_open_db = false;
       if( !data_dir ) {
          data_dir = fc::temp_directory( graphene::utilities::temp_directory_path() );
@@ -118,15 +117,13 @@ database_fixture::database_fixture()
       ahplugin->plugin_set_app(&app);
       ahplugin->plugin_initialize(options);
 
-      options.insert(std::make_pair("bucket-size",
-                                    boost::program_options::variable_value(string("[15]"), false)));
       mhplugin->plugin_set_app(&app);
       mhplugin->plugin_initialize(options);
 
       ahplugin->plugin_startup();
       mhplugin->plugin_startup();
 
-      wlog("4. database_fixture generate_block");
+      ilog("5. database_fixture generate_block");
       generate_block();
       set_expiration( db.get(), trx );
    }
@@ -779,7 +776,7 @@ void database_fixture::transfer(
    {
       auto transfer_asset = amount.asset_id(*db);
       auto from_balances = db->get_balance(from, transfer_asset);
-      wdump((from_balances));
+      idump((from_balances));
       set_expiration( db.get(), trx );
       transfer_operation trans;
       trans.from = from.id;
