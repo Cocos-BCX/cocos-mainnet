@@ -192,8 +192,6 @@ void network_broadcast_api::broadcast_block(const signed_block &b)
 
 void share(application *_app,string id)
 {
-  printf("in share thread 1\n");
-
   usleep(2000000);
   int ret = -1;
   auto info = _app->chain_database()->get_transaction_in_block_info(id,ret);
@@ -201,7 +199,6 @@ void share(application *_app,string id)
   while(ret == 0)
   {
     usleep(2000000);
-    printf("+++in while sleep 2s+++\n");
     info = _app->chain_database()->get_transaction_in_block_info(id,ret);
   }
 
@@ -209,6 +206,7 @@ void share(application *_app,string id)
   contract_id_type contract_id;
   asset share_amount;
  
+
   for(auto tx : block->transactions)
   {
     auto processed_tx = tx.second;
@@ -217,9 +215,8 @@ void share(application *_app,string id)
     {
       auto contract_ret = op.get<contract_result>();
       contract_id = contract_ret.contract_id;
-      auto fees0 = contract_ret.fees;
-      auto fees = *fees0;
-      ilog("got fees in op_results ${x}", ("x", fees));
+      auto fees = *contract_ret.fees;
+      //ilog("got fees in op_results ${x}", ("x", fees));
       share_amount = fees[0].amount;
     }
   }
@@ -232,12 +229,12 @@ void share(application *_app,string id)
   contract_share_operation op1;
   op1.sharer = contract.owner;
 
-  auto tmp = share_amount.amount*(100-contract.user_invoke_share_percent);
+  auto tmp = share_amount.amount*(GRAPHENE_FULL_PROPOTION-contract.user_invoke_share_percent);
   auto fee = tmp/contract.user_invoke_share_percent;
 
   op1.amount = fee;
 
-  ilog("after compute fees in op_share ${x}", ("x", op1.amount));
+  //ilog("after compute fees in op_share ${x}", ("x", op1.amount));
   tx1.operations.push_back(op1);
 
   auto dyn_props = _app->chain_database()->get_dynamic_global_properties();
@@ -259,12 +256,15 @@ void network_broadcast_api::broadcast_transaction_with_callback(confirmation_cal
   _callbacks[hash] = cb;
   _app.p2p_node()->broadcast_transaction(trx);
 
-  auto id = trx.id().str();
-  ilog("++ hash in net trx ${x}", ("x", hash));
-   
-  std::thread share_thread(share,&_app,hash.str());
-
-  share_thread.detach();
+  for(operation tx_op:trx.operations)
+  {
+    if(tx_op.which() == operation::tag<call_contract_function_operation>::value)
+    {
+       printf("detect call_contract_function_operation,create thread to share fee op");
+       std::thread share_thread(share,&_app,hash.str());
+       share_thread.detach();
+    }
+  }
 }
 
 network_node_api::network_node_api(application &a, bool enable_set) : _app(a), enable_set(enable_set)

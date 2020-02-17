@@ -156,8 +156,8 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     auto user_invoke_share_fee =  core_fee_paid* contract_obj.user_invoke_share_percent/100;
     user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
     core_fee_paid = user_invoke_share_fee;
-    printf("--user_invoke_share_fee :%d\n",user_invoke_share_fee.value);
-    printf("--user_invoke_creator_fee :%d\n",user_invoke_creator_fee.value);
+    //printf("--user_invoke_share_fee :%d\n",user_invoke_share_fee.value);
+    //printf("--user_invoke_creator_fee :%d\n",user_invoke_creator_fee.value);
 
 }
 

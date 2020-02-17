@@ -1335,7 +1335,6 @@ class wallet_api
     pair<tx_hash_type, signed_transaction> register_nh_asset_creator(const string &fee_paying_account, bool broadcast = false);
     // create a world view
     pair<tx_hash_type, signed_transaction> create_world_view(const string &fee_paying_account, const string &world_view, bool broadcast = false);
-invoke_share
     // propose relate to a world view
     pair<tx_hash_type, signed_transaction> propose_relate_world_view(const string &proposing_account,
                                                                      fc::time_point_sec expiration_time, const string &world_view_owner,
