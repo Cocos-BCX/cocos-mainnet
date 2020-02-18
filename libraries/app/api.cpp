@@ -188,13 +188,14 @@ void network_broadcast_api::broadcast_block(const signed_block &b)
 
 void share(application *_app,string id)
 {
-  usleep(2000000); //first sleep 2 s,wait tx had  pushed in block
+  auto sleep_seconds = _app->chain_database()->get_global_properties().parameters.block_interval;
+  sleep(sleep_seconds); //first sleep block inteval ,wait tx had  pushed in block
   int ret = -1;
   auto info = _app->chain_database()->get_transaction_in_block_info(id,ret);
   
   while(ret == 0)
   {
-    usleep(100000); //wait another 100 ms,for  not query success
+    sleep(sleep_seconds); //wait another block inteval,for  not query success
     info = _app->chain_database()->get_transaction_in_block_info(id,ret);
   }
 

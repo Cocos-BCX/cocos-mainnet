@@ -1,8 +1,6 @@
 #include <graphene/chain/contract_evaluator.hpp>
 #include <graphene/chain/database.hpp>
-//#include <fc/rpc/websocket_api.hpp>
-//#include <fc/network/http/websocket.hpp>
-//#include <graphene/wallet/wallet.hpp>
+
 namespace graphene
 {
 
