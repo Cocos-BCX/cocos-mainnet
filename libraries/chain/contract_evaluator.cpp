@@ -161,31 +161,6 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
 
 }
 
-void call_contract_function_evaluator::contract_creator_pay_fee(contract_result &result)
-{
-    contract_id_type db_index = result.contract_id;
-    database &_db = db();
-    const contract_object &contract_obj = db_index(_db);
-
-    contract_share_operation op;
-
-    op.sharer = contract_obj.owner;
-    //op.amount = user_invoke_creator_fee;
-
-    signed_transaction tx;
-    tx.operations.push_back(op);
-
-
-    auto dyn_props = _db.get_dynamic_global_properties();
-    uint32_t expiration_time_offset = 1200;
-    tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
-
-    //tx.validate();
-    
-    //_db.push_transaction(tx,database::skip_transaction_signatures,transaction_push_state::from_me);
-    //fc::api<network_broadcast_api> _broadcast;
-
-}
 
 contract_result call_contract_function_evaluator::do_apply_function(account_id_type caller, string function_name,vector<lua_types> value_list, transaction_apply_mode run_mode,
                                                                     optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys,contract_id_type  contract_id)
