@@ -29,7 +29,7 @@
 #include <sstream>
 #include <string>
 #include <list>
-#include <thread>
+
 #include <boost/version.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -73,7 +73,7 @@
 #include <fc/smart_ref_impl.hpp>
 
 #include <graphene/chain/protocol/nh_asset.hpp>
-#include <boost/thread/thread.hpp>
+
 #ifndef WIN32
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -3553,7 +3553,6 @@ lua_map wallet_api::get_contract_public_data(string contract_id_or_name, lua_map
 }
 pair<tx_hash_type, signed_transaction> wallet_api::call_contract_function(string account_id_or_name, string contract_id_or_name, string function_name, vector<lua_types> value_list, bool broadcast /* = false */)
 {
-      printf("++++call here++");
       auto tx = my->call_contract_function(account_id_or_name, contract_id_or_name, function_name, value_list, this,broadcast);
       return std::make_pair(tx.hash(), tx);
 }

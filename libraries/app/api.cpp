@@ -176,10 +176,6 @@ tx_hash_type network_broadcast_api::broadcast_transaction(const signed_transacti
 fc::variant network_broadcast_api::broadcast_transaction_synchronous(const signed_transaction &trx)
 {
   fc::promise<fc::variant>::ptr prom(new fc::promise<fc::variant>());
-   /*  broadcast_transaction_with_callback([=](const fc::variant &v) {
-    prom->set_value(v);
-  },
-                                    trx);*/
 
   return fc::future<fc::variant>(prom).wait();
 }
@@ -192,20 +188,19 @@ void network_broadcast_api::broadcast_block(const signed_block &b)
 
 void share(application *_app,string id)
 {
-  usleep(2000000);
+  usleep(2000000); //first sleep 2 s,wait tx had  pushed in block
   int ret = -1;
   auto info = _app->chain_database()->get_transaction_in_block_info(id,ret);
   
   while(ret == 0)
   {
-    usleep(2000000);
+    usleep(100000); //wait another 100 ms,for  not query success
     info = _app->chain_database()->get_transaction_in_block_info(id,ret);
   }
 
   auto block = _app->chain_database()->fetch_block_by_number(info.block_num);
   contract_id_type contract_id;
   asset share_amount;
- 
 
   for(auto tx : block->transactions)
   {
@@ -225,24 +220,25 @@ void share(application *_app,string id)
 
   contract_object contract = *contract_itr;
 
-  signed_transaction tx1;
-  contract_share_operation op1;
-  op1.sharer = contract.owner;
+  signed_transaction tx;
+  contract_share_operation op;
+  op.sharer = contract.owner;
 
+  //for got precisly result,must add tmp variabe 
   auto tmp = share_amount.amount*(GRAPHENE_FULL_PROPOTION-contract.user_invoke_share_percent);
   auto fee = tmp/contract.user_invoke_share_percent;
 
-  op1.amount = fee;
+  op.amount = fee;
 
   //ilog("after compute fees in op_share ${x}", ("x", op1.amount));
-  tx1.operations.push_back(op1);
+  tx.operations.push_back(op);
 
   auto dyn_props = _app->chain_database()->get_dynamic_global_properties();
-  uint32_t expiration_time_offset = 1200;
-  tx1.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
+  uint32_t expiration_time_offset = GRAPHENE_EXPIRATION_TIME_OFFSET;
+  tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
 
-  _app->chain_database()->push_transaction(tx1, database::skip_transaction_signatures, transaction_push_state::from_me);
-  _app->p2p_node()->broadcast_transaction(tx1);
+  _app->chain_database()->push_transaction(tx, database::skip_transaction_signatures, transaction_push_state::from_me);
+  _app->p2p_node()->broadcast_transaction(tx);
 }
 
 void network_broadcast_api::broadcast_transaction_with_callback(confirmation_callback cb, const signed_transaction &trx)
@@ -257,10 +253,10 @@ void network_broadcast_api::broadcast_transaction_with_callback(confirmation_cal
   _app.p2p_node()->broadcast_transaction(trx);
 
   for(operation tx_op:trx.operations)
-  {
+  {  
     if(tx_op.which() == operation::tag<call_contract_function_operation>::value)
     {
-       printf("detect call_contract_function_operation,create thread to share fee op");
+       ilog("create  thread share fee op ${x}", ("x", tx_op.which() == operation::tag<call_contract_function_operation>::value));
        std::thread share_thread(share,&_app,hash.str());
        share_thread.detach();
     }
