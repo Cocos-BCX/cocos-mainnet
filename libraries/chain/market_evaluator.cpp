@@ -336,7 +336,7 @@ object_id_result bid_collateral_evaluator::do_apply(const bid_collateral_operati
          if (o.debt_covered.amount == 0)
          return object_id_result(_bid->id);;
       }
-
+      FC_ASSERT(o.debt_covered.amount != 0);
       d.adjust_balance(o.bidder, -o.additional_collateral);
 
       _bid = &d.create<collateral_bid_object>([&](collateral_bid_object &bid) {

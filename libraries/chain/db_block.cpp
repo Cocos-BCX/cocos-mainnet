@@ -504,7 +504,10 @@ signed_block database::_generate_block(
 
     // TODO:  Move this to _push_block() so session is restored.
 
-    validate_block(pending_block, block_signing_private_key, skip | skip_authority_check | skip_merkle_check | skip_witness_signature); // push_transation , _apply_transaction , push_block 3次应用交易
+    uint skip_authority=skip_authority_check;
+    if(!deduce_in_verification_mode)
+       skip_authority=0;      
+    validate_block(pending_block, block_signing_private_key, skip | skip_authority | skip_merkle_check | skip_witness_signature); // push_transation , _apply_transaction , push_block 3次应用交易
     return pending_block;
   }
   FC_CAPTURE_AND_RETHROW((witness_id))
@@ -699,6 +702,7 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
     transaction_evaluation_state eval_state(this);
     eval_state._trx = &trx;
     eval_state.run_mode = run_mode;
+    eval_state.skip=skip;
     const crontab_object *temp_crontab = nullptr;
     if (!(skip & (skip_transaction_signatures | skip_authority_check)) || trx.agreed_task)
     {
