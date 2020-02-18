@@ -85,6 +85,7 @@ operation_result generic_evaluator::start_evaluate(transaction_evaluation_state 
           {
             static_cast<graphene::chain::call_contract_function_evaluator *>(this)->pay_fee_for_result(result.get<contract_result>());
             static_cast<graphene::chain::call_contract_function_evaluator *>(this)->contract_creator_pay_fee(result.get<contract_result>());
+
             FC_ASSERT(core_fee_paid.value < db().get_global_properties().parameters.current_fees->maximun_handling_fee);
           }
         }
