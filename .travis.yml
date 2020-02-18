@@ -1,7 +1,8 @@
 language: c++
 
-cache: ccache
+#cache: ccache
 cache:
+  ccache: ture
   timeout: 1800
 
 git:
