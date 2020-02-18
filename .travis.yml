@@ -1,6 +1,7 @@
 language: c++
 
 cache: ccache
+cache:
   timeout: 1800
 
 git:
