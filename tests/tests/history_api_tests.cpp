@@ -50,9 +50,9 @@ BOOST_AUTO_TEST_CASE(get_account_history) {
       graphene::app::history_api hist_api(app);
 
       //account_id_type() do 3 ops
-      create_bitasset("USD", account_id_type());
-      create_account("dan");
-      create_account("bob");
+      create_bitasset("USDT", account_id_type());
+      create_account("zebras");
+      create_account("antelope");
 
       generate_block();
       fc::usleep(fc::milliseconds(2000));
@@ -77,8 +77,8 @@ BOOST_AUTO_TEST_CASE(get_account_history) {
       BOOST_CHECK_EQUAL(histories.size(), 2);
       BOOST_CHECK(histories[1].id.instance() != 0);
       BOOST_CHECK_EQUAL(histories[1].op.which(), account_create_op_id);
-      // bob has 1 op
-      histories = hist_api.get_account_history(get_account("bob").id, operation_history_id_type(), 100, operation_history_id_type());
+      // antelope has 1 op
+      histories = hist_api.get_account_history(get_account("antelope").id, operation_history_id_type(), 100, operation_history_id_type());
       BOOST_CHECK_EQUAL(histories.size(), 1);
       BOOST_CHECK_EQUAL(histories[0].op.which(), account_create_op_id);
 
@@ -94,8 +94,8 @@ BOOST_AUTO_TEST_CASE(get_account_history_operations) {
 
       //account_id_type() do 3 ops
       create_bitasset("CNY", account_id_type());
-      create_account("sam");
-      create_account("alice");
+      create_account("mustang");
+      create_account("dingss");
 
       generate_block();
       fc::usleep(fc::milliseconds(2000));
@@ -123,8 +123,8 @@ BOOST_AUTO_TEST_CASE(get_account_history_operations) {
       BOOST_CHECK_EQUAL(histories.size(), 1);
       BOOST_CHECK_EQUAL(histories[0].op.which(), account_create_op_id);
 
-      // alice has 1 op
-      histories = hist_api.get_account_history_operations(get_account("alice").id, account_create_op_id, operation_history_id_type(),operation_history_id_type(), 100);
+      // dingss has 1 op
+      histories = hist_api.get_account_history_operations(get_account("dingss").id, account_create_op_id, operation_history_id_type(),operation_history_id_type(), 100);
       BOOST_CHECK_EQUAL(histories.size(), 1);
       BOOST_CHECK_EQUAL(histories[0].op.which(), account_create_op_id);
 

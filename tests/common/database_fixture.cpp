@@ -1121,7 +1121,7 @@ namespace test {
    {
       const chain_parameters& params = db->get_global_properties().parameters;
       tx.set_reference_block(db->head_block_id());
-      tx.set_expiration( db->head_block_time() + fc::seconds( params.block_interval * (params.maintenance_skip_slots + 1) * 3 ) );
+      tx.set_expiration( db->head_block_time() + fc::seconds( params.block_interval * (params.maintenance_skip_slots + 1) * 5 ) );
       return;
    }
 
@@ -1131,13 +1131,12 @@ namespace test {
    }
 
    processed_transaction _push_transaction( chain::database* db, const signed_transaction& tx, uint32_t skip_flags /* = 0 */ )
-   { 
-      try 
-      {
+   {
+      try {
          auto pt = db->push_transaction( tx, skip_flags );
          database_fixture::verify_asset_supplies(db);
          return pt;
-      } FC_CAPTURE_AND_RETHROW((tx)) 
+      } FC_CAPTURE_AND_RETHROW((tx))
    }
 
 } // graphene::chain::test

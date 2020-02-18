@@ -43,8 +43,8 @@ BOOST_AUTO_TEST_CASE(is_registered) {
       auto nathan_private_key = generate_private_key("nathan");
       public_key_type nathan_public = nathan_private_key.get_public_key();
 
-      auto champagne_private_key = generate_private_key("champagne");
-      public_key_type champagne_public = champagne_private_key.get_public_key();
+      auto anti_private_key = generate_private_key("antilopes");
+      public_key_type anti_public = anti_private_key.get_public_key();
 
       auto unregistered_private_key = generate_private_key("unregistered");
       public_key_type unregistered_public = unregistered_private_key.get_public_key();
@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(is_registered) {
       /***
        * Act
        */
-      create_account("chamange", champagne_private_key.get_public_key()).id;
+      create_account("antilopes", anti_private_key.get_public_key()).id;
       create_account("nathan", nathan_private_key.get_public_key()).id;
       // Unregistered key will not be registered with any account
 
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(is_registered) {
       graphene::app::database_api db_api(*db);
 
       BOOST_CHECK(db_api.is_public_key_registered((string) nathan_public));
-      BOOST_CHECK(db_api.is_public_key_registered((string) champagne_public));
+      BOOST_CHECK(db_api.is_public_key_registered((string) anti_public));
       BOOST_CHECK(!db_api.is_public_key_registered((string) unregistered_public));
 
    } FC_LOG_AND_RETHROW()
