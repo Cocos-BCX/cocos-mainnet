@@ -113,9 +113,12 @@ void_result call_contract_function_evaluator::evaluate_contract_authority(contra
     if (contract_pir->check_contract_authority)
     {
         wlog("check_contract_authority_falg");
-        auto key_itr = std::find(sigkeys.begin(), sigkeys.end(), contract_pir->contract_authority);
-        FC_ASSERT(key_itr != sigkeys.end(), "No contract related permissions were found in the signature,contract_authority:${contract_authority}",
+        if (!(trx_state->skip & (database::validation_steps::skip_transaction_signatures |database::validation_steps::skip_authority_check)))
+        {
+            auto key_itr = std::find(sigkeys.begin(), sigkeys.end(), contract_pir->contract_authority);
+            FC_ASSERT(key_itr != sigkeys.end(), "No contract related permissions were found in the signature,contract_authority:${contract_authority}",
                   ("contract_authority", contract_pir->contract_authority));
+        }
     }
     return void_result();
 }
@@ -134,13 +137,12 @@ contract_result call_contract_function_evaluator::do_apply(const operation_type 
         }
         else
             _contract_result = contract_result();
-        return apply(o.caller, o.function_name, o.value_list, trx_state->run_mode, _contract_result, trx_state->sigkeys);
+        return apply(o.caller, o.function_name, o.value_list, _contract_result, trx_state->sigkeys);
     }
     FC_CAPTURE_AND_RETHROW((o))
 }
 void call_contract_function_evaluator::pay_fee_for_result(contract_result &result)
 {
-
     auto &fee_schedule_ob = db().current_fee_schedule();
     auto &op_fee = fee_schedule_ob.get<operation_type>();
     share_type temp = op->calculate_data_fee(result.relevant_datasize, op_fee.price_per_kbyte);
@@ -151,14 +153,13 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     contract_id_type db_index = result.contract_id;
     database &_db = db();
     const contract_object &contract_obj = db_index(_db);
-     
+  
     result.sharer = contract_obj.owner; 
     auto user_invoke_share_fee =  core_fee_paid* contract_obj.user_invoke_share_percent/100;
     user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
     core_fee_paid = user_invoke_share_fee;
     //printf("--user_invoke_share_fee :%d\n",user_invoke_share_fee.value);
     //printf("--user_invoke_creator_fee :%d\n",user_invoke_creator_fee.value);
-
 }
 
 void call_contract_function_evaluator::contract_creator_pay_fee(contract_result &result)
@@ -187,7 +188,7 @@ void call_contract_function_evaluator::contract_creator_pay_fee(contract_result 
 
 }
 
-contract_result call_contract_function_evaluator::do_apply_function(account_id_type caller, string function_name,vector<lua_types> value_list, transaction_apply_mode run_mode,
+contract_result call_contract_function_evaluator::do_apply_function(account_id_type caller, string function_name,vector<lua_types> value_list,
                                                                     optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys,contract_id_type  contract_id)
 {
     try
@@ -198,10 +199,10 @@ contract_result call_contract_function_evaluator::do_apply_function(account_id_t
         //auto contract_itr = contract_core_index.find(contract_id);
         //FC_ASSERT(contract_itr != contract_core_index.end(), "The specified contract does not exist.contract_id:${contract_id}", ("contract_id", contract_id));
         contract_object contract = *contract_pir;
-        contract.set_code(contract_code_pir->lua_code_b);
-        contract.set_mode(run_mode);
-        contract.set_process_encryption_helper(process_encryption_helper(_db.get_chain_id().str() ,string(CONTRACT_PROCESS_CIPHER), _db.head_block_time()));
-        if (run_mode == transaction_apply_mode::apply_block_mode && _contract_result->existed_pv)
+        contract.set_code(contract_code_pir->lua_code_b);        
+        contract.set_mode(trx_state);
+        contract.set_process_encryption_helper(process_encryption_helper(_db.get_chain_id().str(), string(CONTRACT_PROCESS_CIPHER), _db.head_block_time()));
+        if (trx_state->run_mode == transaction_apply_mode::apply_block_mode && _contract_result->existed_pv)
         {
             contract.set_process_value(_contract_result->process_value);
         }
@@ -215,24 +216,29 @@ contract_result call_contract_function_evaluator::do_apply_function(account_id_t
 
         contract.do_contract_function(caller, function_name, value_list, op_acd->contract_data, _db, sigkeys, *_contract_result,contract_id);
 
-        /* if (_options->count("contract_private_data_size"))
+        if (_options != nullptr)
         {
-            auto tmp = _options->at("contract_private_data_size").as<uint64_t>();
-            if ( tmp < contract_max_data_size && tmp >= 0 ) 
+            if (_options->count("contract_private_data_size"))
             {
-                contract_private_data_size = tmp;
+                auto tmp = _options->at("contract_private_data_size").as<uint64_t>();
+                if ( tmp < contract_max_data_size && tmp >= 0 ) 
+                {
+                    contract_private_data_size = tmp;
+                }
             }
-        }*/
-        FC_ASSERT(fc::raw::pack_size(op_acd->contract_data) <= contract_private_data_size, "call_contract_function_evaluator::apply, the contract private data size is too large.");
 
-        /* if (_options->count("contract_total_data_size"))
-        {
-            auto tmp = _options->at("contract_total_data_size").as<uint64_t>();
-            if ( tmp < contract_max_data_size && tmp >= 0 ) 
+            if (_options->count("contract_total_data_size"))
+
             {
-                contract_total_data_size = tmp;
+                auto tmp = _options->at("contract_total_data_size").as<uint64_t>();
+                if ( tmp < contract_max_data_size && tmp >= 0 ) 
+                {
+                    contract_total_data_size = tmp;
+                }
             }
-        }*/
+
+        }
+        FC_ASSERT(fc::raw::pack_size(op_acd->contract_data) <= contract_private_data_size, "call_contract_function_evaluator::apply, the contract private data size is too large.");
         FC_ASSERT(fc::raw::pack_size(contract.contract_data) <= contract_total_data_size, "call_contract_function_evaluator::apply, the contract total data size is too large.");
 
         // wdump(("do_contract_function")(fc::time_point::now().time_since_epoch() - start));
@@ -258,16 +264,16 @@ contract_result call_contract_function_evaluator::do_apply_function(account_id_t
 
 
 contract_result call_contract_function_evaluator::apply(account_id_type caller, string function_name,
-                                                        vector<lua_types> value_list, transaction_apply_mode run_mode, optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys)
+                                                        vector<lua_types> value_list, optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys)
 {
     contract_id_type  contract_id;
-    return do_apply_function(caller,function_name,value_list,run_mode,_contract_result,sigkeys,contract_id);
+    return do_apply_function(caller,function_name,value_list,_contract_result,sigkeys,contract_id);
 }
 
 contract_result call_contract_function_evaluator::apply(account_id_type caller, contract_id_type  contract_id,string function_name,
-                                                        vector<lua_types> value_list, transaction_apply_mode run_mode, optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys)
+                                                        vector<lua_types> value_list, optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys)
 {
-    return do_apply_function(caller,function_name,value_list,run_mode,_contract_result,sigkeys,contract_id);
+    return do_apply_function(caller,function_name,value_list,_contract_result,sigkeys,contract_id);
 }
 
 

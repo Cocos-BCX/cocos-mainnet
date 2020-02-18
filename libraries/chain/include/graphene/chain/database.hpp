@@ -524,9 +524,9 @@ class database : public db::object_database
     //////////////////// db_maint.cpp ////////////////////
 
     void initialize_budget_record(fc::time_point_sec now, budget_record &rec) const;
-    void process_budget(const global_property_object old_gpo);
+    void process_budget(const global_property_object old_gpo,uint64_t block_num);
     void pay_workers(share_type &budget);
-    void pay_candidates(share_type &budget,const uint16_t&committee_percent_of_candidate_award,const uint16_t&unsuccessful_candidates_percent);
+    void pay_candidates(share_type &budget,const uint16_t&committee_percent_of_candidate_award,const uint16_t&unsuccessful_candidates_percent,uint64_t block_num);
     void perform_chain_maintenance(const signed_block &next_block, const global_property_object &global_props);
     void update_active_witnesses();
     void update_active_committee_members();

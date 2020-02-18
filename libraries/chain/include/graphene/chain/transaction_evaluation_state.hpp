@@ -50,7 +50,7 @@ class transaction_evaluation_state
       const signed_transaction *_trx = nullptr;
       database *_db = nullptr;
       bool is_agreed_task = false;
-      bool skip_fee = false;
+      uint32_t skip = 0;
       transaction_apply_mode run_mode = production_block_mode;
       flat_set<public_key_type> sigkeys;
 };

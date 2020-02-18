@@ -166,7 +166,7 @@ void generic_evaluator::pay_fee()
     auto &d = db();
     fee_visitor.fees.clear();
     FC_ASSERT(d.GAS->options.core_exchange_rate,"GAS->options.core_exchange_rate is null");
-    if ((!trx_state->skip_fee) && core_fee_paid > 0)
+    if (core_fee_paid > 0)
     {
       const auto &total_gas = d.get_balance(*fee_paying_account, *d.GAS);
       asset require_gas(double(core_fee_paid.value) * (*d.GAS->options.core_exchange_rate).to_real(), d.GAS->id);

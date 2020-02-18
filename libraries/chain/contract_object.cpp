@@ -266,7 +266,7 @@ void contract_object::do_actual_contract_function(account_id_type caller, string
             contract_base_info cbi(*this, caller,contract_id);
 
             lua_scheduler &context = db.get_luaVM();
-            register_scheduler scheduler(db, caller, *this, this->mode, result, context, sigkeys, apply_result, account_data);
+            register_scheduler scheduler(db, caller, *this, this->trx_state, result, context, sigkeys, apply_result, account_data);
             context.new_sandbox(name, baseENV.lua_code_b.data(), baseENV.lua_code_b.size()); //sandbox
             context.load_script_to_sandbox(name, lua_code_b.data(), lua_code_b.size());
             context.writeVariable("current_contract", name);
