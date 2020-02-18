@@ -203,9 +203,9 @@ void share(application *_app,string id)
   contract_id_type contract_id;
   asset share_amount;
 
-  for(auto tx : block->transactions)
+  for(auto block_tx : block->transactions)
   {
-    auto processed_tx = tx.second;
+    auto processed_tx = block_tx.second;
 
     for(auto op :processed_tx.operation_results)
     {
