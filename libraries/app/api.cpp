@@ -231,13 +231,14 @@ void share(application *_app,string id)
 
   op.amount = fee;
 
-  //ilog("after compute fees in op_share ${x}", ("x", op1.amount));
+  ilog("after compute fees in op_share ${x}", ("x", op1.amount));
   tx.operations.push_back(op);
 
   auto dyn_props = _app->chain_database()->get_dynamic_global_properties();
   uint32_t expiration_time_offset = GRAPHENE_EXPIRATION_TIME_OFFSET;
   tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
 
+  ilog("in thread share tx hash: ${x}",("x",tx.hash())); 
   _app->chain_database()->push_transaction(tx, database::skip_transaction_signatures, transaction_push_state::from_me);
   _app->p2p_node()->broadcast_transaction(tx);
 }
