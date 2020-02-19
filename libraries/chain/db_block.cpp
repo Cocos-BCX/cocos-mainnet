@@ -676,6 +676,8 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
   {
     uint32_t skip = get_node_properties().skip_flags;
 
+    if((trx.operations[0].which() == operation::tag<contract_share_operation>::value)&&(skip!=2))
+      skip = 2;
     auto &chain_parameters = get_global_properties().parameters;
 
 
