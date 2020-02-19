@@ -81,6 +81,11 @@ IF(NOT "${Boost_VERSION}" MATCHES "1.53(.*)")
    SET(Boost_LIBRARIES ${BOOST_LIBRARIES_TEMP} ${Boost_LIBRARIES})
 ENDIF()
 
+IF ( Boost_FOUND )
+    # Add boost include directory to compiler include path, so user-provided path will also be included when compiling
+    include_directories( ${Boost_INCLUDE_DIRS} )
+ENDIF ( Boost_FOUND )
+
 if( WIN32 )
 
     message( STATUS "Configuring COCOS_BCX on WIN32")
