@@ -101,6 +101,7 @@ database_fixture::database_fixture()
          genesis_state.initial_witness_candidates.push_back({name, init_account_priv_key.get_public_key()});
       }
       genesis_state.initial_parameters.current_fees->zero_all_fees();
+      genesis_state.initial_parameters.committee_proposal_review_period = 1800;
 
       ilog("4. initialize database and plugins");
       bool is_open_db = false;
@@ -458,9 +459,8 @@ const asset_object& database_fixture::create_bitasset(
    uint16_t market_fee_percent /* = 100 */ /* 1% */,
    uint16_t flags /* = charge_market_fee */
    )
-{ 
-   try 
-   {
+{
+   try {
       asset_create_operation creator;
       creator.issuer = issuer;
       creator.symbol = name;
@@ -473,14 +473,14 @@ const asset_object& database_fixture::create_bitasset(
       }
       creator.common_options.issuer_permissions = flags;
       creator.common_options.flags = flags & ~global_settle;
-      creator.common_options.core_exchange_rate = price({asset(1,asset_id_type(1)),asset(1)});
+      creator.common_options.core_exchange_rate = price({asset(1,asset_id_type(2)),asset(1)});
       creator.bitasset_opts = bitasset_options();
       trx.operations.push_back(std::move(creator));
       trx.validate();
       processed_transaction ptx = db->push_transaction(trx, ~0);
       trx.operations.clear();
       return db->get<asset_object>(ptx.operation_results[0].get<object_id_result>().result);
-   } FC_CAPTURE_AND_RETHROW( (name)(flags) ) 
+   } FC_CAPTURE_AND_RETHROW( (name)(flags) )
 }
 
 const asset_object& database_fixture::create_prediction_market(
@@ -817,6 +817,7 @@ void database_fixture::publish_feed( const asset_object& mia, const account_obje
    asset_publish_feed_operation op;
    op.publisher = by.id;
    op.asset_id = mia.id;
+   op.feed = f;
    trx.operations.emplace_back(std::move(op));
    trx.validate();
    db->push_transaction(trx, ~0);
