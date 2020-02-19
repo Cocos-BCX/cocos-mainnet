@@ -44,7 +44,7 @@ class contract_object : public graphene::db::abstract_object<contract_object>
     contract_bin_code_id_type lua_code_b_id;
 
   public:
-    contract_object(){};
+    contract_object(){user_invoke_share_percent = 100;};
     contract_object(string name):name(name){id=contract_id_type(1);}
     void compiling_contract(lua_State *bL, string lua_code,bool is_baseENV=false);
     contract_id_type get_id() const { return id; }

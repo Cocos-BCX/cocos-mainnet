@@ -109,6 +109,18 @@ const transaction_in_block_info &database::get_transaction_in_block_info(const s
   return *itr;
 }
 
+const transaction_in_block_info &database::get_transaction_in_block_info(const string &trx_id,int &ret) const
+{
+   //wdump((trx_id));
+   auto &index = get_index_type<transaction_in_block_index>().indices().get<by_trx_hash>();
+   auto itr = index.find(tx_hash_type(trx_id));
+   if(itr != index.end())
+     ret = 1;
+   else
+     ret = 0;
+   return *itr;
+ }
+
 std::vector<block_id_type> database::get_block_ids_on_fork(block_id_type head_of_fork) const
 {
   pair<fork_database::branch_type, fork_database::branch_type> branches = _fork_db.fetch_branch_from(head_block_id(), head_of_fork);

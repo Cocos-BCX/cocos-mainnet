@@ -235,6 +235,7 @@ class database : public db::object_database
     }
     const account_object& get_account(const string &name_or_id);
     const transaction_in_block_info &get_transaction_in_block_info(const string &trx_id) const;
+    const transaction_in_block_info &get_transaction_in_block_info(const string &trx_id,int & ret) const;
     void try_apply_block(signed_block &next_block, uint32_t skip = skip_nothing);
     void _try_apply_block(signed_block &next_block);
     optional<file_object> lookup_file(const string &file_name_or_ids) const;

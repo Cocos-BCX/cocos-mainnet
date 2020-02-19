@@ -1,6 +1,9 @@
 language: c++
 
-cache: ccache
+#cache: ccache
+cache:
+  ccache: ture
+  timeout: 1800
 
 git:
   depth: 1
@@ -29,4 +32,5 @@ jobs:
       script:
       - ccache -s
       - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_PROCESS_ENCRYPTION=NO .
+      - cd ./programs/witness_node/
       - make -j 8
