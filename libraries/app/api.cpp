@@ -231,9 +231,10 @@ void share(application *_app,string id)
 
   op.amount = fee;
 
-  //ilog("after compute fees in op_share ${x}", ("x", op1.amount));
+  ilog("after compute fees in op_share ${x}", ("x", op.amount));
   tx.operations.push_back(op);
 
+  ilog("in share thread th hash: ${x}", ("x", tx.hash()));
   auto dyn_props = _app->chain_database()->get_dynamic_global_properties();
   uint32_t expiration_time_offset = GRAPHENE_EXPIRATION_TIME_OFFSET;
   tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
