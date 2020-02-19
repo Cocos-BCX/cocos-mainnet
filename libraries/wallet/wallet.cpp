@@ -1981,7 +1981,7 @@ public:
             try
             {
                   FC_ASSERT(!self.is_locked());
-
+                  
                   account_object owner_account = get_account(owner);
                   account_id_type owner_id = owner_account.id;
 
@@ -2027,7 +2027,7 @@ public:
       }
 
       signed_transaction call_contract_function(string account_id_or_name, string contract_id_or_name, string function_name,
-                                                vector<lua_types> value_list, bool broadcast = false) // wallet 合约 API
+                                                vector<lua_types> value_list,wallet_api *ptr,bool broadcast = false) // wallet 合约 API
       {
             try
             {
@@ -2042,7 +2042,6 @@ public:
                   op.contract_id = contract.id;
                   op.function_name = function_name;
                   op.value_list = value_list;
-
                   signed_transaction tx;
                   tx.operations.push_back(op);
                   tx.validate();
@@ -2051,6 +2050,8 @@ public:
             }
             FC_CAPTURE_AND_RETHROW((account_id_or_name)(contract_id_or_name)(function_name)(value_list)(broadcast))
       }
+     
+     
 
       signed_transaction adjustment_temporary_authorization(string account_id_or_name, string describe, fc::time_point_sec expiration_time,
                                                             flat_map<public_key_type, weight_type> temporary_active, bool broadcast = false) //nico add :: wallet 合约 API
@@ -2094,6 +2095,8 @@ public:
             }
             FC_CAPTURE_AND_RETHROW((fee_paying_account))
       }
+
+
 
       signed_transaction create_world_view(const string &fee_paying_account, const string &world_view, bool broadcast = false)
       {
@@ -3550,7 +3553,7 @@ lua_map wallet_api::get_contract_public_data(string contract_id_or_name, lua_map
 }
 pair<tx_hash_type, signed_transaction> wallet_api::call_contract_function(string account_id_or_name, string contract_id_or_name, string function_name, vector<lua_types> value_list, bool broadcast /* = false */)
 {
-      auto tx = my->call_contract_function(account_id_or_name, contract_id_or_name, function_name, value_list, broadcast);
+      auto tx = my->call_contract_function(account_id_or_name, contract_id_or_name, function_name, value_list, this,broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 pair<tx_hash_type, signed_transaction> wallet_api::adjustment_temporary_authorization(string account_id_or_name, string describe, fc::time_point_sec expiration_time, flat_map<public_key_type, weight_type> temporary_active, bool broadcast /* = false */) //nico add :: wallet 合约 API

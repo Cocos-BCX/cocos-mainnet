@@ -10,9 +10,10 @@ websocket_api_connection::~websocket_api_connection()
 {
 }
 
-websocket_api_connection::websocket_api_connection(fc::http::websocket_connection &c)
+websocket_api_connection::websocket_api_connection( const std::shared_ptr<fc::http::websocket_connection> &c )
     : _connection(c)
 {
+      FC_ASSERT( _connection, "A valid websocket connection is required" );
       //  websocket_api_connection 构造函数 ，初始化 call ,  notice , callback 方法回调
       _rpc_state.add_method("call", [this](const variants &args) -> variant {
             /*nico start*/
@@ -69,9 +70,12 @@ websocket_api_connection::websocket_api_connection(fc::http::websocket_connectio
             return this->receive_call(0, method_name, args);
       });
 
-      _connection.on_message_handler([&](const std::string &msg) { on_message(msg, true); });
-      _connection.on_http_handler([&](const std::string &msg) { return on_message(msg, false); });
-      _connection.closed.connect([this]() { closed(); });
+      _connection->on_message_handler([&](const std::string &msg) { on_message(msg, true); });
+      _connection->on_http_handler([&](const std::string &msg) { return on_message(msg, false); });
+      _connection->closed.connect([this]() {
+            closed();
+            _connection = nullptr;
+            });
 }
 
 variant websocket_api_connection::send_call(
@@ -79,8 +83,10 @@ variant websocket_api_connection::send_call(
     string method_name,
     variants args /* = variants() */)
 {
+      if( !_connection ) // defensive check
+            return variant();
       auto request = _rpc_state.start_remote_call("call", {api_id, std::move(method_name), std::move(args)});
-      _connection.send_message(fc::json::to_string(request));
+      _connection->send_message(fc::json::to_string(request));
       return _rpc_state.wait_for_response(*request.id);
 }
 
@@ -88,8 +94,10 @@ variant websocket_api_connection::send_callback(
     uint64_t callback_id,
     variants args /* = variants() */)
 {
+      if( !_connection ) // defensive check
+            return variant();
       auto request = _rpc_state.start_remote_call("callback", {callback_id, std::move(args)});
-      _connection.send_message(fc::json::to_string(request));
+      _connection->send_message(fc::json::to_string(request));
       return _rpc_state.wait_for_response(*request.id);
 }
 
@@ -97,8 +105,10 @@ void websocket_api_connection::send_notice(
     uint64_t callback_id,
     variants args /* = variants() */)
 {
+      if( !_connection ) // defensive check
+            return;
       fc::rpc::request req{optional<uint64_t>(), "notice", {callback_id, std::move(args)}};
-      _connection.send_message(fc::json::to_string(req));
+      _connection->send_message(fc::json::to_string(req));
 }
 
 std::string websocket_api_connection::on_message(
@@ -137,7 +147,7 @@ std::string websocket_api_connection::on_message(
                               {
                                     auto reply = fc::json::to_string(response(*call.id, result, "2.0"));
                                     if (send_message)
-                                          _connection.send_message(reply);
+                                          _connection->send_message(reply);
                                     return reply;
                               }
                         }
@@ -150,7 +160,7 @@ std::string websocket_api_connection::on_message(
                         {
                         auto reply = fc::json::to_string(response(*call.id, error_object{*call.id, e.to_string()}, "2.0"));
                         if (send_message)
-                              _connection.send_message(reply);
+                              _connection->send_message(reply);
 
                         return reply;
                         }

@@ -151,6 +151,7 @@ public:
   bool existed_pv = false;
   vector<char> process_value;
   uint64_t relevant_datasize=0;
+  account_id_type sharer;
 } contract_result;
 
 struct contract_affected_type_visitor
