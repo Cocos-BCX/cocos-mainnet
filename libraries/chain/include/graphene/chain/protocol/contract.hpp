@@ -14,7 +14,6 @@ namespace graphene { namespace chain {
       account_id_type  owner;      // 合约创建者
       string           name;       // 合约名字
       string           data;       // 合约内容
-      double           user_invoke_share_percent; //合约调用者消耗费用的占比
       public_key_type  contract_authority;//合约权限
       extensions_type  extensions;
       account_id_type fee_payer()const { return owner; }
@@ -62,10 +61,12 @@ namespace graphene { namespace chain {
          uint32_t price_per_millisecond=10 * GRAPHENE_BLOCKCHAIN_PRECISION;
       };
       account_id_type       caller;       // 合约调用者
+      account_id_type       creator;
       contract_id_type      contract_id;  // 合约ID
       string                function_name;// 目标函数名
       vector<lua_types>     value_list;   // 参数列表
       extensions_type       extensions;   
+      double                amount;
       account_id_type       fee_payer()const { return caller; }
       void                  validate()const
       {
@@ -90,13 +91,36 @@ namespace graphene { namespace chain {
           
 
    };
+
+   struct contract_share_operation : public base_operation
+   {
+     struct fee_parameters_type {
+         uint64_t fee       = 0 * GRAPHENE_BLOCKCHAIN_PRECISION;
+      };
+      account_id_type       sharer;       // 费用承担者
+      asset                 amount;
+ 
+      account_id_type       fee_payer()const { return sharer; }
+      void                  validate()const
+      {
+                                            //后期考虑加入合约权限
+      }
+      share_type      calculate_fee(const fee_parameters_type& schedule)const
+      {
+        //share_type core_fee_required = schedule.fee;
+        return 0;
+      };
+   };
 }} // graphene::chain
 
 FC_REFLECT( graphene::chain::contract_create_operation::fee_parameters_type, (fee)(price_per_kbyte) )
-FC_REFLECT( graphene::chain::contract_create_operation, (owner)(name)(data)(user_invoke_share_percent)(contract_authority)(extensions) )
+FC_REFLECT( graphene::chain::contract_create_operation, (owner)(name)(data)(contract_authority)(extensions) )
 
 FC_REFLECT( graphene::chain::revise_contract_operation::fee_parameters_type, (fee)(price_per_kbyte) )
 FC_REFLECT( graphene::chain::revise_contract_operation, (reviser)(contract_id)(data)(extensions) )
 
 FC_REFLECT( graphene::chain::call_contract_function_operation::fee_parameters_type, (fee)(price_per_kbyte)(price_per_millisecond) )
 FC_REFLECT( graphene::chain::call_contract_function_operation, (caller)(contract_id)(function_name)(value_list)(extensions) )
+
+FC_REFLECT( graphene::chain::contract_share_operation::fee_parameters_type, (fee))
+FC_REFLECT( graphene::chain::contract_share_operation, (sharer)(amount))

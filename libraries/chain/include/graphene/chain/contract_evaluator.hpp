@@ -14,6 +14,14 @@ class contract_create_evaluator : public evaluator<contract_create_evaluator>
     object_id_result do_apply(const operation_type &o);
 };
 
+class contract_share_evaluator : public evaluator<contract_share_evaluator>
+{
+  public:
+    typedef contract_share_operation operation_type;
+    void_result do_evaluate(const operation_type &o);
+    void_result do_apply(const operation_type &o);
+};
+
 class call_contract_function_evaluator : public evaluator<call_contract_function_evaluator>
 {
   public:
@@ -28,7 +36,6 @@ class call_contract_function_evaluator : public evaluator<call_contract_function
     void_result do_evaluate(const operation_type &o);
     contract_result do_apply(const operation_type &o);
     void pay_fee_for_result(contract_result& result);
-    void contract_creator_pay_fee(contract_result &result);
     const contract_object *contract_pir= nullptr;
     const contract_bin_code_object *contract_code_pir= nullptr;
     const operation_type* op;
