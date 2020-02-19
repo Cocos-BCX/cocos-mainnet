@@ -44,8 +44,7 @@ for my $class (@{$doxydocs->{classes}})
       if ($member->{kind} eq 'function')
       {
         my @params = map { join(' ', cleanupDoxygenType($_->{type}), $_->{declaration_name}) } @{$member->{parameters}};
-        my $briefDescription = sprintf("%40s %s(%s)\n", cleanupDoxygenType($member->{type}), $member->{name}, join(', ', @params));
-        my $escapedBriefDescription = "\"" . escapeStringForC($briefDescription) . "\"";
+        my $briefIntro;
         my %paramInfo = map { $_->{declaration_name} => { type => $_->{type}} } @{$member->{parameters}};
         my $escapedDetailedDescription = "\"\"\n";
         if ($member->{detailed}->{doc})
@@ -54,8 +53,14 @@ for my $class (@{$doxydocs->{classes}})
           for my $line (split(/\n/, $docString))
           {
             $escapedDetailedDescription .=  "                \"" .  escapeStringForC($line . "\n") . "\"\n";
+            # take the first line of detailed doc as brief introduction
+            if ( ! defined $briefIntro) { 
+              $briefIntro = $line;
+            }
           }
         }
+        my $briefDescription = sprintf("%40s %s\n", $member->{name}, (defined($briefIntro) ? "- $briefIntro" : "") );
+        my $escapedBriefDescription = "\"" . escapeStringForC($briefDescription) . "\"";
         my $codeFragment = <<"END";
      {
         method_description this_method;
