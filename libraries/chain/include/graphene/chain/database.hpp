@@ -526,7 +526,6 @@ class database : public db::object_database
     void process_budget(const global_property_object old_gpo);
     void pay_workers(share_type &budget);
     void pay_candidates(share_type &budget,const uint16_t&committee_percent_of_candidate_award,const uint16_t&unsuccessful_candidates_percent);
-    void auto_gas();
     void perform_chain_maintenance(const signed_block &next_block, const global_property_object &global_props);
     void update_active_witnesses();
     void update_active_committee_members();

@@ -633,31 +633,6 @@ void database::process_bids(const asset_bitasset_data_object &bad)
       _cancel_bids_and_revive_mpa(to_revive, bad);
 }
 
-void database::auto_gas()
-{
-      if(head_block_num()%50==0)
-      {
-        //update fully_withdraw in all vesting_object
-
-        auto now = get_dynamic_global_properties().time;
-        //now
-        auto upper_time = now;
-        auto upper = get_index_type<vesting_balance_index>().indices().get<by_create_time>().upper_bound(upper_time);
-       
-        //auto lower_time = now - get_global_properties().parameters.cashback_gas_period_seconds;
-        auto lower_time = now - 1200;
-        //now-24
-        
-        auto lower = get_index_type<vesting_balance_index>().indices().get<by_create_time>().lower_bound(lower_time);
-        
-        std::for_each(lower, upper,
-            [&](const vesting_balance_object &balance) {
-                      adjust_balance(balance.owner,balance.get_allowed_withdraw(now));
-                      const_cast<vesting_balance_object &>(balance).withdraw( now, balance.get_allowed_withdraw(now));
-        });
-      }
-}
-
 void database::perform_chain_maintenance(const signed_block &next_block, const global_property_object &global_props)
 {
       const auto &gpo = get_global_properties();
