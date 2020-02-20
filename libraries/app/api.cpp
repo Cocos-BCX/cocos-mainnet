@@ -187,7 +187,7 @@ void network_broadcast_api::broadcast_block(const signed_block &b)
 }
 
 void share(application *_app,string id)
-{
+{  
   auto sleep_seconds = _app->chain_database()->get_global_properties().parameters.block_interval;
   sleep(sleep_seconds); //first sleep block inteval ,wait tx had  pushed in block
   int ret = -1;
@@ -224,6 +224,7 @@ void share(application *_app,string id)
   signed_transaction tx;
   contract_share_operation op;
   op.sharer = contract.owner;
+  ilog("in thread op.sharer ${x}", ("x", op.sharer));
 
   //for got precisly result,must add tmp variabe 
   auto tmp = share_amount.amount*(GRAPHENE_FULL_PROPOTION-contract.user_invoke_share_percent);
@@ -239,7 +240,7 @@ void share(application *_app,string id)
   tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
 
   ilog("in share fee thread tx hash: ${x}",("x",tx.hash())); 
-  _app->chain_database()->push_transaction(tx, database::skip_transaction_signatures, transaction_push_state::from_me);
+  _app->chain_database()->push_transaction(tx, database::skip_transaction_signatures|database::skip_tapos_check, transaction_push_state::from_me);
   _app->p2p_node()->broadcast_transaction(tx);
 }
 
