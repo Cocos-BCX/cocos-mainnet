@@ -130,7 +130,7 @@ else( WIN32 ) # Apple AND Linux
     if( APPLE )
         # Apple Specific Options Here
         message( STATUS "Configuring COCOS_BCX on OS X" )
-        set( CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++14 -stdlib=libc++ -Wall" )
+        set( CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++14 -stdlib=libc++ -Wall -Wno-c++11-narrowing -D_XOPEN_SOURCE=0" )
     else( APPLE )
         # Linux Specific Options Here
         message( STATUS "Configuring COCOS_BCX on Linux" )
