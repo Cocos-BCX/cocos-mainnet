@@ -1969,8 +1969,6 @@ public:
                         vesting_balance_withdraw_op.amount = vbo1.get_allowed_withdraw(now);
                         
                         //std::cout<<vesting_balance_withdraw_op.amount.amount.value<<endl;
-                        vesting_tx.operations.push_back(vesting_balance_withdraw_op);
-                        sign_transaction(vesting_tx, broadcast);
                   }
                  
                   tx.operations.push_back(xfer_op);
