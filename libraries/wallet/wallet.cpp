@@ -1910,6 +1910,7 @@ public:
       }
 
       signed_transaction transfer(string from, string to, string amount,
+
                                   string asset_symbol, pair<string, bool> memo, bool broadcast = false)
       {
             try
@@ -1917,7 +1918,6 @@ public:
                   FC_ASSERT(!self.is_locked());
                   fc::optional<asset_object> asset_obj = get_asset(asset_symbol);
                   FC_ASSERT(asset_obj, "Could not find asset matching ${asset}", ("asset", asset_symbol));
-
                   account_object from_account = get_account(from);
                   account_object to_account = get_account(to);
                   account_id_type from_id = from_account.id;
@@ -1945,7 +1945,34 @@ public:
                   }
 
                   signed_transaction tx;
+
+                  
+                  fc::optional<account_id_type> acct_id = maybe_id<account_id_type>(from);
+                  if (!acct_id)
+                        acct_id = get_account(from).id;
+
+                  vector<vesting_balance_object> vbos = _remote_db->get_vesting_balances(*acct_id);
+                  vesting_balance_withdraw_operation vesting_balance_withdraw_op;
+                  fc::optional<vesting_balance_id_type> vbid = maybe_id<vesting_balance_id_type>(string(vbos.begin()->id));
+                  
+                  if(vbid)
+                  {                        
+                        auto dynamic_props = get_dynamic_global_properties();
+                        auto b = _remote_db->get_block_header(dynamic_props.head_block_number);
+                        FC_ASSERT(b);
+                        auto now = b->timestamp;
+                        
+                        vesting_balance_object vbo1 = get_object<vesting_balance_object>(*vbid);
+
+                        vesting_balance_withdraw_op.vesting_balance = *vbid;
+                        vesting_balance_withdraw_op.owner = vbo1.owner;
+                        vesting_balance_withdraw_op.amount = vbo1.get_allowed_withdraw(now);
+                        
+                        //std::cout<<vesting_balance_withdraw_op.amount.amount.value<<endl;
+                  }
+                 
                   tx.operations.push_back(xfer_op);
+                  tx.operations.push_back(vesting_balance_withdraw_op);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
