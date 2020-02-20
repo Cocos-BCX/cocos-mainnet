@@ -1952,21 +1952,17 @@ public:
                         acct_id = get_account(from).id;
 
                   vector<vesting_balance_object> vbos = _remote_db->get_vesting_balances(*acct_id);
-
+                  vesting_balance_withdraw_operation vesting_balance_withdraw_op;
                   fc::optional<vesting_balance_id_type> vbid = maybe_id<vesting_balance_id_type>(string(vbos.begin()->id));
+                  
                   if(vbid)
-                  {                       
-                        signed_transaction vesting_tx;
-    
+                  {                        
                         auto dynamic_props = get_dynamic_global_properties();
                         auto b = _remote_db->get_block_header(dynamic_props.head_block_number);
                         FC_ASSERT(b);
                         auto now = b->timestamp;
-
-                        //std::cout<<now.sec_since_epoch()<<endl;
                         
                         vesting_balance_object vbo1 = get_object<vesting_balance_object>(*vbid);
-                        vesting_balance_withdraw_operation vesting_balance_withdraw_op;
 
                         vesting_balance_withdraw_op.vesting_balance = *vbid;
                         vesting_balance_withdraw_op.owner = vbo1.owner;
@@ -1978,6 +1974,7 @@ public:
                   }
                  
                   tx.operations.push_back(xfer_op);
+                  tx.operations.push_back(vesting_balance_withdraw_op);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
