@@ -59,7 +59,7 @@
 #include <boost/range/adaptor/reversed.hpp>
 
 #include <graphene/utilities/git_revision.hpp>
-#include <boost/thread/thread.hpp>
+
 namespace graphene
 {
 namespace app
