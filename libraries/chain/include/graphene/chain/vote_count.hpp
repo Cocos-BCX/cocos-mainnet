@@ -25,6 +25,7 @@
 #pragma once
 
 #include <graphene/chain/protocol/authority.hpp>
+#include <math.h>
 
 namespace graphene { namespace chain {
 
@@ -58,7 +59,7 @@ struct vote_counter
          return;
       assert( total_votes <= std::numeric_limits<uint32_t>::max() );
       uint32_t weight = uint32_t( total_votes );
-      weight = (weight >> 1)+1;
+      weight = ceil(weight/3.0*2);
       auth.weight_threshold = weight;
       out_auth = auth;
    }
