@@ -126,7 +126,7 @@ namespace graphene { namespace chain {
 
    asset fee_schedule::calculate_fee( const operation& op, const price& core_exchange_rate )const
    {
-      auto base_value = op.visit( calc_fee_visitor( *this, op ) ); //  calc_fee_visitor 依次 调用 fee_schedule -> fee_hleper ->  Operation::fee_parameters_type
+      auto base_value = op.visit( calc_fee_visitor( *this, op ) ); //  calc_fee_visitor 依次 调用 fee_schedule -> fee_helper ->  Operation::fee_parameters_type
       auto scaled = fc::uint128(base_value) * scale;   // 比例
       scaled /= GRAPHENE_100_PERCENT;
       FC_ASSERT( scaled <= GRAPHENE_MAX_SHARE_SUPPLY );
