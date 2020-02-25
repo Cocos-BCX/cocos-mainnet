@@ -59,7 +59,7 @@ struct vote_counter
          return;
       assert( total_votes <= std::numeric_limits<uint32_t>::max() );
       uint32_t weight = uint32_t( total_votes );
-      weight = ceil(weight/3.0*2);
+      weight = (weight >> 1)+1;
       auth.weight_threshold = weight;
       out_auth = auth;
    }
@@ -73,6 +73,23 @@ struct vote_counter
    uint64_t total_votes = 0;
    int8_t bitshift = -1;
    authority auth;
+};
+
+struct vote_counter_weight_threshold_two_thirds : public vote_counter
+{
+   /**
+    * Write into out_auth, but only if we have at least one member.
+    */
+   void finish( authority& out_auth )
+   {
+      if( total_votes == 0 )
+         return;
+      assert( total_votes <= std::numeric_limits<uint32_t>::max() );
+      uint32_t weight = uint32_t( total_votes );
+      weight = ceil(weight/3.0*2);
+      auth.weight_threshold = weight;
+      out_auth = auth;
+   }
 };
 
 } } // graphene::chain
