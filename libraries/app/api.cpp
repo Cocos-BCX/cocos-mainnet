@@ -212,7 +212,7 @@ void share(application *_app,string id)
       auto contract_ret = op.get<contract_result>();
       contract_id = contract_ret.contract_id;
       auto fees = *contract_ret.fees;
-      //ilog("got fees in op_results ${x}", ("x", fees));
+      ilog("got fees in op_results ${x}", ("x", fees));
       share_amount = fees[0].amount;
     }
   }
@@ -238,24 +238,24 @@ void share(application *_app,string id)
 
   //for precisely result,must use temp varible
   auto tmp = share_amount.amount*user_invoke_creator_percent;
+  
   auto fee = 0;
   
   if(user_invoke_share_percent !=0)
-    fee = tmp/user_invoke_share_percent;
+    fee = tmp.value/user_invoke_share_percent;
 
-  op.amount = fee;
+  op.amount.amount = fee;
 
   ilog("after compute fees in op_share ${x}", ("x", op.amount));
   tx.operations.push_back(op);
 
-  ilog("in share thread th hash: ${x}", ("x", tx.hash()));
   auto dyn_props = _app->chain_database()->get_dynamic_global_properties();
   uint32_t expiration_time_offset = GRAPHENE_EXPIRATION_TIME_OFFSET;
   tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
 
-ilog("in thread push tx.hash ${x}", ("x", tx.hash()));
-_app->chain_database()->push_transaction(tx, database::skip_transaction_signatures|database::skip_tapos_check, transaction_push_state::from_me);
-_app->p2p_node()->broadcast_transaction(tx);
+  ilog("in share fee thread tx hash: ${x}",("x",tx.hash())); 
+  _app->chain_database()->push_transaction(tx, database::skip_transaction_signatures|database::skip_tapos_check, transaction_push_state::from_me);
+  _app->p2p_node()->broadcast_transaction(tx);
 }
 
 void network_broadcast_api::broadcast_transaction_with_callback(confirmation_callback cb, const signed_transaction &trx)
