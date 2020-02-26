@@ -226,9 +226,22 @@ void share(application *_app,string id)
   op.sharer = contract.owner;
   ilog("in thread op.sharer ${x}", ("x", op.sharer));
 
-  //for got precisly result,must add tmp variabe 
-  auto tmp = share_amount.amount*(GRAPHENE_FULL_PROPOTION-contract.user_invoke_share_percent);
-  auto fee = tmp/contract.user_invoke_share_percent;
+  //for old block which had set wrong percent
+  auto user_invoke_share_percent = contract.user_invoke_share_percent;
+ 
+  if(contract.user_invoke_share_percent<0)
+    user_invoke_share_percent = 0;
+  else if(contract.user_invoke_share_percent>100)
+    user_invoke_share_percent = 100;
+
+  auto user_invoke_creator_percent = GRAPHENE_FULL_PROPOTION-user_invoke_share_percent;
+
+  //for precisely result,must use temp varible
+  auto tmp = share_amount.amount*user_invoke_creator_percent;
+  auto fee = 0;
+  
+  if(user_invoke_share_percent !=0)
+    fee = tmp/user_invoke_share_percent;
 
   op.amount = fee;
 

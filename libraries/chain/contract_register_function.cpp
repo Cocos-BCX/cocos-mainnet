@@ -326,6 +326,7 @@ void lua_scheduler::chain_function_bind()
     registerFunction("nht_describe_change", &register_scheduler::nht_describe_change);
     registerFunction("set_permissions_flag", &register_scheduler::set_permissions_flag);
     registerFunction("set_invoke_percent", &register_scheduler::set_invoke_percent);
+    registerFunction("set_invoke_share_percent", &register_scheduler::set_invoke_share_percent);
     registerFunction("invoke_contract_function", &register_scheduler::invoke_contract_function);
     registerFunction("change_contract_authority", &register_scheduler::change_contract_authority);
     lua_register(mState, "import_contract", &import_contract);
