@@ -152,6 +152,8 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     database &_db = db();
     const contract_object &contract_obj = db_index(_db); 
     result.sharer = contract_obj.owner; 
+    result.total_fees.amount = core_fee_paid;
+
     auto invoke_percent = 0;
     if(contract_obj.user_invoke_share_percent>100)
       invoke_percent = 100;

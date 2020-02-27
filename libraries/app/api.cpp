@@ -211,9 +211,8 @@ void share(application *_app,string id)
     {
       auto contract_ret = op.get<contract_result>();
       contract_id = contract_ret.contract_id;
-      auto fees = *contract_ret.fees;
-      ilog("got fees in op_results ${x}", ("x", fees));
-      share_amount = fees[0].amount;
+      share_amount.amount = contract_ret.total_fees.amount;
+      ilog("got total_fees in op_results ${x}", ("x", contract_ret.total_fees.amount));
     }
   }
   auto &con_index = _app->chain_database()->get_index_type<contract_index>().indices().get<by_id>();
@@ -223,7 +222,7 @@ void share(application *_app,string id)
 
   signed_transaction tx;
   contract_share_operation op;
-  op.sharer = contract.owner;
+  op.sharer = contract.owner; 
   ilog("in thread op.sharer ${x}", ("x", op.sharer));
 
   //for old block which had set wrong percent
@@ -236,16 +235,10 @@ void share(application *_app,string id)
 
   auto user_invoke_creator_percent = GRAPHENE_FULL_PROPOTION-user_invoke_share_percent;
 
-  //for precisely result,must use temp varible
-  auto tmp = share_amount.amount*user_invoke_creator_percent;
   
-  auto fee = 0;
+  op.amount.amount = share_amount.amount*user_invoke_creator_percent/GRAPHENE_FULL_PROPOTION;
+
   
-  if(user_invoke_share_percent !=0)
-    fee = tmp.value/user_invoke_share_percent;
-
-  op.amount.amount = fee;
-
   ilog("after compute fees in op_share ${x}", ("x", op.amount));
   tx.operations.push_back(op);
 

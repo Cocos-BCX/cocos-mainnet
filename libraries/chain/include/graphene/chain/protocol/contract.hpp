@@ -99,7 +99,8 @@ namespace graphene { namespace chain {
       };
       account_id_type       sharer;       // 费用承担者
       asset                 amount;
- 
+      optional<vector<asset>> amounts;
+      
       account_id_type       fee_payer()const { return sharer; }
       void                  validate()const
       {
