@@ -266,6 +266,12 @@ int main( int argc, char** argv )
 
       if( !options.count( "daemon" ) )
       {
+         fc::set_signal_handler( [wallet_cli](int signal) {
+            ilog( "Captured SIGINT not in daemon mode, exiting" );
+            fc::set_signal_handler( [](int sig) {}, SIGINT ); // reinstall an empty SIGINT handler
+            wallet_cli->cancel();
+         }, SIGINT );
+
          wallet_cli->register_api( wapi );
          wallet_cli->start();
          wallet_cli->wait();
