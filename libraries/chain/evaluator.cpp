@@ -96,15 +96,15 @@ operation_result generic_evaluator::start_evaluate(transaction_evaluation_state 
             auto pay_account = op_share.sharer(d);
 
             FC_ASSERT(d.GAS->options.core_exchange_rate,"GAS->options.core_exchange_rate is null");
-            if (op_share.amount.amount > 0)
+            if (op_share.total_share_amount.amount > 0)
             {
               const auto &total_gas = d.get_balance(pay_account, *d.GAS);
-              asset require_gas(double(core_fee_paid.value) * (*d.GAS->options.core_exchange_rate).to_real(), d.GAS->id);
+              asset require_gas(double(op_share.total_share_amount.amount.value) * (*d.GAS->options.core_exchange_rate).to_real(), d.GAS->id);
               if (total_gas >= require_gas)
               {
                 pay_account.pay_fee(d, require_gas);
                 db_adjust_balance(pay_account.id, -require_gas);
-                op_share.amounts->push_back(require_gas);
+                op_share.amounts.push_back(require_gas);
                 //fee_visitor.add_fee(require_gas);
                 //result.visit(fee_visitor);
               }
@@ -115,17 +115,17 @@ operation_result generic_evaluator::start_evaluate(transaction_evaluation_state 
                 {
                   //pay_account->pay_fee(d, total_gas);
                   db_adjust_balance(pay_account.id, -total_gas);
-                  op_share.amounts->push_back(require_gas);
+                  op_share.amounts.push_back(total_gas);
                   //fee_visitor.add_fee(total_gas);
-                  //require_core = (require_gas - total_gas) * (*d.GAS->options.core_exchange_rate);
+                  require_core = (require_gas - total_gas) * (*d.GAS->options.core_exchange_rate);
                 }
                 else
                 {
-                  require_core = core_fee_paid;
+                  require_core = op_share.total_share_amount;
                 }
                 //pay_account->pay_fee(d, require_core);
                 db_adjust_balance(pay_account.id, -require_core);
-                op_share.amounts->push_back(require_gas);
+                op_share.amounts.push_back(require_core);
                //fee_visitor.add_fee(require_core);
                //result.visit(fee_visitor);
               }

@@ -235,11 +235,9 @@ void share(application *_app,string id)
 
   auto user_invoke_creator_percent = GRAPHENE_FULL_PROPOTION-user_invoke_share_percent;
 
-  
-  op.amount.amount = share_amount.amount*user_invoke_creator_percent/GRAPHENE_FULL_PROPOTION;
+  op.total_share_amount.amount = share_amount.amount*user_invoke_creator_percent/GRAPHENE_FULL_PROPOTION;
 
-  
-  ilog("after compute fees in op_share ${x}", ("x", op.amount));
+  ilog("this after compute fees in op_share ${x}", ("x", op.total_share_amount));
   tx.operations.push_back(op);
 
   auto dyn_props = _app->chain_database()->get_dynamic_global_properties();
