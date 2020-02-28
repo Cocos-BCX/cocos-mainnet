@@ -306,7 +306,7 @@ processed_transaction database::_push_transaction(const signed_transaction &trx,
   {
     uint32_t skip = get_node_properties().skip_flags;
     auto share_flag = database::skip_transaction_signatures|database::skip_tapos_check;
-    if((trx.operations[0].which() == operation::tag<contract_share_operation>::value)&&(skip!=share_flag))
+    if((trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)&&(skip!=share_flag))
       skip = database::skip_transaction_signatures|database::skip_tapos_check;
 
     const chain_parameters &chain_parameters = get_global_properties().parameters;
@@ -460,7 +460,7 @@ signed_block database::_generate_block(
         //if (tx.operation_results.size() > 0)
         //{
           
-        if((tx.operations[0].which() == operation::tag<contract_share_operation>::value))
+        if((tx.operations[0].which() == operation::tag<contract_share_fee_operation>::value))
           skip = database::skip_transaction_signatures|database::skip_tapos_check;
 
         if (BOOST_LIKELY(head_block_num() > 0)&& !tx.agreed_task)
@@ -685,7 +685,7 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
     uint32_t skip = get_node_properties().skip_flags;
 
     auto share_flag = database::skip_transaction_signatures|database::skip_tapos_check;
-    if((trx.operations[0].which() == operation::tag<contract_share_operation>::value)&&(skip!=share_flag))
+    if((trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)&&(skip!=share_flag))
       skip = database::skip_transaction_signatures|database::skip_tapos_check;
     auto &chain_parameters = get_global_properties().parameters;
 

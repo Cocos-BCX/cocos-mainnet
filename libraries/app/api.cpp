@@ -186,6 +186,43 @@ void network_broadcast_api::broadcast_block(const signed_block &b)
   _app.p2p_node()->broadcast(net::block_message(b));
 }
 
+void pay_share_fee(contract_share_fee_operation &op_share,application *app)
+{
+  auto d = app->chain_database();
+  auto pay_account = op_share.sharer(*d);
+
+  FC_ASSERT(d->GAS->options.core_exchange_rate,"GAS->options.core_exchange_rate is null");
+  if (op_share.total_share_amount > 0)
+  {
+    const auto &total_gas = d->get_balance(pay_account, *d->GAS);
+    asset require_gas(op_share.total_share_amount * d->GAS->options.core_exchange_rate->to_real(), d->GAS->id);
+    if (total_gas >= require_gas)
+    {
+      app->chain_database()->adjust_balance(pay_account.id, -require_gas);
+      op_share.amounts.push_back(require_gas);
+    }
+    else
+    {
+      asset require_core = asset();
+      if (total_gas.amount.value > 0)
+      {
+        app->chain_database()->adjust_balance(pay_account.id, -total_gas);
+        op_share.amounts.push_back(total_gas);
+ 
+        require_core = (require_gas - total_gas) * (*d->GAS->options.core_exchange_rate);
+      }
+      else
+      {
+        require_core.amount = op_share.total_share_amount;
+      }
+      app->chain_database()->adjust_balance(pay_account.id, -require_core);
+      op_share.amounts.push_back(require_core);
+      ilog("in op_share.amounts had push: ${x}",("x",op_share.amounts)); 
+    }
+  }
+}
+
+
 void share(application *_app,string id)
 {  
   auto sleep_seconds = _app->chain_database()->get_global_properties().parameters.block_interval;
@@ -221,7 +258,7 @@ void share(application *_app,string id)
   contract_object contract = *contract_itr;
 
   signed_transaction tx;
-  contract_share_operation op;
+  contract_share_fee_operation  op;
   op.sharer = contract.owner; 
   ilog("in thread op.sharer ${x}", ("x", op.sharer));
 
@@ -235,8 +272,10 @@ void share(application *_app,string id)
 
   auto user_invoke_creator_percent = GRAPHENE_FULL_PROPOTION-user_invoke_share_percent;
 
-  op.total_share_amount.amount = share_amount.amount*user_invoke_creator_percent/GRAPHENE_FULL_PROPOTION;
+  op.total_share_amount = share_amount.amount.value*user_invoke_creator_percent/GRAPHENE_FULL_PROPOTION;
 
+  pay_share_fee(op,_app);
+  
   ilog("this after compute fees in op_share ${x}", ("x", op.total_share_amount));
   tx.operations.push_back(op);
 

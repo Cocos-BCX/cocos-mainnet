@@ -91,14 +91,34 @@ namespace graphene { namespace chain {
           
 
    };
-
+   
    struct contract_share_operation : public base_operation
    {
      struct fee_parameters_type {
          uint64_t fee       = 0 * GRAPHENE_BLOCKCHAIN_PRECISION;
       };
       account_id_type       sharer;       // 费用承担者
-      asset                 total_share_amount;
+      asset                 amount;
+      
+      account_id_type       fee_payer()const { return sharer; }
+      void                  validate()const
+      {
+                                            //后期考虑加入合约权限
+      }
+      share_type      calculate_fee(const fee_parameters_type& schedule)const
+      {
+        //share_type core_fee_required = schedule.fee;
+        return 0;
+      };
+   };
+
+   struct contract_share_fee_operation : public base_operation
+   {
+     struct fee_parameters_type {
+         uint64_t fee       = 0 * GRAPHENE_BLOCKCHAIN_PRECISION;
+      };
+      account_id_type       sharer;       // 费用承担者
+      uint64_t              total_share_amount;
       vector<asset>         amounts;
       
       account_id_type       fee_payer()const { return sharer; }
@@ -124,4 +144,7 @@ FC_REFLECT( graphene::chain::call_contract_function_operation::fee_parameters_ty
 FC_REFLECT( graphene::chain::call_contract_function_operation, (caller)(contract_id)(function_name)(value_list)(extensions) )
 
 FC_REFLECT( graphene::chain::contract_share_operation::fee_parameters_type, (fee))
-FC_REFLECT( graphene::chain::contract_share_operation, (sharer)(total_share_amount)(amounts))
+FC_REFLECT( graphene::chain::contract_share_operation, (sharer)(amount))
+
+FC_REFLECT( graphene::chain::contract_share_fee_operation::fee_parameters_type, (fee))
+FC_REFLECT( graphene::chain::contract_share_fee_operation, (sharer)(total_share_amount)(amounts))

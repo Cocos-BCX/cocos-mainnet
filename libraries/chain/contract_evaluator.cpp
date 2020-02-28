@@ -50,7 +50,16 @@ void_result contract_share_evaluator::do_evaluate(const operation_type &o)
 void_result contract_share_evaluator::do_apply(const operation_type &o)
 {
    database &d = db();
-   //d.adjust_balance(o.sharer,-o.amount);
+   return void_result(); 
+}
+
+void_result contract_share_fee_evaluator::do_evaluate(const operation_type &o)
+{
+    return void_result(); //TODO: add verification in future
+}
+void_result contract_share_fee_evaluator::do_apply(const operation_type &o)
+{
+   database &d = db();
    return void_result(); 
 }
 

@@ -170,6 +170,11 @@ struct get_impacted_account_visitor
    {
       //_impacted.insert( op.owner );
    }
+   
+   void operator()( const contract_share_fee_operation& op )               // share contract
+   {
+      //_impacted.insert( op.owner );
+   }
  
    void operator()( const call_contract_function_operation & op ) {     // call contract
           _impacted.insert( op.caller );
