@@ -87,52 +87,6 @@ operation_result generic_evaluator::start_evaluate(transaction_evaluation_state 
     
             FC_ASSERT(core_fee_paid.value < db().get_global_properties().parameters.current_fees->maximun_handling_fee);
           }
-          else if (op.which() == operation::tag<contract_share_fee_operation>::value )
-          {
-            auto op_share = op.get<contract_share_fee_operation>();
-            
-            /***begin***/
-            database &d = db();
-            auto pay_account = op_share.sharer(d);
-
-            FC_ASSERT(d.GAS->options.core_exchange_rate,"GAS->options.core_exchange_rate is null");
-            if (op_share.total_share_amount > 0)
-            {
-              const auto &total_gas = d.get_balance(pay_account, *d.GAS);
-              asset require_gas(double(op_share.total_share_amount) * (*d.GAS->options.core_exchange_rate).to_real(), d.GAS->id);
-              if (total_gas >= require_gas)
-              {
-                pay_account.pay_fee(d, require_gas);
-                db_adjust_balance(pay_account.id, -require_gas);
-                op_share.amounts.push_back(require_gas);
-                //fee_visitor.add_fee(require_gas);
-                //result.visit(fee_visitor);
-              }
-              else
-              {
-                asset require_core = asset();
-                if (total_gas.amount.value > 0)
-                {
-                  //pay_account->pay_fee(d, total_gas);
-                  db_adjust_balance(pay_account.id, -total_gas);
-                  op_share.amounts.push_back(total_gas);
-                  //fee_visitor.add_fee(total_gas);
-                  require_core = (require_gas - total_gas) * (*d.GAS->options.core_exchange_rate);
-                }
-                else
-                {
-                  require_core.amount = op_share.total_share_amount;
-                }
-                //pay_account->pay_fee(d, require_core);
-                db_adjust_balance(pay_account.id, -require_core);
-                op_share.amounts.push_back(require_core);
-                ilog("in op_share.amounts had push: ${x}",("x",op_share.amounts)); 
-               //fee_visitor.add_fee(require_core);
-               //result.visit(fee_visitor);
-              }
-            }
-          /***end***/
-          } 
         }
         catch (fc::exception &e)
         {

@@ -118,7 +118,7 @@ namespace graphene { namespace chain {
          uint64_t fee       = 0 * GRAPHENE_BLOCKCHAIN_PRECISION;
       };
       account_id_type       sharer;       // 费用承担者
-      uint64_t              total_share_amount;
+      uint64_t              total_share_fee;
       vector<asset>         amounts;
       
       account_id_type       fee_payer()const { return sharer; }
@@ -147,4 +147,4 @@ FC_REFLECT( graphene::chain::contract_share_operation::fee_parameters_type, (fee
 FC_REFLECT( graphene::chain::contract_share_operation, (sharer)(amount))
 
 FC_REFLECT( graphene::chain::contract_share_fee_operation::fee_parameters_type, (fee))
-FC_REFLECT( graphene::chain::contract_share_fee_operation, (sharer)(total_share_amount)(amounts))
+FC_REFLECT( graphene::chain::contract_share_fee_operation, (sharer)(total_share_fee)(amounts))

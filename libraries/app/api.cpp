@@ -192,10 +192,10 @@ void pay_share_fee(contract_share_fee_operation &op_share,application *app)
   auto pay_account = op_share.sharer(*d);
 
   FC_ASSERT(d->GAS->options.core_exchange_rate,"GAS->options.core_exchange_rate is null");
-  if (op_share.total_share_amount > 0)
+  if (op_share.total_share_fee > 0)
   {
     const auto &total_gas = d->get_balance(pay_account, *d->GAS);
-    asset require_gas(op_share.total_share_amount * d->GAS->options.core_exchange_rate->to_real(), d->GAS->id);
+    asset require_gas(op_share.total_share_fee * d->GAS->options.core_exchange_rate->to_real(), d->GAS->id);
     if (total_gas >= require_gas)
     {
       app->chain_database()->adjust_balance(pay_account.id, -require_gas);
@@ -213,7 +213,7 @@ void pay_share_fee(contract_share_fee_operation &op_share,application *app)
       }
       else
       {
-        require_core.amount = op_share.total_share_amount;
+        require_core.amount = op_share.total_share_fee;
       }
       app->chain_database()->adjust_balance(pay_account.id, -require_core);
       op_share.amounts.push_back(require_core);
@@ -272,11 +272,11 @@ void share(application *_app,string id)
 
   auto user_invoke_creator_percent = GRAPHENE_FULL_PROPOTION-user_invoke_share_percent;
 
-  op.total_share_amount = share_amount.amount.value*user_invoke_creator_percent/GRAPHENE_FULL_PROPOTION;
+  op.total_share_fee = share_amount.amount.value*user_invoke_creator_percent/GRAPHENE_FULL_PROPOTION;
 
   pay_share_fee(op,_app);
   
-  ilog("this after compute fees in op_share ${x}", ("x", op.total_share_amount));
+  ilog("this after compute fees in op_share ${x}", ("x", op.total_share_fee));
   tx.operations.push_back(op);
 
   auto dyn_props = _app->chain_database()->get_dynamic_global_properties();
