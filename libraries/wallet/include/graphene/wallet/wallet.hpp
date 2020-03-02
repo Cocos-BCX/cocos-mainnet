@@ -495,6 +495,12 @@ class wallet_api
        */
     bool load_wallet_file(string wallet_filename = "");
 
+    /** Quit from the wallet.
+       *
+       * The current wallet will be closed and saved.
+       */
+    void quit();
+
     /** Saves the current wallet to the given filename.
        * 
        * @warning This does not change the wallet filename that will be used for future
@@ -1307,7 +1313,8 @@ class wallet_api
     std::shared_ptr<detail::wallet_api_impl> my;
     void encrypt_keys();
     /*********************************************nico add*************************************************************************/
-    pair<tx_hash_type, signed_transaction> create_contract(string owner, string name, public_key_type contract_authority, string data, bool broadcast = false); //nico add :: 创建合约
+    pair<tx_hash_type, signed_transaction> 
+    create_contract(string owner, string name, public_key_type contract_authority, string data,bool broadcast = false); //nico add :: 创建合约
     pair<tx_hash_type, signed_transaction> revise_contract(string reviser, string contract_id_or_name, string data, bool broadcast = false);
     fc::variant get_account_contract_data(const string &account_id, string contract_id_or_name); //获取用户合约数据
     lua_map get_contract_public_data(string contract_id_or_name, lua_map filter);
@@ -1334,7 +1341,6 @@ class wallet_api
     pair<tx_hash_type, signed_transaction> register_nh_asset_creator(const string &fee_paying_account, bool broadcast = false);
     // create a world view
     pair<tx_hash_type, signed_transaction> create_world_view(const string &fee_paying_account, const string &world_view, bool broadcast = false);
-
     // propose relate to a world view
     pair<tx_hash_type, signed_transaction> propose_relate_world_view(const string &proposing_account,
                                                                      fc::time_point_sec expiration_time, const string &world_view_owner,
@@ -1498,4 +1504,4 @@ FC_API(graphene::wallet::wallet_api,
        //(whitelist_account)
        (create_committee_member)(update_committee_member)(get_witness)(get_committee_member)(list_witnesses)(list_committee_members)(create_witness)(update_witness)(get_vesting_balances)(withdraw_vesting)(vote_for_committee_member)(vote_for_witness)(get_account)(get_account_id)(get_block)(get_account_count)(get_account_history)(get_relative_account_history)(get_collateral_bids)(is_public_key_registered)(get_market_history)(get_global_properties)(get_dynamic_global_properties)(get_object)(get_private_key)
        //
-       (load_wallet_file)(normalize_brain_key)(get_limit_orders)(get_call_orders)(get_settle_orders)(save_wallet_file)(serialize_transaction)(sign_transaction)(get_prototype_operation_by_name)(get_prototype_operation_by_idx)(propose_parameter_change)(propose_fee_change)(approve_proposal)(dbg_push_blocks)(dbg_generate_blocks)(dbg_stream_json_objects)(dbg_update_object)(network_add_nodes)(network_get_connected_peers)(sign_memo)(read_memo)(set_key_label)(get_key_label)(get_public_key)(get_order_book))
+       (load_wallet_file)(quit)(normalize_brain_key)(get_limit_orders)(get_call_orders)(get_settle_orders)(save_wallet_file)(serialize_transaction)(sign_transaction)(get_prototype_operation_by_name)(get_prototype_operation_by_idx)(propose_parameter_change)(propose_fee_change)(approve_proposal)(dbg_push_blocks)(dbg_generate_blocks)(dbg_stream_json_objects)(dbg_update_object)(network_add_nodes)(network_get_connected_peers)(sign_memo)(read_memo)(set_key_label)(get_key_label)(get_public_key)(get_order_book))

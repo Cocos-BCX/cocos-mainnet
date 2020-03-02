@@ -65,6 +65,11 @@ void cli::start()
    _run_complete = fc::async( [&](){ run(); } );
 }
 
+void cli::cancel()
+{
+   _run_complete.cancel();
+}
+
 void cli::stop()
 {
    _run_complete.cancel();
@@ -120,6 +125,9 @@ void cli::run()
       }
       catch ( const fc::exception& e )
       {
+         if (e.code() == fc::canceled_exception_code)
+            break;
+         
          std::cout << e.to_detail_string() << "\n";
       }
    }
