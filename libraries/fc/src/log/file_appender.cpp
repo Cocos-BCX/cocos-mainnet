@@ -8,6 +8,7 @@
 #include <boost/thread/mutex.hpp>
 #include <iomanip>
 #include <queue>
+#include <iostream>
 #include <sstream>
 
 namespace fc {
