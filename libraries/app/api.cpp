@@ -246,12 +246,17 @@ void share(application *_app,string id)
 
     for(auto op :processed_tx.operation_results)
     {
-      auto contract_ret = op.get<contract_result>();
-      contract_id = contract_ret.contract_id;
-      share_amount.amount = contract_ret.total_fees.amount;
-      ilog("got total_fees in op_results ${x}", ("x", contract_ret.total_fees.amount));
+      ilog("op.which:${x}", ("x", op.which()));
+      if(op.which() == operation_result::tag<contract_result>::value)
+      {
+        auto contract_ret = op.get<contract_result>();
+        contract_id = contract_ret.contract_id;
+        share_amount.amount = contract_ret.total_fees.amount;
+        ilog("got total_fees in op_results ${x}", ("x", contract_ret.total_fees.amount)); 
+      }
     }
   }
+
   auto &con_index = _app->chain_database()->get_index_type<contract_index>().indices().get<by_id>();
   auto contract_itr = con_index.find(contract_id);
 
@@ -284,7 +289,7 @@ void share(application *_app,string id)
   tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
 
   ilog("in share fee thread tx hash: ${x}",("x",tx.hash())); 
-  _app->chain_database()->push_transaction(tx, database::skip_transaction_signatures|database::skip_tapos_check, transaction_push_state::from_me);
+  _app->chain_database()->push_transaction(tx, database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check, transaction_push_state::from_me);
   _app->p2p_node()->broadcast_transaction(tx);
 }
 
