@@ -186,7 +186,11 @@ void network_broadcast_api::broadcast_block(const signed_block &b)
   _app.p2p_node()->broadcast(net::block_message(b));
 }
 
-void pay_share_fee(contract_share_fee_operation &op_share,application *app)
+/*normally,it should be in do_apply function,but why put it here?
+This function change op propoerty,and in do apply,op is const value,it can not be changed.
+This function query gas and change to cocos due to core_exchange_rate  and make op propoerty to it.
+*/
+void pay_share_amount(contract_share_fee_operation &op_share,application *app)
 {
   auto d = app->chain_database();
   auto pay_account = op_share.sharer(*d);
@@ -246,7 +250,6 @@ void share(application *_app,string id)
 
     for(auto op :processed_tx.operation_results)
     {
-      ilog("op.which:${x}", ("x", op.which()));
       if(op.which() == operation_result::tag<contract_result>::value)
       {
         auto contract_ret = op.get<contract_result>();
@@ -279,7 +282,7 @@ void share(application *_app,string id)
 
   op.total_share_fee = share_amount.amount.value*user_invoke_creator_percent/GRAPHENE_FULL_PROPOTION;
 
-  pay_share_fee(op,_app);
+  pay_share_amount(op,_app);
   
   ilog("this after compute fees in op_share ${x}", ("x", op.total_share_fee));
   tx.operations.push_back(op);
