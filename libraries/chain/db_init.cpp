@@ -177,6 +177,7 @@ void database::initialize_evaluators()
     register_evaluator<asset_update_restricted_evaluator>();
     register_evaluator<contract_create_evaluator>(); // 注册合约创建验证模块
     register_evaluator<contract_share_evaluator>();
+    register_evaluator<contract_share_fee_evaluator>();
     register_evaluator<revise_contract_evaluator>();
     register_evaluator<call_contract_function_evaluator>();
     register_evaluator<temporary_authority_change_evaluator>();
