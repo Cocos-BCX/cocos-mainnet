@@ -1,5 +1,6 @@
 #include <graphene/chain/contract_evaluator.hpp>
 #include <graphene/chain/database.hpp>
+
 namespace graphene
 {
 
@@ -27,6 +28,7 @@ object_id_result contract_create_evaluator::do_apply(const operation_type &o)
         contract_object contract = d.create<contract_object>([&](contract_object &c) {
             c.owner = o.owner;
             c.name = o.name;
+
             if (next_id != contract_id_type())
             {
                 c.contract_authority = o.contract_authority;
@@ -40,6 +42,26 @@ object_id_result contract_create_evaluator::do_apply(const operation_type &o)
     }
     FC_CAPTURE_AND_RETHROW((o))
 }
+
+void_result contract_share_evaluator::do_evaluate(const operation_type &o)
+{
+    return void_result(); //TODO: add verification in future
+}
+void_result contract_share_evaluator::do_apply(const operation_type &o)
+{
+   return void_result(); 
+}
+
+void_result contract_share_fee_evaluator::do_evaluate(const operation_type &o)
+{
+    return void_result(); //TODO: add verification in future
+}
+void_result contract_share_fee_evaluator::do_apply(const operation_type &o)
+{
+   return void_result(); 
+}
+
+
 void_result revise_contract_evaluator::do_evaluate(const operation_type &o)
 {
     try
@@ -132,6 +154,28 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     temp += op->calculate_run_time_fee(*result.real_running_time, op_fee.price_per_millisecond);
     auto additional_cost = fc::uint128(temp.value) * fee_schedule_ob.scale / GRAPHENE_100_PERCENT;
     core_fee_paid += share_type(fc::to_int64(additional_cost));
+
+    contract_id_type db_index = result.contract_id;
+    database &_db = db();
+    const contract_object &contract_obj = db_index(_db); 
+    result.sharer = contract_obj.owner; 
+    result.total_fees.amount = core_fee_paid;
+
+    auto invoke_percent = 0;
+    if(contract_obj.user_invoke_share_percent>100)
+      invoke_percent = 100;
+    else if(contract_obj.user_invoke_share_percent<0)
+      invoke_percent = 0;
+    else
+      invoke_percent = contract_obj.user_invoke_share_percent;
+      
+    auto user_invoke_share_fee =  core_fee_paid*invoke_percent/100;
+    user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
+    core_fee_paid = user_invoke_share_fee;
+    ilog("--user_invoke_share_fee ${x}", ("x", user_invoke_share_fee.value));
+    ilog("--user_invoke_creator_fee ${x}", ("x", user_invoke_creator_fee.value));
+    if((user_invoke_share_fee.value<0)||(user_invoke_creator_fee.value<0))
+    ilog("--user_invoke_share_fee or user_invoke_creator_fee");
 }
 
 contract_result call_contract_function_evaluator::do_apply_function(account_id_type caller, string function_name,vector<lua_types> value_list,
