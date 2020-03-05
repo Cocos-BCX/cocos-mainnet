@@ -822,10 +822,14 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
         result_contains_error = true;
       }
 
+      auto call_contract_condition = (op.which() == operation::tag<call_contract_function_operation>::value && op_result.which() == operation_result::tag<contract_result>::value);
       auto transfer_condition = (op.which() == operation::tag<transfer_operation>::value && op_result.which() == operation_result::tag<void_result>::value);
-      if ( transfer_condition )
+      if ( call_contract_condition || transfer_condition )
       {
         account_id_type op_from;
+        if( call_contract_condition ){
+          op_from = op.get<call_contract_function_operation>().caller;
+        }
         if( transfer_condition ){
           op_from = op.get<transfer_operation>().from;
         }
