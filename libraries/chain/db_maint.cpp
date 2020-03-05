@@ -324,7 +324,7 @@ void database::update_active_committee_members()
             {
                   modify(get(GRAPHENE_COMMITTEE_ACCOUNT), [&](account_object &a) {
                         {
-                              vote_counter vc; // 更新理事会公共账户权限
+                              vote_counter_weight_threshold_two_thirds vc; // 更新理事会公共账户权限
                               for (const committee_member_object &cm : committee_members)
                                     vc.add(cm.committee_member_account, 1);
                               vc.finish(a.active);

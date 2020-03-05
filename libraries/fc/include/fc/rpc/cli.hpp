@@ -24,6 +24,7 @@ namespace fc { namespace rpc {
 
          void start();
          void stop();
+         void cancel();
          void wait();
          void format_result( const string& method, std::function<string(variant,const variants&)> formatter);
 

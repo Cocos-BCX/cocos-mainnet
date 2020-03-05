@@ -168,8 +168,18 @@ if(ENABLE_COVERAGE_TESTING)
     SET(CMAKE_CXX_FLAGS "--coverage ${CMAKE_CXX_FLAGS}")
 endif()
 
+# libprocess_encryption static library copy is needed for cross platform building, 
+# please also note the add order here is very important!!!
+if( NOT BUILD_PROCESS_ENCRYPTION )
+  add_subdirectory( extra_library )
+  if ( PE_LIB_DIR )
+    link_directories( ${PE_LIB_DIR} )
+  endif( )
+endif() 
+
 add_subdirectory( libraries )
 add_subdirectory( programs )
+add_subdirectory( tests )
 
 
 if (ENABLE_INSTALLER)

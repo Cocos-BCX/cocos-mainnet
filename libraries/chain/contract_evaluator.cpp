@@ -178,7 +178,6 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     ilog("--user_invoke_share_fee or user_invoke_creator_fee");
 }
 
-
 contract_result call_contract_function_evaluator::do_apply_function(account_id_type caller, string function_name,vector<lua_types> value_list,
                                                                     optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys,contract_id_type  contract_id)
 {
