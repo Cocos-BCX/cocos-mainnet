@@ -95,7 +95,7 @@ namespace graphene { namespace chain {
    struct contract_share_operation : public base_operation
    {
      struct fee_parameters_type {
-         uint64_t fee       = 0 * GRAPHENE_BLOCKCHAIN_PRECISION;
+         uint64_t fee       = 1 * GRAPHENE_BLOCKCHAIN_PRECISION;
       };
       account_id_type       sharer;       // 费用承担者
       asset                 amount;
@@ -115,7 +115,7 @@ namespace graphene { namespace chain {
    struct contract_share_fee_operation : public base_operation
    {
      struct fee_parameters_type {
-         uint64_t fee       = 0 * GRAPHENE_BLOCKCHAIN_PRECISION;
+         uint64_t fee       = 1 * GRAPHENE_BLOCKCHAIN_PRECISION;
       };
       account_id_type       sharer;       // 费用承担者
       uint64_t              total_share_fee;
