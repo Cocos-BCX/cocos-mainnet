@@ -31,7 +31,6 @@ struct register_scheduler
     void log(string message);
     int contract_random();
     void set_permissions_flag(bool flag);
-    void set_invoke_percent(double percent);
     void set_invoke_share_percent(double percent);
     void read_cache();
     void fllush_cache();
