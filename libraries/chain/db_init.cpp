@@ -699,5 +699,21 @@ void database::initialize_luaVM()
     initialize_baseENV();
 }
 
+void database::update_genesis_extensions(const genesis_state_type &genesis_state)
+{
+    try
+    {
+        _undo_db.disable();
+
+          // Enable fees
+        modify(get_global_properties(), [&genesis_state](global_property_object &p) {
+            p.parameters.extensions = genesis_state.initial_parameters.extensions;
+        });
+
+          _undo_db.enable();
+    }
+    FC_CAPTURE_AND_RETHROW()    
+}
+
 } // namespace chain
 } // namespace graphene
