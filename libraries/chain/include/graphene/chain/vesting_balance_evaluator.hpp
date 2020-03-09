@@ -46,6 +46,8 @@ class vesting_balance_withdraw_evaluator : public evaluator<vesting_balance_with
 
         void_result do_evaluate( const vesting_balance_withdraw_operation& op );
         void_result do_apply( const vesting_balance_withdraw_operation& op );
+        void pay_fee_for_gas(const operation& op);
+        asset calculate_fee( const operation& op, const price& core_exchange_rate = price::unit_price() )const;
 };
 
 } } // graphene::chain

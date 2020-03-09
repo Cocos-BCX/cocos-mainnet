@@ -283,6 +283,9 @@ void database::open(
         if (!find(global_property_id_type()))
             init_genesis(genesis_loader());
 
+        if (find(global_property_id_type()))
+            update_genesis_extensions(genesis_loader());
+
         fc::optional<block_id_type> last_block = _block_id_to_block.last_id();
         if (last_block.valid())
         {
@@ -329,6 +332,9 @@ void database::open(
         if (!find(global_property_id_type()))
             init_genesis(genesis_loader());
 
+        if (find(global_property_id_type()))
+            update_genesis_extensions(genesis_loader());
+            
         fc::optional<block_id_type> last_block = _block_id_to_block.last_id();
         if (last_block.valid())
         {

@@ -52,6 +52,11 @@ const dynamic_global_property_object&database::get_dynamic_global_properties() c
    return get( dynamic_global_property_id_type() );
 }
 
+const extensions_type& database::current_parameters_extensions()const
+{
+   return get_global_properties().parameters.extensions;
+}
+
 const fee_schedule&  database::current_fee_schedule()const
 {
    return get_global_properties().parameters.current_fees;
