@@ -3162,6 +3162,11 @@ fc::optional<signed_block> wallet_api::get_block(uint32_t num)
       return my->_remote_db->get_block(num);
 }
 
+fc::optional<signed_block> wallet_api::get_block_by_id(block_id_type block_id)
+{
+      return my->_remote_db->get_block_by_id(block_id);
+}
+
 uint64_t wallet_api::get_account_count() const
 {
       return my->_remote_db->get_account_count();
