@@ -67,7 +67,8 @@ BOOST_AUTO_TEST_CASE( two_node_network )
       cfg.emplace("p2p-endpoint", boost::program_options::variable_value(string("127.0.0.1:3939"), false));
       cfg.emplace("genesis-json", boost::program_options::variable_value(create_genesis_file(app_dir), false));
       cfg.emplace("seed-nodes", boost::program_options::variable_value(string("[]"), false));
-      app1.initialize(app_dir.path(), cfg);
+      app1.initialize_db(app_dir.path(), cfg);
+      app1.initialize(cfg);
 
       BOOST_TEST_MESSAGE("Starting app1 and waiting 500 ms");
       app1.startup();
@@ -83,19 +84,22 @@ BOOST_AUTO_TEST_CASE( two_node_network )
       app2.register_plugin<graphene::delayed_node::delayed_node_plugin>();
       app2.register_plugin<graphene::snapshot_plugin::snapshot_plugin>();
       app2.startup_plugins();
-      
+
       auto cfg2 = cfg;
       cfg2.erase("p2p-endpoint");
       cfg2.emplace("p2p-endpoint", boost::program_options::variable_value(string("127.0.0.1:4040"), false));
       cfg2.emplace("genesis-json", boost::program_options::variable_value(create_genesis_file(app_dir), false));
       cfg2.emplace("seed-node", boost::program_options::variable_value(vector<string>{"127.0.0.1:3939"}, false));
       cfg2.emplace("seed-nodes", boost::program_options::variable_value(string("[]"), false));
-      app2.initialize(app2_dir.path(), cfg2);
+      app2.initialize_db(app2_dir.path(), cfg2);
+      app2.initialize(cfg2);
 
       BOOST_TEST_MESSAGE("Starting app2 and waiting 500 ms");
       app2.startup();
       fc::usleep(fc::milliseconds(500));
 
+      idump((app1.p2p_node()->get_connection_count()));
+      idump((std::string(app1.p2p_node()->get_connected_peers().front().host.get_address())));
       BOOST_REQUIRE_EQUAL(app1.p2p_node()->get_connection_count(), 1u);
       BOOST_CHECK_EQUAL(std::string(app1.p2p_node()->get_connected_peers().front().host.get_address()), "127.0.0.1");
       BOOST_TEST_MESSAGE( "app1 and app2 successfully connected" );
@@ -119,16 +123,14 @@ BOOST_AUTO_TEST_CASE( two_node_network )
          claim_op.balance_owner_key = nico_key.get_public_key();
          claim_op.total_claimed = bid(*db1).balance;
          trx.operations.push_back( claim_op );
-         db1->current_fee_schedule().set_fee( trx.operations.back() );
 
          transfer_operation xfer_op;
          xfer_op.from = nico_id;
          xfer_op.to = GRAPHENE_NULL_ACCOUNT;
          xfer_op.amount = asset( 1000000 );
          trx.operations.push_back( xfer_op );
-         db1->current_fee_schedule().set_fee( trx.operations.back() );
 
-         trx.set_expiration( db1->get_slot_time( 10 ) );
+         trx.set_expiration( db1->get_slot_time( 2000 ) );
          trx.sign( nico_key, db1->get_chain_id() );
          trx.validate();
       }
@@ -136,17 +138,14 @@ BOOST_AUTO_TEST_CASE( two_node_network )
       BOOST_TEST_MESSAGE( "Pushing tx locally on db1" );
       processed_transaction ptrx = db1->push_transaction(trx);
 
-      //fc::usleep(fc::milliseconds(5000));
+      fc::usleep(fc::milliseconds(500));
       BOOST_CHECK_EQUAL( db1->get_balance( GRAPHENE_NULL_ACCOUNT, asset_id_type() ).amount.value, 1000000 );
       BOOST_CHECK_EQUAL( db2->get_balance( GRAPHENE_NULL_ACCOUNT, asset_id_type() ).amount.value, 0 );
 
       BOOST_TEST_MESSAGE( "Broadcasting tx" );
       app1.p2p_node()->broadcast(graphene::net::trx_message(trx));
 
-      fc::usleep(fc::milliseconds(500));
-
-      BOOST_CHECK_EQUAL( db1->get_balance( GRAPHENE_NULL_ACCOUNT, asset_id_type() ).amount.value, 1000000 );
-      //BOOST_CHECK_EQUAL( db2->get_balance( GRAPHENE_NULL_ACCOUNT, asset_id_type() ).amount.value, 1000000 );
+      fc::usleep(fc::milliseconds(6000));
 
       BOOST_TEST_MESSAGE( "Generating block on db2" );
       fc::ecc::private_key committee_key = fc::ecc::private_key::regenerate(fc::sha256::hash(string("nico")));
@@ -160,11 +159,13 @@ BOOST_AUTO_TEST_CASE( two_node_network )
       BOOST_TEST_MESSAGE( "Broadcasting block" );
       app2.p2p_node()->broadcast(graphene::net::block_message( block_1 ));
 
-      fc::usleep(fc::milliseconds(500));
+      fc::usleep(fc::milliseconds(6000));
       BOOST_TEST_MESSAGE( "Verifying nodes are still connected" );
       BOOST_CHECK_EQUAL(app1.p2p_node()->get_connection_count(), 1);
       BOOST_CHECK_EQUAL(app1.chain_database()->head_block_num(), 1);
 
+      BOOST_CHECK_EQUAL( db1->get_balance( GRAPHENE_NULL_ACCOUNT, asset_id_type() ).amount.value, 1000000 );
+      BOOST_CHECK_EQUAL( db2->get_balance( GRAPHENE_NULL_ACCOUNT, asset_id_type() ).amount.value, 1000000 );
       BOOST_TEST_MESSAGE( "Checking GRAPHENE_NULL_ACCOUNT has balance" );
    } catch( fc::exception& e ) {
       edump((e.to_detail_string()));

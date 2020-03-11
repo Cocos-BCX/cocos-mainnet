@@ -40,3 +40,6 @@ bin/Debug
 
 core
 .git/*
+
+# macos 
+.DS_Store
