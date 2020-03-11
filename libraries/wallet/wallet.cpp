@@ -842,6 +842,14 @@ public:
 
             return true;
       }
+
+      void quit()
+      {
+            ilog( "Quitting Cli Wallet ..." );
+
+            throw fc::canceled_exception();
+      }
+
       void save_wallet_file(string wallet_filename = "")
       {
             //
@@ -1945,34 +1953,8 @@ public:
                   }
 
                   signed_transaction tx;
-
                   
-                  fc::optional<account_id_type> acct_id = maybe_id<account_id_type>(from);
-                  if (!acct_id)
-                        acct_id = get_account(from).id;
-
-                  vector<vesting_balance_object> vbos = _remote_db->get_vesting_balances(*acct_id);
-                  vesting_balance_withdraw_operation vesting_balance_withdraw_op;
-                  fc::optional<vesting_balance_id_type> vbid = maybe_id<vesting_balance_id_type>(string(vbos.begin()->id));
-                  
-                  if(vbid)
-                  {                        
-                        auto dynamic_props = get_dynamic_global_properties();
-                        auto b = _remote_db->get_block_header(dynamic_props.head_block_number);
-                        FC_ASSERT(b);
-                        auto now = b->timestamp;
-                        
-                        vesting_balance_object vbo1 = get_object<vesting_balance_object>(*vbid);
-
-                        vesting_balance_withdraw_op.vesting_balance = *vbid;
-                        vesting_balance_withdraw_op.owner = vbo1.owner;
-                        vesting_balance_withdraw_op.amount = vbo1.get_allowed_withdraw(now);
-                        
-                        //std::cout<<vesting_balance_withdraw_op.amount.amount.value<<endl;
-                  }
-                 
                   tx.operations.push_back(xfer_op);
-                  tx.operations.push_back(vesting_balance_withdraw_op);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);
@@ -4171,7 +4153,7 @@ string wallet_api::help() const
                   ss << method_name << " (no help available)\n";
             }
       }
-      ss << " (You can use `gethelp command` for single command usage)\n";
+      ss << " (You can use `gethelp command` for single command usage or `quit` to exit)\n";
 	  
       return ss.str();
 }
@@ -4236,6 +4218,11 @@ string wallet_api::gethelp(const string &method) const
 bool wallet_api::load_wallet_file(string wallet_filename)
 {
       return my->load_wallet_file(wallet_filename);
+}
+
+void wallet_api::quit()
+{
+      my->quit();
 }
 
 void wallet_api::save_wallet_file(string wallet_filename)
