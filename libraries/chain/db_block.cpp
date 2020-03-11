@@ -460,7 +460,7 @@ signed_block database::_generate_block(
         //if (tx.operation_results.size() > 0)
         //{
           
-        if((tx.operations[0].which() == operation::tag<contract_share_fee_operation>::value))
+        if((trx.operations[0].which() == operation::tag<contract_share_operation>::value|tx.operations[0].which() == operation::tag<contract_share_fee_operation>::value))
           skip = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
 
         if (BOOST_LIKELY(head_block_num() > 0)&& !tx.agreed_task)
