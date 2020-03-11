@@ -306,7 +306,7 @@ processed_transaction database::_push_transaction(const signed_transaction &trx,
   {
     uint32_t skip = get_node_properties().skip_flags;
     auto share_flag = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
-    if((trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)&&(skip!=share_flag))
+    if((trx.operations[0].which() == operation::tag<contract_share_operation>::value|trx.operations[0].which() == operation::tag<contract_share_operation>::value|trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)&&(skip!=share_flag))
       skip = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
 
     const chain_parameters &chain_parameters = get_global_properties().parameters;
@@ -685,7 +685,7 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
     uint32_t skip = get_node_properties().skip_flags;
 
     auto share_flag = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
-    if((trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)&&(skip!=share_flag))
+    if((trx.operations[0].which() == operation::tag<contract_share_operation>::value|trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)&&(skip!=share_flag))
     {
       skip = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
     }
