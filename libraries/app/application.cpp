@@ -341,11 +341,11 @@ public:
           std::string genesis_str;
           fc::read_file_contents(_options->at("genesis-json").as<boost::filesystem::path>(), genesis_str);
           genesis_state_type genesis = fc::json::from_string(genesis_str).as<genesis_state_type>();
-          vector<std::string> tmp_extensions(genesis.initial_parameters.extensions.size());
           if (_options->count("replay-blockchain"))
           {
-            tmp_extensions.assign(genesis.initial_parameters.extensions.begin(), genesis.initial_parameters.extensions.end());
-            genesis.initial_parameters.extensions.clear();
+            std::string replaces_str = "\"{\"vesting_balance_withdraw_fee\":\"6000\"}\"";
+            auto p = genesis_str.find(replaces_str);
+            genesis_str.replace(p, p+replaces_str.size()-10, "");
           }
           //idump((genesis.initial_parameters.maximum_run_time_ratio));
           bool modified_genesis = false;
@@ -372,12 +372,6 @@ public:
           }
           else
             genesis.initial_chain_id = fc::sha256::hash(genesis_str);
-          if (_options->count("replay-blockchain"))
-          {
-            genesis.initial_parameters.extensions.resize(tmp_extensions.size());
-            genesis.initial_parameters.extensions.assign(tmp_extensions.begin(), tmp_extensions.end());
-            tmp_extensions.clear();
-          }
           return genesis;
         }
         else
