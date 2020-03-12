@@ -372,9 +372,12 @@ public:
           }
           else
             genesis.initial_chain_id = fc::sha256::hash(genesis_str);
-          genesis.initial_parameters.extensions.resize(tmp_extensions.size());
-          genesis.initial_parameters.extensions.assign(tmp_extensions.begin(), tmp_extensions.end());
-          tmp_extensions.clear();
+          if (_options->count("replay-blockchain"))
+          {
+            genesis.initial_parameters.extensions.resize(tmp_extensions.size());
+            genesis.initial_parameters.extensions.assign(tmp_extensions.begin(), tmp_extensions.end());
+            tmp_extensions.clear();
+          }
           return genesis;
         }
         else
