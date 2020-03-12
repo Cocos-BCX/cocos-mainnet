@@ -341,11 +341,11 @@ public:
           std::string genesis_str;
           fc::read_file_contents(_options->at("genesis-json").as<boost::filesystem::path>(), genesis_str);
           genesis_state_type genesis = fc::json::from_string(genesis_str).as<genesis_state_type>();
-          vector<std::string> tmp_extensions();
+          vector<std::string> tmp_extensions(genesis.initial_parameters.extensions.size());
           if (_options->count("replay-blockchain"))
           {
-            tmp_extensions = genesis.initial_parameters.extensions;
-            genesis.initial_parameters.extensions = vector<std::string>();
+            tmp_extensions.assign(genesis.initial_parameters.extensions.begin(), genesis.initial_parameters.extensions.end());
+            genesis.initial_parameters.extensions.resize(0);
           }
           //idump((genesis.initial_parameters.maximum_run_time_ratio));
           bool modified_genesis = false;
@@ -372,7 +372,8 @@ public:
           }
           else
             genesis.initial_chain_id = fc::sha256::hash(genesis_str);
-          genesis.initial_parameters.extensions = tmp_extensions;
+          genesis.initial_parameters.extensions.resize(tmp_extensions.size());
+          genesis.initial_parameters.extensions.assign(tmp_extensions.begin(), tmp_extensions.end());
           return genesis;
         }
         else
