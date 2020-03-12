@@ -345,7 +345,7 @@ public:
           if (_options->count("replay-blockchain"))
           {
             tmp_extensions.assign(genesis.initial_parameters.extensions.begin(), genesis.initial_parameters.extensions.end());
-            genesis.initial_parameters.extensions.resize(0);
+            genesis.initial_parameters.extensions.clear();
           }
           //idump((genesis.initial_parameters.maximum_run_time_ratio));
           bool modified_genesis = false;
@@ -374,6 +374,7 @@ public:
             genesis.initial_chain_id = fc::sha256::hash(genesis_str);
           genesis.initial_parameters.extensions.resize(tmp_extensions.size());
           genesis.initial_parameters.extensions.assign(tmp_extensions.begin(), tmp_extensions.end());
+          tmp_extensions.clear();
           return genesis;
         }
         else
