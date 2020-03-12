@@ -341,6 +341,10 @@ public:
           std::string genesis_str;
           fc::read_file_contents(_options->at("genesis-json").as<boost::filesystem::path>(), genesis_str);
           genesis_state_type genesis = fc::json::from_string(genesis_str).as<genesis_state_type>();
+          if (_options->count("replay-blockchain"))
+          {
+            genesis.initial_parameters.extensions = vector<std::string>();
+          }
           //idump((genesis.initial_parameters.maximum_run_time_ratio));
           bool modified_genesis = false;
           if (_options->count("genesis-timestamp"))
