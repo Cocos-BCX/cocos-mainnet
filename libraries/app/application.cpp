@@ -49,6 +49,7 @@
 #include <boost/signals2.hpp>
 #include <boost/range/algorithm/reverse.hpp>
 #include <boost/algorithm/string.hpp>
+#define BOOST_REGEX_DYN_LINK
 #include <boost/regex.hpp>
 
 #include <iostream>
@@ -348,8 +349,8 @@ public:
           boost::regex reg_without_extension(pattern_without_extension);
           std::string pattern_with_extension = "extensions\": [*]";
           boost::regex reg_with_extension(pattern_with_extension);
-          boost::match_results<std::string::const_iterator> what;
-          if (!boost::regex_match(genesis_str, what, reg_without_extension) && boost::regex_match(genesis_str, what, reg_with_extension))
+          // boost::match_results<std::string::const_iterator> what;
+          if (!boost::regex_match(genesis_str, reg_without_extension) && boost::regex_match(genesis_str, reg_with_extension))
           {
             boost::regex_replace(genesis_str, reg_without_extension, pattern_without_extension);
           }

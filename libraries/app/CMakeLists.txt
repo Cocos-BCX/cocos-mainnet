@@ -1,9 +1,6 @@
 file(GLOB HEADERS "include/graphene/app/*.hpp")
 file(GLOB EGENESIS_HEADERS "../egenesis/include/graphene/app/*.hpp")
            
-find_package(Boost REQUIRED)
-include_directories(${Boost_INCLUDE_DIRS})
-
 add_library( graphene_app 
              api.cpp
              application.cpp
