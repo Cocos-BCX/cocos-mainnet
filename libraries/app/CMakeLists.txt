@@ -1,6 +1,12 @@
 file(GLOB HEADERS "include/graphene/app/*.hpp")
 file(GLOB EGENESIS_HEADERS "../egenesis/include/graphene/app/*.hpp")
            
+if (Boost_FOUND)
+    # Boost is a project wide global dependency.
+    include_directories (${Boost_INCLUDE_DIRS})
+    link_directories (${Boost_LIBRARY_DIRS})
+ENDIF ( Boost_FOUND )
+
 add_library( graphene_app 
              api.cpp
              application.cpp
