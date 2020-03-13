@@ -37,7 +37,7 @@
     "candidate_award_budget": "10000000000",
     "committee_percent_of_candidate_award": 5500,
     "unsuccessful_candidates_percent": 1000,
-    "extensions": ["{\"vesting_balance_withdraw_fee\":\"600\"}"]
+    "extensions": [{"vesting_balance_withdraw_fee":6000}]
   },
   "initial_accounts": [{
       "name": "init0",

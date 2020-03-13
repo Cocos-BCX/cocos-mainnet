@@ -341,12 +341,10 @@ public:
           std::string genesis_str;
           fc::read_file_contents(_options->at("genesis-json").as<boost::filesystem::path>(), genesis_str);
           genesis_state_type genesis = fc::json::from_string(genesis_str).as<genesis_state_type>();
-          if (_options->count("replay-blockchain"))
-          {
-          std::string replaces_str = "\"{\\\"vesting_balance_withdraw_fee\\\":\\\"6000\\\"}\"";;
-          auto p = genesis_str.find(replaces_str);
-          genesis_str.replace(p, replaces_str.size(), "");
-          }
+
+          //remove the extension   -----yp add -----
+          std::regex reg("extensions\": [*]");
+          std::regex_replace(genesis_str, reg, "extensions\": []");
 
           //idump((genesis.initial_parameters.maximum_run_time_ratio));
           bool modified_genesis = false;
