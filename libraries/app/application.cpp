@@ -346,7 +346,7 @@ public:
           //remove the extension   -----yp add -----
           std::string pattern_without_extension = "extensions\": []";
           boost::regex reg_without_extension(pattern_without_extension);
-          if (!boost::regex_match(genesis_str, reg_without_extension);)
+          if (!boost::regex_match(genesis_str, reg_without_extension))
           {
             std::string pattern_with_extension = "extensions\": [*]";
             boost::regex reg_without_extension(pattern_with_extension);
