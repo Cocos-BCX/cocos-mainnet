@@ -49,7 +49,6 @@
 #include <boost/signals2.hpp>
 #include <boost/range/algorithm/reverse.hpp>
 #include <boost/algorithm/string.hpp>
-#define BOOST_REGEX_DYN_LINK
 #include <boost/regex.hpp>
 
 #include <iostream>
