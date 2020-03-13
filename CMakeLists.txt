@@ -81,6 +81,11 @@ IF(NOT "${Boost_VERSION}" MATCHES "1.53(.*)")
    SET(Boost_LIBRARIES ${BOOST_LIBRARIES_TEMP} ${Boost_LIBRARIES})
 ENDIF()
 
+IF ( Boost_FOUND )
+    # Add boost include directory to compiler include path, so user-provided path will also be included when compiling
+    include_directories( ${Boost_INCLUDE_DIRS} )
+ENDIF ( Boost_FOUND )
+
 if( WIN32 )
 
     message( STATUS "Configuring COCOS_BCX on WIN32")
@@ -125,7 +130,7 @@ else( WIN32 ) # Apple AND Linux
     if( APPLE )
         # Apple Specific Options Here
         message( STATUS "Configuring COCOS_BCX on OS X" )
-        set( CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++14 -stdlib=libc++ -Wall" )
+        set( CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++14 -stdlib=libc++ -Wall -Wno-c++11-narrowing -D_XOPEN_SOURCE=0" )
     else( APPLE )
         # Linux Specific Options Here
         message( STATUS "Configuring COCOS_BCX on Linux" )
@@ -180,7 +185,6 @@ endif()
 add_subdirectory( libraries )
 add_subdirectory( programs )
 add_subdirectory( tests )
-
 
 if (ENABLE_INSTALLER)
 

@@ -1,6 +1,7 @@
 ﻿#include <graphene/chain/contract_object.hpp>
 #include <graphene/chain/contract_evaluator.hpp>
 #include <graphene/chain/contract_function_register_scheduler.hpp>
+#include <graphene/chain/market_object.hpp>
 namespace graphene
 {
 namespace chain
@@ -182,6 +183,84 @@ void register_scheduler::make_release()
 {
     db.modify(contract.get_id()(db),[](contract_object& cb){cb.is_release=true;});
 }
+
+
+void register_scheduler::update_collateral_for_gas(string from, string to, int64_t amount)
+{
+    try
+    {
+        FC_ASSERT(amount >= 0);
+        share_type collateral = amount;
+        account_id_type mortgager;
+        if (from.empty()) {
+            mortgager = contract.owner;
+        } else {
+            mortgager = get_account(from).id;
+            FC_ASSERT(mortgager == contract.owner);
+        }
+        account_id_type beneficiary = mortgager;
+        if(from != to) {
+            beneficiary = get_account(to).id;
+        }
+
+        const collateral_for_gas_object *collateral_for_gas=nullptr;
+        auto &index = db.get_index_type<collateral_for_gas_index>().indices().get<by_mortgager_and_beneficiary>();
+        auto itr = index.find(boost::make_tuple(mortgager, beneficiary));
+        if (itr != index.end()) {
+            collateral_for_gas = &(*itr);
+        }
+
+        share_type temp_supply = 0;
+        if (collateral_for_gas)
+        {
+            auto temp_collateral = collateral - collateral_for_gas->collateral;
+            auto temp_debt = db.estimation_gas(collateral).amount - collateral_for_gas->debt;
+            db.modify(*collateral_for_gas, [&](collateral_for_gas_object &cgb) {
+                cgb.collateral += temp_collateral;
+                cgb.debt += temp_debt;
+            });
+            const auto &mortgager_obj = mortgager(db);
+            db.adjust_balance(beneficiary, asset(temp_debt, GRAPHENE_ASSET_GAS), true);
+            temp_supply = temp_debt;
+            if (temp_collateral < 0)
+            {
+                optional<vesting_balance_id_type> new_vbid = db.deposit_lazy_vesting(
+                    mortgager_obj.cashback_vb,
+                    -temp_collateral,
+                    db.get_global_properties().parameters.cashback_vb_period_seconds,
+                    mortgager,
+                    "cashback_vb",
+                    true);
+                if (new_vbid.valid())
+                    db.modify(mortgager_obj, [&new_vbid](account_object &a) { a.cashback_vb = new_vbid; });
+            }
+            else
+            {
+                db.adjust_balance(mortgager, -temp_collateral);
+            }
+        }
+        else
+        {
+            collateral_for_gas = &db.create<collateral_for_gas_object>([&](collateral_for_gas_object &cgb) {
+                cgb.mortgager = mortgager;
+                cgb.beneficiary = beneficiary;
+                cgb.collateral = collateral;
+                cgb.debt = db.estimation_gas(cgb.collateral).amount;
+            });
+            db.adjust_balance(mortgager, -collateral);
+            db.adjust_balance(beneficiary, asset(collateral_for_gas->debt, GRAPHENE_ASSET_GAS), true);
+            temp_supply = collateral_for_gas->debt;
+        }
+        db.modify(GRAPHENE_ASSET_GAS(db).dynamic_asset_data_id(db), [&](asset_dynamic_data_object &data) {
+            data.current_supply += temp_supply;
+        });
+    }
+    catch (fc::exception e)
+    {
+        LUA_C_ERR_THROW(this->context.mState, e.to_string());
+    }
+}
+
 static int get_account_contract_data(lua_State *L)
 {
     try
@@ -329,6 +408,7 @@ void lua_scheduler::chain_function_bind()
     registerFunction("set_invoke_share_percent", &register_scheduler::set_invoke_share_percent);
     registerFunction("invoke_contract_function", &register_scheduler::invoke_contract_function);
     registerFunction("change_contract_authority", &register_scheduler::change_contract_authority);
+    registerFunction("update_collateral_for_gas", &register_scheduler::update_collateral_for_gas);
     lua_register(mState, "import_contract", &import_contract);
     lua_register(mState, "get_account_contract_data", &get_account_contract_data);
     lua_register(mState, "format_vector_with_table", &format_vector_with_table);

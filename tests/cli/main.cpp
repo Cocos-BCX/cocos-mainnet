@@ -23,6 +23,7 @@
  */
 #include <graphene/app/application.hpp>
 #include <graphene/app/plugin.hpp>
+
 #include <graphene/utilities/tempdir.hpp>
 
 #include <graphene/account_history/account_history_plugin.hpp>
@@ -36,6 +37,7 @@
 #include <fc/rpc/websocket_api.hpp>
 #include <fc/rpc/cli.hpp>
 #include <fc/crypto/base58.hpp>
+
 #include <fc/crypto/aes.hpp>
 
 #ifdef _WIN32
@@ -130,8 +132,8 @@ std::shared_ptr<graphene::app::application> start_application(fc::temp_directory
    );
    cfg.emplace("genesis-json", boost::program_options::variable_value(create_genesis_file(app_dir), false));
    cfg.emplace("seed-nodes", boost::program_options::variable_value(string("[]"), false));
+   // app1->initialize(app_dir.path(), cfg);
    app1->initialize(cfg);
-
 
    app1->initialize_plugins(cfg);
    app1->startup_plugins();
@@ -151,7 +153,6 @@ bool generate_block(std::shared_ptr<graphene::app::application> app, graphene::c
 {
    try {
       fc::ecc::private_key committee_key = fc::ecc::private_key::regenerate(fc::sha256::hash(string("nathan")));
-
       auto db = app->chain_database();
       returned_block = db->generate_block( db->get_slot_time(1),
                                          db->get_scheduled_witness(1),
@@ -177,7 +178,6 @@ bool generate_block(std::shared_ptr<graphene::app::application> app)
 bool generate_maintenance_block(std::shared_ptr<graphene::app::application> app) {
    try {
       fc::ecc::private_key committee_key = fc::ecc::private_key::regenerate(fc::sha256::hash(string("nathan")));
-
       uint32_t skip = ~0;
       auto db = app->chain_database();
       auto maint_time = db->get_dynamic_global_properties().next_maintenance_time;
@@ -279,7 +279,6 @@ struct cli_fixture
       app_dir( graphene::utilities::temp_directory_path() ),
       app1( start_application(app_dir, server_port_number) ),
       con( app1, app_dir, server_port_number ),
-
       nathan_keys( {"5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3"} )
    {
       BOOST_TEST_MESSAGE("Setup cli_wallet::boost_fixture_test_case");
@@ -350,7 +349,6 @@ BOOST_FIXTURE_TEST_CASE( upgrade_nathan_account, cli_fixture )
       signed_transaction upgrade_tx;
 
       BOOST_TEST_MESSAGE("Importing nathan's balance");
-
       import_txs = con.wallet_api_ptr->import_balance("nathan", nathan_keys, true);
       nathan_acct_before_upgrade = con.wallet_api_ptr->get_account("nathan");
 
@@ -387,7 +385,6 @@ BOOST_FIXTURE_TEST_CASE( create_new_account, cli_fixture )
       ).second;
       // save the private key for this new account in the wallet file
       BOOST_CHECK(con.wallet_api_ptr->import_key("jmjatlanta", bki.wif_priv_key));
-
       con.wallet_api_ptr->save_wallet_file(con.wallet_filename);
 
       // attempt to give jmjatlanta some bitsahres
@@ -435,7 +432,6 @@ BOOST_FIXTURE_TEST_CASE( cli_vote_for_2_witnesses, cli_fixture )
       int init2_start_votes = init2_obj.total_votes;
       signed_transaction vote_witness2_tx = con.wallet_api_ptr->vote_for_witness("jmjatlanta", "init2", true, true).second;
 
-
       // send another block to trigger maintenance interval
       BOOST_CHECK(generate_maintenance_block(app1));
 
@@ -446,9 +442,7 @@ BOOST_FIXTURE_TEST_CASE( cli_vote_for_2_witnesses, cli_fixture )
       int init2_middle_votes = init2_obj.total_votes;
       BOOST_CHECK(init2_middle_votes > init2_start_votes);
       int init1_last_votes = init1_obj.total_votes;
-
       BOOST_CHECK(init1_last_votes > init1_start_votes);
-
    } catch( fc::exception& e ) {
       edump((e.to_detail_string()));
       throw;

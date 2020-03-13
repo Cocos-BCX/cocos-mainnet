@@ -1953,32 +1953,7 @@ public:
                   }
 
                   signed_transaction tx;
-
                   
-                  fc::optional<account_id_type> acct_id = maybe_id<account_id_type>(from);
-                  if (!acct_id)
-                        acct_id = get_account(from).id;
-
-                  vector<vesting_balance_object> vbos = _remote_db->get_vesting_balances(*acct_id);
-                  vesting_balance_withdraw_operation vesting_balance_withdraw_op;
-                  fc::optional<vesting_balance_id_type> vbid = maybe_id<vesting_balance_id_type>(string(vbos.begin()->id));
-                  
-                  if(vbid)
-                  {                        
-                        auto dynamic_props = get_dynamic_global_properties();
-                        auto b = _remote_db->get_block_header(dynamic_props.head_block_number);
-                        FC_ASSERT(b);
-                        auto now = b->timestamp;
-                        
-                        vesting_balance_object vbo1 = get_object<vesting_balance_object>(*vbid);
-
-                        vesting_balance_withdraw_op.vesting_balance = *vbid;
-                        vesting_balance_withdraw_op.owner = vbo1.owner;
-                        vesting_balance_withdraw_op.amount = vbo1.get_allowed_withdraw(now);
-                        
-                        //std::cout<<vesting_balance_withdraw_op.amount.amount.value<<endl;
-                  }
-                 
                   tx.operations.push_back(xfer_op);
                   tx.operations.push_back(vesting_balance_withdraw_op);
                   tx.validate();
@@ -3186,6 +3161,11 @@ bool wallet_api::copy_wallet_file(string destination_filename)
 fc::optional<signed_block> wallet_api::get_block(uint32_t num)
 {
       return my->_remote_db->get_block(num);
+}
+
+fc::optional<signed_block> wallet_api::get_block_by_id(block_id_type block_id)
+{
+      return my->_remote_db->get_block_by_id(block_id);
 }
 
 uint64_t wallet_api::get_account_count() const

@@ -54,12 +54,14 @@ struct worker_init_visitor
    result_type operator()( const vesting_balance_worker_initializer& i )const
    {
       vesting_balance_worker_type w;
+      fc::time_point_sec now = db.head_block_time();
        w.balance = db.create<vesting_balance_object>([&](vesting_balance_object& b) 
        {
          FC_ASSERT(worker.beneficiary.valid());
          b.owner = *worker.beneficiary;
          b.balance = asset(0);
-
+         b.create_time = now;
+         
          cdd_vesting_policy policy;
          policy.vesting_seconds = fc::days(i.pay_vesting_period_days).to_seconds();
          policy.coin_seconds_earned = 0;
