@@ -261,6 +261,19 @@ void register_scheduler::update_collateral_for_gas(string from, string to, int64
     }
 }
 
+lua_map register_scheduler::get_contract_public_data(string name_or_id)
+{
+    try 
+    {
+        optional<contract_object> contract = get_contract(name_or_id);
+        return contract->contract_data;
+    } 
+    catch (fc::exception e) 
+    {
+        LUA_C_ERR_THROW(this->context.mState, e.to_string());
+    }
+}
+
 static int get_account_contract_data(lua_State *L)
 {
     try
@@ -409,6 +422,7 @@ void lua_scheduler::chain_function_bind()
     registerFunction("invoke_contract_function", &register_scheduler::invoke_contract_function);
     registerFunction("change_contract_authority", &register_scheduler::change_contract_authority);
     registerFunction("update_collateral_for_gas", &register_scheduler::update_collateral_for_gas);
+    registerFunction("get_contract_public_data", &register_scheduler::get_contract_public_data);
     lua_register(mState, "import_contract", &import_contract);
     lua_register(mState, "get_account_contract_data", &get_account_contract_data);
     lua_register(mState, "format_vector_with_table", &format_vector_with_table);
