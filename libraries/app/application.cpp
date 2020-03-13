@@ -49,6 +49,7 @@
 #include <boost/signals2.hpp>
 #include <boost/range/algorithm/reverse.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/regex.hpp>
 
 #include <iostream>
 
