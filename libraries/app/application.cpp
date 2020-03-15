@@ -346,9 +346,9 @@ public:
           //remove the extension   -----yp add -----
           using namespace std;
           using namespace boost;
-          std::string pattern_without_extension = "extensions\": (\\[)(\\])";
+          std::string pattern_without_extension = "*extensions\": (\\[)(\\])*";
           regex reg_without_extension(pattern_without_extension);
-          std::string pattern_with_extension = "extensions\": (\\[).*(\\])";
+          std::string pattern_with_extension = "*extensions\": (\\[).*(\\])*";
           regex reg_with_extension(pattern_with_extension);
           cmatch what;
           if (!regex_match(genesis_str.c_str(), what, reg_without_extension))
@@ -361,7 +361,7 @@ public:
               ilog("........................... ${str}", ("str", genesis_str));
             }
           }
-          boost::regex tmp("extensions\":");
+          regex tmp("extensions\":");
           if (regex_match(genesis_str, tmp))
           {
             ilog("==============================");
