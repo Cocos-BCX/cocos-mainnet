@@ -359,6 +359,10 @@ public:
             }
           }
 
+          if (boost::regex_match(genesis_str, "extensions\":"))
+          {
+            ilog("==============================");
+          }
           //idump((genesis.initial_parameters.maximum_run_time_ratio));
           bool modified_genesis = false;
           if (_options->count("genesis-timestamp"))
