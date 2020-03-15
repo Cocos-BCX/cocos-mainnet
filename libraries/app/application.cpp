@@ -344,12 +344,11 @@ public:
           genesis_state_type genesis = fc::json::from_string(genesis_str).as<genesis_state_type>();
 
           //remove the extension   -----yp add -----
-          std::string pattern_without_extension = "extensions\": \\[\\]";
+          std::string pattern_without_extension = "extensions\": (\\[)(\\])";
           boost::regex reg_without_extension(pattern_without_extension);
-          std::string pattern_with_extension = "extensions\": \\[*\\]";
+          std::string pattern_with_extension = "extensions\": (\\[).*(\\])";
           boost::regex reg_with_extension(pattern_with_extension);
           boost::match_results<std::string::const_iterator> what;
-          ilog("----------------------- ${str}", ("str", genesis_str));
           if (!boost::regex_match(genesis_str, what, reg_without_extension))
           {
             ilog("+++++++++++++++++++++++++ ${str}", ("str", genesis_str));
