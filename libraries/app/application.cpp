@@ -349,27 +349,27 @@ public:
           std::string pattern_with_extension = "extensions\": (\\[).*(\\])";
           boost::regex reg_with_extension(pattern_with_extension);
           boost::match_results<std::string::const_iterator> what;
-          if (!boost::regex_match(genesis_str, what, reg_without_extension))
+          if (!boost::regex_match(genesis_str.c_str(), what, reg_without_extension))
           {
             ilog("+++++++++++++++++++++++++ ${str}", ("str", genesis_str));
-            if (boost::regex_match(genesis_str, reg_with_extension))
+            if (boost::regex_match(genesis_str.c_str(), reg_with_extension))
             {
-              boost::regex_replace(genesis_str, reg_without_extension, "extensions\": []");
+              boost::regex_replace(genesis_str.c_str(), reg_without_extension, "extensions\": []");
               ilog("........................... ${str}", ("str", genesis_str));
             }
           }
           boost::regex tmp("extensions\":");
-          if (boost::regex_match(genesis_str, tmp))
+          if (boost::regex_match(genesis_str.c_str(), tmp))
           {
             ilog("==============================");
           }
           boost::regex tmp1("extensions\"");
-          if (boost::regex_match(genesis_str, tmp1))
+          if (boost::regex_match(genesis_str.c_str(), tmp1))
           {
             ilog("==========666666666666666=============");
           }
           boost::regex tmp2("extensions");
-          if (boost::regex_match(genesis_str, tmp2))
+          if (boost::regex_match(genesis_str.c_str(), tmp2))
           {
             ilog("==========777777777777777=============");
           }
