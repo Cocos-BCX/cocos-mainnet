@@ -355,9 +355,41 @@ public:
           {
             if (regex_match(genesis_str, reg_with_extension))
             {
-              std::string relace_str("$1extensions\": []$5");
-              genesis_str = boost::regex_replace(genesis_str, reg_with_extension, relace_str);
-              ilog("........................... ${str}", ("str", genesis_str));
+              std::string relace_str("$1extensions\": []$2");
+              std::string genesis_str1 = boost::regex_replace(genesis_str, reg_with_extension, relace_str);
+              ilog("...............2............ ${str}", ("str", genesis_str1));
+
+              std::string relace_str2("$1extensions\": []$3");
+              std::string genesis_str2 = boost::regex_replace(genesis_str, reg_with_extension, relace_str2);
+              ilog("...............3............ ${str}", ("str", genesis_str2));
+
+              std::string relace_str3("$1extensions\": []$4");
+              std::string genesis_str3 = boost::regex_replace(genesis_str, reg_with_extension, relace_str3);
+              ilog("...............4............ ${str}", ("str", genesis_str3));
+
+              std::string relace_str5("$1extensions\": []$5");
+              std::string genesis_str5 = boost::regex_replace(genesis_str, reg_with_extension, relace_str5);
+              ilog("...............5............ ${str}", ("str", genesis_str5));
+
+              std::string relace_str6("$1extensions\": []$6");
+              std::string genesis_str6 = boost::regex_replace(genesis_str, reg_with_extension, relace_str6);
+              ilog("...............6............ ${str}", ("str", genesis_str6));
+
+              std::string relace_str7("$1extensions\": []$7");
+              std::string genesis_str7 = boost::regex_replace(genesis_str, reg_with_extension, relace_str7);
+              ilog("...............7............ ${str}", ("str", genesis_str7));
+
+              std::string relace_str8("$1extensions\": []$8");
+              std::string genesis_str8 = boost::regex_replace(genesis_str, reg_with_extension, relace_str8);
+              ilog("...............8............ ${str}", ("str", genesis_str8));
+
+              std::string relace_str9("$1extensions\": []$9");
+              std::string genesis_str9 = boost::regex_replace(genesis_str, reg_with_extension, relace_str9);
+              ilog("...............9............ ${str}", ("str", genesis_str9));
+
+              std::string relace_str10("$1extensions\": []$10");
+              std::string genesis_str10 = boost::regex_replace(genesis_str, reg_with_extension, relace_str10);
+              ilog("...............10............ ${str}", ("str", genesis_str10));
             }
           }
 
