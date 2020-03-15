@@ -350,7 +350,7 @@ public:
           boost::regex reg_with_extension(pattern_with_extension);
           boost::match_results<std::string::const_iterator> what;
           ilog("----------------------- ${str}", ("str", genesis_str));
-          if (!boost::regex_match(genesis_str, what, reg_without_extension)))
+          if (!boost::regex_match(genesis_str, what, reg_without_extension))
           {
             ilog("+++++++++++++++++++++++++ ${str}", ("str", genesis_str));
             if (boost::regex_match(genesis_str, reg_with_extension))
