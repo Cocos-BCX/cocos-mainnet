@@ -351,7 +351,7 @@ public:
           std::string pattern_with_extension = "extensions\": (\\[).*(\\])";
           regex reg_with_extension(pattern_with_extension);
           cmatch what;
-          if (!regex_match(genesis_str, what, reg_without_extension))
+          if (!regex_match(genesis_str.c_str(), what, reg_without_extension))
           {
             ilog("+++++++++++++++++++++++++ ${str}", ("str", genesis_str));
             if (regex_match(genesis_str, reg_with_extension))
