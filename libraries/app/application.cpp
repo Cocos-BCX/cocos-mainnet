@@ -358,10 +358,20 @@ public:
               ilog("........................... ${str}", ("str", genesis_str));
             }
           }
-
-          if (boost::regex_match(genesis_str, "extensions\":"))
+          boost::regex tmp("extensions\":");
+          if (boost::regex_match(genesis_str, tmp))
           {
             ilog("==============================");
+          }
+          boost::regex tmp1("extensions\"");
+          if (boost::regex_match(genesis_str, tmp1))
+          {
+            ilog("==========666666666666666=============");
+          }
+          boost::regex tmp2("extensions");
+          if (boost::regex_match(genesis_str, tmp2))
+          {
+            ilog("==========777777777777777=============");
           }
           //idump((genesis.initial_parameters.maximum_run_time_ratio));
           bool modified_genesis = false;
