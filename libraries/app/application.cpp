@@ -352,6 +352,7 @@ public:
           if (!boost::regex_match(genesis_str, what, reg_without_extension) && boost::regex_match(genesis_str, reg_with_extension))
           {
             boost::regex_replace(genesis_str, reg_without_extension, pattern_without_extension);
+            ilog("----------------------- ${str}", ("str", genesis_str));
           }
 
           //idump((genesis.initial_parameters.maximum_run_time_ratio));
