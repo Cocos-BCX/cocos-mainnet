@@ -355,9 +355,14 @@ public:
           {
             if (regex_match(genesis_str, reg_with_extension))
             {
-              std::string relace_str("$1extensions\": []$3");
+              std::string relace_str("$1extensions\": []$6");
               genesis_str = boost::regex_replace(genesis_str, reg_with_extension, relace_str);
               ilog("........................... ${str}", ("str", genesis_str));
+              
+              std::string relace_str1("$4");
+              ilog("...........1111................ ${str}", ("str", relace_str1));
+              std::string relace_str2("$5");
+              ilog(".............222.............. ${str}", ("str", relace_str2));
             }
           }
 
