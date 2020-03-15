@@ -353,29 +353,15 @@ public:
           cmatch what;
           if (!regex_match(genesis_str.c_str(), what, reg_without_extension))
           {
-            ilog("+++++++++++++++++++++++++ ${str}", ("str", genesis_str));
             if (regex_match(genesis_str, reg_with_extension))
             {
               std::string relace_str("extensions\": []");
-              genesis_str = boost::regex_replace(genesis_str, reg_without_extension, relace_str);
+              std::string target_str = boost::regex_replace(genesis_str, reg_with_extension, relace_str);
+              genesis_str = target_str;
               ilog("........................... ${str}", ("str", genesis_str));
             }
           }
-          regex tmp("extensions\":");
-          if (regex_match(genesis_str, tmp))
-          {
-            ilog("==============================");
-          }
-          regex tmp1("extensions\"");
-          if (regex_match(genesis_str, tmp1))
-          {
-            ilog("==========666666666666666=============");
-          }
-          regex tmp2("extensions");
-          if (regex_match(genesis_str, tmp2))
-          {
-            ilog("==========777777777777777=============");
-          }
+
           //idump((genesis.initial_parameters.maximum_run_time_ratio));
           bool modified_genesis = false;
           if (_options->count("genesis-timestamp"))
