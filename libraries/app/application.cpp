@@ -348,20 +348,20 @@ public:
           using namespace boost;
           std::string pattern_without_extension = "(.*)(extensions\": (\\[\\]))(.*)";
           regex reg_without_extension(pattern_without_extension);
-          std::string pattern_with_extension = "(.*)(extensions\": )(\\[?.*?\\]?)(.*)";
+          std::string pattern_with_extension = "(.*)(extensions\": \\[?)(.*?\\]?)(.*)";
           regex reg_with_extension(pattern_with_extension);
           cmatch what;
           if (!regex_match(genesis_str.c_str(), what, reg_without_extension))
           {
             if (regex_match(genesis_str, reg_with_extension))
             {
-              std::string relace_str("$1extensions\": []$2");
-              std::string genesis_str1 = boost::regex_replace(genesis_str, reg_with_extension, relace_str);
-              ilog("...............2............ ${str}", ("str", genesis_str1));
+              // std::string relace_str("$1extensions\": []$2");
+              // std::string genesis_str1 = boost::regex_replace(genesis_str, reg_with_extension, relace_str);
+              // ilog("...............2............ ${str}", ("str", genesis_str1));
 
-              std::string relace_str2("$1extensions\": []$3");
-              std::string genesis_str2 = boost::regex_replace(genesis_str, reg_with_extension, relace_str2);
-              ilog("...............3............ ${str}", ("str", genesis_str2));
+              // std::string relace_str2("$1extensions\": []$3");
+              // std::string genesis_str2 = boost::regex_replace(genesis_str, reg_with_extension, relace_str2);
+              // ilog("...............3............ ${str}", ("str", genesis_str2));
 
               std::string relace_str3("$1extensions\": []$4");
               std::string genesis_str3 = boost::regex_replace(genesis_str, reg_with_extension, relace_str3);
