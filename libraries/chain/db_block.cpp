@@ -804,7 +804,7 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
     bool result_contains_error = false;
     
     // add auto gas
-    account_id_type last_from = account_id_type();
+    const account_id_type* last_from = account_id_type();
     for (const auto &op : ptrx.operations)
     {
       auto op_result = apply_operation(eval_state, op, eval_state.is_agreed_task);
@@ -826,7 +826,7 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
       auto transfer_condition = (op.which() == operation::tag<transfer_operation>::value && op_result.which() == operation_result::tag<void_result>::value);
       if ( call_contract_condition || transfer_condition )
       {
-        account_id_type op_from = account_id_type();
+        const account_id_type* op_from;
         if( call_contract_condition ){
           op_from = op.get<call_contract_function_operation>().caller;
         }
@@ -835,7 +835,7 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
         }
         if(op_from != account_id_type() && last_from != op_from){
           result_contains_error = auto_gas(eval_state, op_from);
-          last_from = op_from;
+          *last_from = *op_from;
         }
       }
     }
@@ -867,7 +867,7 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
   FC_CAPTURE_AND_RETHROW((trx))
 }
 
-bool database::auto_gas(transaction_evaluation_state &eval_state, account_id_type from){
+bool database::auto_gas(transaction_evaluation_state &eval_state, const account_id_type* from){
     vector<vesting_balance_object> vbos;
     bool result_contains_error = false;
     auto vesting_range = get_index_type<vesting_balance_index>().indices().get<by_account>().equal_range(from);
