@@ -355,17 +355,8 @@ public:
           {
             if (regex_match(genesis_str, reg_with_extension))
             {
-              // std::string relace_str("$1extensions\": []$2");
-              // std::string genesis_str1 = boost::regex_replace(genesis_str, reg_with_extension, relace_str);
-              // ilog("...............2............ ${str}", ("str", genesis_str1));
-
-              // std::string relace_str2("$1extensions\": []$3");
-              // std::string genesis_str2 = boost::regex_replace(genesis_str, reg_with_extension, relace_str2);
-              // ilog("...............3............ ${str}", ("str", genesis_str2));
-
               std::string relace_str3("$1extensions\": []$4");
-              std::string genesis_str3 = boost::regex_replace(genesis_str, reg_with_extension, relace_str3);
-              ilog("...............4............ ${str}", ("str", genesis_str3));
+              genesis_str= boost::regex_replace(genesis_str, reg_with_extension, relace_str3);
             }
           }
 
