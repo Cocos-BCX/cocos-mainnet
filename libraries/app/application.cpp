@@ -49,6 +49,7 @@
 #include <boost/signals2.hpp>
 #include <boost/range/algorithm/reverse.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/regex.hpp>
 
 #include <iostream>
 
@@ -341,6 +342,24 @@ public:
           std::string genesis_str;
           fc::read_file_contents(_options->at("genesis-json").as<boost::filesystem::path>(), genesis_str);
           genesis_state_type genesis = fc::json::from_string(genesis_str).as<genesis_state_type>();
+
+          //remove the extension   -----yp add -----
+          using namespace std;
+          using namespace boost;
+          std::string pattern_without_extension = "(.*)(extensions\": (\\[\\]))(.*)";
+          regex reg_without_extension(pattern_without_extension);
+          std::string pattern_with_extension = "(.*)(extensions\": \\[?)(.*?\\]$)(.*)";
+          regex reg_with_extension(pattern_with_extension);
+          cmatch what;
+          if (!regex_match(genesis_str.c_str(), what, reg_without_extension))
+          {
+            if (regex_match(genesis_str, reg_with_extension))
+            {
+              std::string relace_str3("$1extensions\": []$4");
+              genesis_str= boost::regex_replace(genesis_str, reg_with_extension, relace_str3);
+            }
+          }
+
           //idump((genesis.initial_parameters.maximum_run_time_ratio));
           bool modified_genesis = false;
           if (_options->count("genesis-timestamp"))
