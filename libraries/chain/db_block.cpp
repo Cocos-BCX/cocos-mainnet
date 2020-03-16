@@ -833,7 +833,7 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
         if( transfer_condition ){
           op_from = op.get<transfer_operation>().from;
         }
-        if(op_from != nullptr && last_from != op_from){
+        if(op_from != account_id_type() && last_from != op_from){
           result_contains_error = auto_gas(eval_state, op_from);
           last_from = op_from;
         }
