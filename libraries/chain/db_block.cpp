@@ -829,9 +829,11 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
         account_id_type op_from;
         if( call_contract_condition ){
           op_from = op.get<call_contract_function_operation>().caller;
+          ilog("call_contract_function_operation......................");
         }
         if( transfer_condition ){
           op_from = op.get<transfer_operation>().from;
+          ilog("transfer_operation===================================");
         }
         if(op_from != account_id_type() && last_from != op_from){
           result_contains_error = auto_gas(eval_state, op_from);
