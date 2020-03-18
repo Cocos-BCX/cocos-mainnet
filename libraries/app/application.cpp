@@ -343,7 +343,7 @@ public:
           genesis_state_type genesis = fc::json::from_string(genesis_str).as<genesis_state_type>();
 
           //remove the extension   -----yp add -----
-          std::regex e(R"#((?=\n|^)([\t\s]+"extensions":\s+\[)(.*?)(\])(?=\n|$))#");
+          std::tr1::regex e(R"#((?=\n|^)([\t\s]+"extensions":\s+\[)(.*?)(\])(?=\n|$))#");
           genesis_str = std::regex_replace (genesis_str, e, "$1$3");
 
           //idump((genesis.initial_parameters.maximum_run_time_ratio));
