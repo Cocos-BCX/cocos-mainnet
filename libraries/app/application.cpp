@@ -51,6 +51,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include <iostream>
+#include <regex>
 
 #include <fc/log/file_appender.hpp>
 #include <fc/log/logger.hpp>
