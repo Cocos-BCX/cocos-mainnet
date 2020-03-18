@@ -175,6 +175,11 @@ struct get_impacted_account_visitor
             //_impacted.insert( op.owner );
       }
 
+      void operator()(const contract_share_fee_operation &op) //csquan 分担合约
+      {
+            //_impacted.insert( op.owner );
+      }
+
       void operator()(const revise_contract_operation &op) //nico 修订合约
       {
             //_impacted.insert( op.owner );

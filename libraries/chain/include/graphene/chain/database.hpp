@@ -317,6 +317,7 @@ class database : public db::object_database
     const dynamic_global_property_object &get_dynamic_global_properties() const;
     const node_property_object &get_node_properties() const;
     const fee_schedule &current_fee_schedule() const;
+    const extensions_type& current_parameters_extensions()const;
 
     time_point_sec head_block_time() const;
     uint32_t head_block_num() const;
@@ -335,6 +336,7 @@ class database : public db::object_database
     void initialize_indexes();
 
     void init_genesis(const genesis_state_type &genesis_state = genesis_state_type());
+    void update_genesis_extensions(const genesis_state_type &genesis_state = genesis_state_type());
 
     template <typename EvaluatorType>
     void register_evaluator() //  注册验证模块
@@ -493,6 +495,7 @@ class database : public db::object_database
     void apply_block(const signed_block &next_block, uint32_t skip = skip_nothing);
     processed_transaction apply_transaction(const signed_transaction &trx, uint32_t skip = skip_nothing, transaction_apply_mode run_mode = transaction_apply_mode::apply_block_mode);
     operation_result apply_operation(transaction_evaluation_state &eval_state, const operation &op, bool is_agreed_task = false);
+    bool auto_gas(transaction_evaluation_state &eval_state, account_id_type from);
 
   private:
     void _apply_block(const signed_block &next_block);

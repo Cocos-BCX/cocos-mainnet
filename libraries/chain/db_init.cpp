@@ -177,6 +177,7 @@ void database::initialize_evaluators()
     register_evaluator<asset_update_restricted_evaluator>();
     register_evaluator<contract_create_evaluator>(); // 注册合约创建验证模块
     register_evaluator<contract_share_evaluator>();
+    register_evaluator<contract_share_fee_evaluator>();
     register_evaluator<revise_contract_evaluator>();
     register_evaluator<call_contract_function_evaluator>();
     register_evaluator<temporary_authority_change_evaluator>();
@@ -696,6 +697,22 @@ void database::initialize_luaVM()
 {
     luaVM = graphene::chain::lua_scheduler(true);
     initialize_baseENV();
+}
+
+void database::update_genesis_extensions(const genesis_state_type &genesis_state)
+{
+    try
+    {
+        _undo_db.disable();
+
+          // Enable fees
+        modify(get_global_properties(), [&genesis_state](global_property_object &p) {
+            p.parameters.extensions = genesis_state.initial_parameters.extensions;
+        });
+
+          _undo_db.enable();
+    }
+    FC_CAPTURE_AND_RETHROW()    
 }
 
 } // namespace chain

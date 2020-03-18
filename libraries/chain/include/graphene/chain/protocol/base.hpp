@@ -152,6 +152,7 @@ public:
   vector<char> process_value;
   uint64_t relevant_datasize=0;
   account_id_type sharer;
+  asset total_fees;
 } contract_result;
 
 struct contract_affected_type_visitor

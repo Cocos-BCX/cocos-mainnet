@@ -29,6 +29,8 @@
 
 namespace graphene { namespace chain {
 
+uint64_t vesting_balance_withdraw_default_fee = 100000;
+
 void_result vesting_balance_create_evaluator::do_evaluate( const vesting_balance_create_operation& op )
 { try {
    const database& d = db();
@@ -135,5 +137,41 @@ void_result vesting_balance_withdraw_evaluator::do_apply( const vesting_balance_
    // TODO: Check asset authorizations and withdrawals
    return void_result();
 } FC_CAPTURE_AND_RETHROW( (op) ) }
+void vesting_balance_withdraw_evaluator::pay_fee_for_gas( const operation& op )
+{
+    const auto &opp = op.get<vesting_balance_withdraw_operation>();
+    if(opp.amount.asset_id == GRAPHENE_ASSET_GAS){
+       core_fee_paid = calculate_fee(opp).amount;
+    }
+}
+
+asset vesting_balance_withdraw_evaluator::calculate_fee( const operation& op, const price& core_exchange_rate ) const
+{
+   auto base_value = vesting_balance_withdraw_default_fee;
+   auto extensions = db().get_global_properties().parameters.extensions;
+
+     for(auto iter = extensions.begin();iter!=extensions.end();iter++){
+      auto  element = fc::json::from_string(*iter);
+      const auto& var_obj = element.get_object();
+      if( var_obj.contains( "vesting_balance_withdraw_fee" ) )
+      {
+         base_value = var_obj["vesting_balance_withdraw_fee"].as_int64();
+      }
+   }
+
+     //auto base_value = op.visit( calc_fee_visitor( *this, op ) ); //  calc_fee_visitor 依次 调用 fee_schedule -> fee_helper ->  Operation::fee_parameters_type
+   auto scaled = fc::uint128(base_value) * GRAPHENE_100_PERCENT;   // 比例
+   scaled /= GRAPHENE_100_PERCENT;
+   FC_ASSERT( scaled <= GRAPHENE_MAX_SHARE_SUPPLY );
+   //idump( (base_value)(scaled)(core_exchange_rate) );
+   auto result = asset( scaled.to_uint64(), asset_id_type(0) ) * core_exchange_rate;
+   //FC_ASSERT( result * core_exchange_rate >= asset( scaled.to_uint64()) );
+
+     while( result * core_exchange_rate < asset( scaled.to_uint64()) )
+      result.amount++;
+
+     FC_ASSERT( result.amount <= GRAPHENE_MAX_SHARE_SUPPLY );
+   return result;
+}
 
 } } // graphene::chain

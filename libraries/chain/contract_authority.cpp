@@ -41,6 +41,25 @@ void register_scheduler::set_invoke_percent(double percent)
     }
 };
 
+void register_scheduler::set_invoke_share_percent(double percent)
+{
+    try
+    {
+        bool not_in_range = false;
+        if((percent>=0)&&(percent<=100))
+           not_in_range=true;
+        FC_ASSERT(not_in_range,"percent should be in range 0-100 ");
+        FC_ASSERT(is_owner(), "You`re not the contract`s owner");
+        contract_id_type db_index = contract.id;
+        db.modify(db_index(db), [&](contract_object &co) {
+            co.user_invoke_share_percent = percent;
+        });
+    }
+    catch (fc::exception e)
+    {
+        LUA_C_ERR_THROW(this->context.mState,e.to_string());
+    }
+};
 
 void register_scheduler::change_contract_authority(string authority)
 {
