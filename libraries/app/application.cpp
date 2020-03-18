@@ -344,21 +344,27 @@ public:
           genesis_state_type genesis = fc::json::from_string(genesis_str).as<genesis_state_type>();
 
           //remove the extension   -----yp add -----
-          using namespace std;
-          using namespace boost;
-          std::string pattern_without_extension = "(.*)(extensions\": (\\[\\]))(.*)";
-          regex reg_without_extension(pattern_without_extension);
-          std::string pattern_with_extension = "(.*)(extensions\": \\[?)(.*?\\]$)(.*)";
-          regex reg_with_extension(pattern_with_extension);
-          cmatch what;
-          if (!regex_match(genesis_str.c_str(), what, reg_without_extension))
-          {
-            if (regex_match(genesis_str, reg_with_extension))
-            {
-              std::string relace_str3("$1extensions\": []$4");
-              genesis_str= boost::regex_replace(genesis_str, reg_with_extension, relace_str3);
-            }
-          }
+          // using namespace std;
+          // using namespace boost;
+          // std::string pattern_without_extension = "(.*)(extensions\": (\\[\\]))(.*)";
+          // regex reg_without_extension(pattern_without_extension);
+          // std::string pattern_with_extension = "(.*)(extensions\": \\[?)(.*?\\]$)(.*)";
+          // regex reg_with_extension(pattern_with_extension);
+          // cmatch what;
+          // if (!regex_match(genesis_str.c_str(), what, reg_without_extension))
+          // {
+          //   if (regex_match(genesis_str, reg_with_extension))
+          //   {
+          //     std::string relace_str3("$1extensions\": []$4");
+          //     genesis_str= boost::regex_replace(genesis_str, reg_with_extension, relace_str3);
+          //   }
+          // }
+          std::regex e(R"#((?=\n|^)([\t\s]+"extensions":\s+\[)(.*?)(\])(?=\n|$))#");
+          std::hash<std::string> string_hasher;
+          
+          std::cout << "Before regex: " << string_hasher(genesis_str) << std::endl;
+          genesis_str = std::regex_replace (genesis_str, e, "$1$3");
+          std::cout << "After regex: " << string_hasher(genesis_str) << std::endl;
 
           //idump((genesis.initial_parameters.maximum_run_time_ratio));
           bool modified_genesis = false;
