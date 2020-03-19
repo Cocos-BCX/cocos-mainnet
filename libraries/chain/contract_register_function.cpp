@@ -185,7 +185,7 @@ void register_scheduler::make_release()
 }
 
 
-void register_scheduler::update_collateral_for_gas(string to, int64_t amount)
+void register_scheduler::update_collateral_for_gas(string from, string to, int64_t amount)
 {
     try
     {
