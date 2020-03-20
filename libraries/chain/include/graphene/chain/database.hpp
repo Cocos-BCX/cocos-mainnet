@@ -495,7 +495,7 @@ class database : public db::object_database
     void apply_block(const signed_block &next_block, uint32_t skip = skip_nothing);
     processed_transaction apply_transaction(const signed_transaction &trx, uint32_t skip = skip_nothing, transaction_apply_mode run_mode = transaction_apply_mode::apply_block_mode);
     operation_result apply_operation(transaction_evaluation_state &eval_state, const operation &op, bool is_agreed_task = false);
-    bool auto_gas(transaction_evaluation_state &eval_state, account_id_type from);
+    void auto_gas(transaction_evaluation_state &eval_state, account_id_type from);
 
   private:
     void _apply_block(const signed_block &next_block);
