@@ -22,6 +22,6 @@
 #define UNSUCCESSFUL_CANDIDATE_DIFFPOINT 1765771
 #endif
 // AUTO GAS
-#ifndef UNAUTO_GAS
-#define UNAUTO_GAS (fc::time_point_sec( 1585826672 ))
+#ifndef AUTO_GAS_TIMEPOINT
+#define AUTO_GAS_TIMEPOINT (fc::time_point_sec( 1585826672 ))
 #endif 

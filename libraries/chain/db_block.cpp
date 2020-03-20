@@ -822,7 +822,7 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
         result_contains_error = true;
       }
 
-      if( head_block_time() > UNAUTO_GAS )
+      if( head_block_time() > AUTO_GAS_TIMEPOINT )
       {
         auto call_contract_condition = (op.which() == operation::tag<call_contract_function_operation>::value && op_result.which() == operation_result::tag<contract_result>::value);
         auto transfer_condition = (op.which() == operation::tag<transfer_operation>::value && op_result.which() == operation_result::tag<void_result>::value);
