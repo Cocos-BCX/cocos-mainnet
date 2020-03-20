@@ -4172,9 +4172,9 @@ string wallet_api::gethelp(const string &method) const
       }
       else if (method == "transfer")
       {
-            ss << "usage: transfer FROM TO AMOUNT SYMBOL \"memo\" BROADCAST\n\n";
-            ss << "example: transfer \"1.3.11\" \"1.3.4\" 1000.03 CORE \"memo\" true\n";
-            ss << "example: transfer \"usera\" \"userb\" 1000.123 CORE \"memo\" true\n";
+            ss << "usage: transfer FROM TO AMOUNT SYMBOL [\"memo\",false] BROADCAST\n\n";
+            ss << "example: transfer \"1.3.11\" \"1.3.4\" 1000.03 CORE [\"memo\",false] true\n";
+            ss << "example: transfer \"usera\" \"userb\" 1000.123 CORE [\"memo\",false] true\n";
       }
       else if (method == "create_account_with_brain_key")
       {
