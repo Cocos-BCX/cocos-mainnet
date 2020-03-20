@@ -1,0 +1,4 @@
+/* 于20200402自动回收gas，在此区块之前的按需手动回收；在此之后的，自动回收gas*/
+#ifndef UNAUTO_GAS
+#define UNAUTO_GAS (fc::time_point_sec( 1585826672 ))
+#endif
