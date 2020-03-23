@@ -43,15 +43,6 @@ object_id_result contract_create_evaluator::do_apply(const operation_type &o)
     FC_CAPTURE_AND_RETHROW((o))
 }
 
-void_result contract_share_evaluator::do_evaluate(const operation_type &o)
-{
-    return void_result(); //TODO: add verification in future
-}
-void_result contract_share_evaluator::do_apply(const operation_type &o)
-{
-   return void_result(); 
-}
-
 void_result contract_share_fee_evaluator::do_evaluate(const operation_type &o)
 {
     return void_result(); //TODO: add verification in future
