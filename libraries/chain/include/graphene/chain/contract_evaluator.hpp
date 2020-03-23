@@ -14,14 +14,6 @@ class contract_create_evaluator : public evaluator<contract_create_evaluator>
     object_id_result do_apply(const operation_type &o);
 };
 
-class contract_share_evaluator : public evaluator<contract_share_evaluator>
-{
-  public:
-    typedef contract_share_operation operation_type;
-    void_result do_evaluate(const operation_type &o);
-    void_result do_apply(const operation_type &o);
-};
-
 class contract_share_fee_evaluator : public evaluator<contract_share_fee_evaluator>
 {
   public:
