@@ -185,7 +185,7 @@ void register_scheduler::make_release()
 }
 
 
-void register_scheduler::update_collateral_for_gas(string from, string to, int64_t amount)
+void register_scheduler::update_collateral_for_gas(string to, int64_t amount)
 {
     try
     {
@@ -394,7 +394,6 @@ void lua_scheduler::chain_function_bind()
     registerFunction("adjust_lock_asset", &register_scheduler::adjust_lock_asset);
     registerFunction("nht_describe_change", &register_scheduler::nht_describe_change);
     registerFunction("set_permissions_flag", &register_scheduler::set_permissions_flag);
-    registerFunction("set_invoke_percent", &register_scheduler::set_invoke_percent);
     registerFunction("set_invoke_share_percent", &register_scheduler::set_invoke_share_percent);
     registerFunction("invoke_contract_function", &register_scheduler::invoke_contract_function);
     registerFunction("change_contract_authority", &register_scheduler::change_contract_authority);
