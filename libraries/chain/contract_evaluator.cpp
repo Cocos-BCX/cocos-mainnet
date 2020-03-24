@@ -153,12 +153,8 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     result.total_fees.amount = core_fee_paid;
 
     auto invoke_percent = 0;
-    if(contract_obj.user_invoke_share_percent>100)
-      invoke_percent = 100;
-    else if(contract_obj.user_invoke_share_percent<0)
-      invoke_percent = 0;
-    else
-      invoke_percent = contract_obj.user_invoke_share_percent;
+
+    invoke_percent = contract_obj.user_invoke_share_percent;
       
     auto user_invoke_share_fee =  core_fee_paid*invoke_percent/100;
     user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
