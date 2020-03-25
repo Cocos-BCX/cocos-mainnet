@@ -37,6 +37,7 @@
 #include <fc/uint128.hpp>
 #include <fc/static_variant.hpp>
 #include <fc/smart_ref_fwd.hpp>
+#include <fc/crypto/pke.hpp>
 
 #include <memory>
 #include <vector>
@@ -331,6 +332,30 @@ typedef fc::ecc::compact_signature signature_type;
 typedef safe<int64_t> share_type;
 typedef uint16_t weight_type;
 
+struct public_key_rsa_type
+{
+    struct binary_key
+    {
+        binary_key() {}
+        uint32_t check = 0;
+        fc::bytes data;
+    };
+    fc::bytes key_data;
+    public_key_rsa_type();
+    public_key_rsa_type(const fc::bytes &data);
+    public_key_rsa_type(const fc::public_key &pubkey);
+    explicit public_key_rsa_type(const std::string &base64str);
+    operator fc::bytes() const;
+    operator fc::public_key() const;
+    explicit operator std::string() const;
+    friend bool operator==(const public_key_rsa_type &p1, const fc::public_key &p2);
+    friend bool operator==(const public_key_rsa_type &p1, const public_key_rsa_type &p2);
+    friend bool operator!=(const public_key_rsa_type &p1, const public_key_rsa_type &p2);
+    // TODO: This is temporary for testing
+    bool is_valid_v1(const std::string &base58str);
+    bool verify( string digest_str, string sig_str )const;
+};
+
 struct public_key_type
 {
     struct binary_key
@@ -408,7 +433,13 @@ void to_variant(const graphene::chain::extended_public_key_type &var, fc::varian
 void from_variant(const fc::variant &var, graphene::chain::extended_public_key_type &vo);
 void to_variant(const graphene::chain::extended_private_key_type &var, fc::variant &vo);
 void from_variant(const fc::variant &var, graphene::chain::extended_private_key_type &vo);
+
+void to_variant(const graphene::chain::public_key_rsa_type &var, fc::variant &vo);
+void from_variant(const fc::variant &var, graphene::chain::public_key_rsa_type &vo);
 } // namespace fc
+
+FC_REFLECT(graphene::chain::public_key_rsa_type, (key_data))
+FC_REFLECT(graphene::chain::public_key_rsa_type::binary_key, (data)(check))
 
 FC_REFLECT(graphene::chain::public_key_type, (key_data))
 FC_REFLECT(graphene::chain::public_key_type::binary_key, (data)(check))

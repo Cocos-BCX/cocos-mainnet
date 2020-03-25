@@ -71,6 +71,8 @@ struct register_scheduler
     void relate_nh_asset(account_id_type nht_creator, const nh_asset_object &parent_nh_asset, const nh_asset_object &child_nh_asset, bool relate, bool enable_logger=false);
 
     void update_collateral_for_gas(string to, int64_t amount);
-
+    
+    void set_random_key(string d_str);
+    bool verify_random_key( string digest_str, string sig_str );
 };
 }}

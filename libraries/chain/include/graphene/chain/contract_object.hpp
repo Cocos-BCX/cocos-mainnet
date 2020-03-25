@@ -11,6 +11,7 @@
 #include <graphene/utilities/words.hpp>
 #include <fc/crypto/aes.hpp>
 #include <graphene/process_encryption/process_encryption_helper.hpp>
+#include <fc/crypto/pke.hpp>
 namespace graphene
 {
 namespace chain
@@ -42,6 +43,7 @@ class contract_object : public graphene::db::abstract_object<contract_object>
     lua_map contract_data;
     lua_map contract_ABI;
     contract_bin_code_id_type lua_code_b_id;
+    public_key_rsa_type random_key;
 
   public:
     contract_object(){user_invoke_share_percent = 100;};
@@ -203,4 +205,4 @@ FC_REFLECT_DERIVED(graphene::chain::contract_object,
 FC_REFLECT_DERIVED(graphene::chain::account_contract_data,
                    (graphene::db::object),
                    (owner)(contract_id)(contract_data))
-FC_REFLECT_DERIVED(graphene::chain::contract_bin_code_object,(graphene::db::object),(contract_id)(lua_code_b))
+FC_REFLECT_DERIVED(graphene::chain::contract_bin_code_object,(graphene::db::object),(contract_id)(lua_code_b)(random_key))
