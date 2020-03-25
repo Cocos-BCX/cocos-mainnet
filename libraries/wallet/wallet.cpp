@@ -3360,7 +3360,7 @@ bool wallet_api::rsa_verify(std::string digest_str, std::string sig_str, std::st
                         tmp_pub = tmp_pub.replace(i, 1, "");
                   }
             }
-            if( tmp_pub.length() != 1588 ){
+            if( tmp_pub.length() != 360 ){
                   elog("Wrong public key ${pub_key_base64}", ("pub_key_base64", pub_key_base64));
                   return false;
             }
