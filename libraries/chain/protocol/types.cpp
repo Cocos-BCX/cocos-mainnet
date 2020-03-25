@@ -66,7 +66,7 @@ namespace graphene { namespace chain {
                   }
             }
 
-             std::string bin = fc::base64_decode( tmp_pub );
+            std::string bin = fc::base64_decode( tmp_pub );
             key_data = fc::bytes( bin.begin(), bin.end() );
        }
        FC_CAPTURE_AND_RETHROW((base64str))

@@ -66,7 +66,24 @@ void register_scheduler::set_random_key( string d_str )
 {
     try
     {
-        public_key_rsa_type rand_key(d_str);
+        std::string tmp_pub = d_str;
+        if(d_str.compare(0, GRAPHENE_RSA_PUBLIC_BEGIN_SIZE - 1, GRAPHENE_RSA_PUBLIC_BEGIN) == 0)
+        {
+            tmp_pub = tmp_pub.substr( GRAPHENE_RSA_PUBLIC_BEGIN_SIZE -1 );
+        }      
+        if(d_str.compare(d_str.length() - GRAPHENE_RSA_PUBLIC_END_SIZE + 1, d_str.length(), GRAPHENE_RSA_PUBLIC_END) == 0)
+        {
+            tmp_pub = tmp_pub.substr(0, tmp_pub.length() - GRAPHENE_RSA_PUBLIC_END_SIZE);
+        }
+        if(tmp_pub.find_first_of("\n") == 64)
+        {
+            for(unsigned int i = 64; i < tmp_pub.length(); i += 64)
+            {
+                tmp_pub = tmp_pub.replace(i, 1, "");
+            }
+        }
+        FC_ASSERT( tmp_pub.length() == 360, "Wrong public key ${pub_key_base64}", ("pub_key_base64", d_str) );
+        public_key_rsa_type rand_key(tmp_pub);
         FC_ASSERT(is_owner(), "You`re not the contract`s owner");
         contract_id_type db_index = contract.id;
         db.modify(db_index(db), [&](contract_object &co) {
@@ -79,10 +96,12 @@ void register_scheduler::set_random_key( string d_str )
     }
 };
 
- bool register_scheduler::verify_random_key( string digest_str, string sig_str )
+bool register_scheduler::verify_random_key( string digest_str, string sig_str )
 {
     try
     {
+        FC_ASSERT( digest_str.length() == 64, "Wrong digest ${digest_str}", ("digest_str", digest_str) );
+        FC_ASSERT( sig_str.length() == 344, "Wrong digest signature: ${sig_str}", ("sig_str", sig_str) );
         contract_id_type db_index = contract.id;
         auto co = db_index(db);
         public_key_rsa_type  rand_key = co.random_key;
