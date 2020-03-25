@@ -161,7 +161,31 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
             double prop = ((double)active_committee.second) / 2 / committee_relaxed.active.weight_threshold;
             share_type proportion = prop * ((double)committee_ratio.value);
             FC_ASSERT(proportion <= committee_ratio && committee_cumulative <= committee_ratio);
-            adjust_balance(active_committee.first, proportion);
+            transfer_operation committee_op;
+
+            committee_op.from = GRAPHENE_NULL_ACCOUNT;
+
+            //give proportion to GRAPHENE_NULL_ACCOUNT
+            adjust_balance(GRAPHENE_NULL_ACCOUNT,asset(proportion));
+
+            committee_op.to = active_committee.first;
+            
+            committee_op.amount = asset(proportion);
+            //committee_op.memo = "allowance to committee from system";
+
+            signed_transaction committee_tx;
+                  
+            committee_tx.operations.push_back(committee_op);
+            //committee_tx.validate();
+
+            auto dyn_props = get_dynamic_global_properties();
+
+            uint32_t expiration_time_offset = GRAPHENE_EXPIRATION_TIME_OFFSET;
+            committee_tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
+
+            apply_transaction(committee_tx,~0);
+            
+            //adjust_balance(active_committee.first, proportion);
             committee_cumulative += proportion;
       }
       auto &witness_account = get(GRAPHENE_WITNESS_ACCOUNT);
@@ -170,6 +194,30 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
             double prop = ((double)active_witness.second) / 2 / witness_account.active.weight_threshold;
             share_type proportion = prop * ((double)witness_ratio.value);
             FC_ASSERT(proportion <= witness_ratio && witness_cumulative <= witness_ratio);
+            
+            /*transfer_operation witness_op;
+
+            witness_op.from = GRAPHENE_NULL_ACCOUNT;
+            
+            //give proportion to GRAPHENE_NULL_ACCOUNT
+            adjust_balance(GRAPHENE_NULL_ACCOUNT,asset(proportion));
+
+            witness_op.to = active_witness.first;
+            witness_op.amount = asset(proportion);
+            //witness_op.memo = "allowance to BP from system";
+
+            signed_transaction witness_tx;
+                  
+            witness_tx.operations.push_back(witness_op);
+              
+            auto dyn_props = get_dynamic_global_properties();
+            uint32_t expiration_time_offset = GRAPHENE_EXPIRATION_TIME_OFFSET;
+            witness_tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
+
+            witness_tx.validate();
+
+            apply_transaction(witness_tx,~0);
+            */
             adjust_balance(active_witness.first, proportion);
             witness_cumulative += proportion;
       }
@@ -473,6 +521,10 @@ void database::process_budget(const global_property_object old_gpo, uint64_t blo
 
             modify(core, [&](asset_dynamic_data_object &_core) {
                   _core.current_supply = (_core.current_supply + rec.supply_delta);
+
+                  auto temp = witness_budget + worker_budget + rec.candidates_budget -
+                             leftover_worker_funds -
+                             _core.accumulated_fees - dpo.witness_budget - rec.leftover_candidates_budget;
 
                   assert(rec.supply_delta ==
                          witness_budget + worker_budget + rec.candidates_budget -
