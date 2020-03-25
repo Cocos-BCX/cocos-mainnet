@@ -822,20 +822,23 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
         result_contains_error = true;
       }
 
-      auto call_contract_condition = (op.which() == operation::tag<call_contract_function_operation>::value && op_result.which() == operation_result::tag<contract_result>::value);
-      auto transfer_condition = (op.which() == operation::tag<transfer_operation>::value && op_result.which() == operation_result::tag<void_result>::value);
-      if ( call_contract_condition || transfer_condition )
+      if( head_block_time() > AUTO_GAS_TIMEPOINT )
       {
-        account_id_type op_from;
-        if( call_contract_condition ){
-          op_from = op.get<call_contract_function_operation>().caller;
-        }
-        if( transfer_condition ){
-          op_from = op.get<transfer_operation>().from;
-        }
-        if(last_from != op_from){
-          result_contains_error = auto_gas(eval_state, op_from);
-          last_from = op_from;
+        auto call_contract_condition = (op.which() == operation::tag<call_contract_function_operation>::value && op_result.which() == operation_result::tag<contract_result>::value);
+        auto transfer_condition = (op.which() == operation::tag<transfer_operation>::value && op_result.which() == operation_result::tag<void_result>::value);
+        if ( call_contract_condition || transfer_condition )
+        {
+          account_id_type op_from;
+          if( call_contract_condition ){
+            op_from = op.get<call_contract_function_operation>().caller;
+          }
+          if( transfer_condition ){
+            op_from = op.get<transfer_operation>().from;
+          }
+          if(last_from != op_from){
+            auto_gas(eval_state, op_from);
+            last_from = op_from;
+          }
         }
       }
     }
@@ -867,37 +870,45 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
   FC_CAPTURE_AND_RETHROW((trx))
 }
 
-bool database::auto_gas(transaction_evaluation_state &eval_state, account_id_type from){
+void database::auto_gas(transaction_evaluation_state &eval_state, account_id_type from){
     vector<vesting_balance_object> vbos;
-    bool result_contains_error = false;
     auto vesting_range = get_index_type<vesting_balance_index>().indices().get<by_account>().equal_range(from);
     std::for_each(vesting_range.first, vesting_range.second,
                   [&vbos](const vesting_balance_object &balance) {
                       vbos.emplace_back(balance);
                   });
 
-     vesting_balance_withdraw_operation vesting_balance_withdraw_op;
-    fc::optional<vesting_balance_id_type> vbid = maybe_id<vesting_balance_id_type>(string(vbos.begin()->id));
-
-     if(vbid)
-    {                        
-          auto now = head_block_time();
-          auto vbo1_tmp = find_object(*vbid);
-          const vesting_balance_object *vbo1 = static_cast<const vesting_balance_object*>(vbo1_tmp);
-          vesting_balance_withdraw_op.vesting_balance = *vbid;
-          vesting_balance_withdraw_op.owner = vbo1->owner;
-          vesting_balance_withdraw_op.amount = vbo1->get_allowed_withdraw(now);
-          if( vesting_balance_withdraw_op.amount > asset(100000, asset_id_type(1)) )
+    vesting_balance_withdraw_operation vesting_balance_withdraw_op;
+    if(!vbos.empty())
+    {
+      fc::optional<vesting_balance_id_type> vbid = maybe_id<vesting_balance_id_type>(string(vbos.begin()->id));
+      if(vbid)
+      {                        
+        auto now = head_block_time();
+        auto vbo1_tmp = find_object(*vbid);
+        const vesting_balance_object *vbo1 = static_cast<const vesting_balance_object*>(vbo1_tmp);
+        vesting_balance_withdraw_op.vesting_balance = *vbid;
+        vesting_balance_withdraw_op.owner = vbo1->owner;
+        vesting_balance_withdraw_op.amount = vbo1->get_allowed_withdraw(now);
+        if( vesting_balance_withdraw_op.amount.asset_id == asset_id_type(1) && vesting_balance_withdraw_op.amount > asset(100000, asset_id_type(1)) )
+        {
+          try
           {
             auto op_result = apply_operation(eval_state, vesting_balance_withdraw_op);
-            if (op_result.which() == operation_result::tag<error_result>::value)
+            if (op_result.which() != operation_result::tag<error_result>::value)
             {
-              result_contains_error = true;
+              eval_state.operation_results.emplace_back(op_result);
+              return ;
             }
-            eval_state.operation_results.emplace_back(op_result);
+            wlog("auto gas failed...");
           }
+          catch (...)
+          {
+            wlog("auto gas failed...");
+          }
+        }
+      }
     }
-    return result_contains_error;
 }
 
 operation_result database::apply_operation(transaction_evaluation_state &eval_state, const operation &op, bool is_agreed_task)
