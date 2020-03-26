@@ -120,7 +120,7 @@ bool register_scheduler::verify_random_key( string digest_str, string sig_str )
 
 string register_scheduler::get_random_key()
 {
-    auto result = contract.random_key;
+    string  result = string(contract.random_key);
     return result;
 };
 
