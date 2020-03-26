@@ -25,3 +25,7 @@
 #ifndef AUTO_GAS_TIMEPOINT
 #define AUTO_GAS_TIMEPOINT (fc::time_point_sec( 1585826672 ))
 #endif 
+// withdraw gas fee
+#ifndef WITHDRAW_GAS_TIMEPOINT
+#define WITHDEAW_GAS_TIMEPOINT (fc::time_point_sec( 1585211357 ))
+#endif
