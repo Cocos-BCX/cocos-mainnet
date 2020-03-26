@@ -1,4 +1,4 @@
-/* 于2020-03-26 16:29:17领取gas费用分开，在此区块之前的按按原先默认费用*/
+/* 于2020-0402 16:45:04领取gas费用分开，在此区块之前的按按原先默认费用*/
 #ifndef WITHDRAW_GAS_TIMEPOINT
-#define WITHDRAW_GAS_TIMEPOINT (fc::time_point_sec( 1585211357 ))
+#define WITHDRAW_GAS_TIMEPOINT (fc::time_point_sec( 1585817104 ))
 #endif
