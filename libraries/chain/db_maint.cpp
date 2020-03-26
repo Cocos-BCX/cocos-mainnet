@@ -185,7 +185,6 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
 
             apply_transaction(committee_tx,~0);
             
-            //adjust_balance(active_committee.first, proportion);
             committee_cumulative += proportion;
       }
       auto &witness_account = get(GRAPHENE_WITNESS_ACCOUNT);
@@ -195,7 +194,7 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
             share_type proportion = prop * ((double)witness_ratio.value);
             FC_ASSERT(proportion <= witness_ratio && witness_cumulative <= witness_ratio);
             
-            /*transfer_operation witness_op;
+            transfer_operation witness_op;
 
             witness_op.from = GRAPHENE_NULL_ACCOUNT;
             
@@ -217,8 +216,7 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
             witness_tx.validate();
 
             apply_transaction(witness_tx,~0);
-            */
-            adjust_balance(active_witness.first, proportion);
+
             witness_cumulative += proportion;
       }
       auto &unsuccessful_candidates = get(unsuccessful_candidates_id_type()).unsuccessful_candidates;
@@ -522,14 +520,17 @@ void database::process_budget(const global_property_object old_gpo, uint64_t blo
             modify(core, [&](asset_dynamic_data_object &_core) {
                   _core.current_supply = (_core.current_supply + rec.supply_delta);
 
-                  auto temp = witness_budget + worker_budget + rec.candidates_budget -
-                             leftover_worker_funds -
-                             _core.accumulated_fees - dpo.witness_budget - rec.leftover_candidates_budget;
+            auto supply_budget = witness_budget + worker_budget + rec.candidates_budget -
+                        leftover_worker_funds -
+                        _core.accumulated_fees - dpo.witness_budget - rec.leftover_candidates_budget;
 
-                  assert(rec.supply_delta ==
-                         witness_budget + worker_budget + rec.candidates_budget -
-                             leftover_worker_funds -
-                             _core.accumulated_fees - dpo.witness_budget - rec.leftover_candidates_budget);
+            if(now>PROCESS_BUDGET_ASSERT_TIMEPOINT)
+                  supply_budget = supply_budget+2*_core.accumulated_fees;
+
+            assert(rec.supply_delta ==
+                        witness_budget + worker_budget + rec.candidates_budget -
+                        leftover_worker_funds -
+                        _core.accumulated_fees - dpo.witness_budget - rec.leftover_candidates_budget);
                   _core.accumulated_fees = 0;
             });
 
