@@ -120,7 +120,10 @@ bool register_scheduler::verify_random_key( string digest_str, string sig_str )
 
 string register_scheduler::get_random_key()
 {
-    string  result = string(contract.random_key);
+    contract_id_type db_index = contract.id;
+    auto co = db_index(db);
+    string  result = string(co.random_key);
+    FC_ASSERT( result.length() == 360, "Wrong public key ${pub_key_base64}", ("pub_key_base64", result) );
     return result;
 };
 
