@@ -73,6 +73,7 @@ struct register_scheduler
     void update_collateral_for_gas(string to, int64_t amount);
     
     void set_random_key(string d_str);
+    string get_random_key();
     bool verify_random_key( string digest_str, string sig_str );
 };
 }}

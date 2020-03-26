@@ -118,5 +118,11 @@ bool register_scheduler::verify_random_key( string digest_str, string sig_str )
     return false;
 };
 
+string register_scheduler::get_random_key()
+{
+    auto result = contract.rand_key;
+    return result;
+};
+
 } // namespace chain
 } // namespace graphene

@@ -400,6 +400,7 @@ void lua_scheduler::chain_function_bind()
     registerFunction("update_collateral_for_gas", &register_scheduler::update_collateral_for_gas);
     registerFunction("set_random_key", &register_scheduler::set_random_key);
     registerFunction("verify_random_key", &register_scheduler::verify_random_key);
+    registerFunction("get_random_key", &register_scheduler::get_random_key);
     lua_register(mState, "import_contract", &import_contract);
     lua_register(mState, "get_account_contract_data", &get_account_contract_data);
     lua_register(mState, "format_vector_with_table", &format_vector_with_table);
