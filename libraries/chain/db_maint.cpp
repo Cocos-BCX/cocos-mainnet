@@ -164,24 +164,18 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
             
             if(now>PROCESS_BUDGET_ASSERT_TIMEPOINT)
             {
-                  auto tmp1 = get_balance(GRAPHENE_NULL_ACCOUNT,asset_id_type());
-                  ilog("before adjust_balance of GRAPHENE_NULL_ACCOUNT  is:${x}",("x",tmp1));
-
+                  //give proportion to GRAPHENE_NULL_ACCOUNT
                   adjust_balance(GRAPHENE_NULL_ACCOUNT,asset(proportion)); 
-                  ilog("adjust_balance of GRAPHENE_NULL_ACCOUNT  ${x}",("x",proportion));
 
-                  auto tmp = get_balance(GRAPHENE_NULL_ACCOUNT,asset_id_type());
-                  ilog("after adjust_balance of GRAPHENE_NULL_ACCOUNT after is: ${x}",("x",tmp));
-                  sleep(block_interval());
                   transfer_operation committee_op;
-
                   committee_op.from = GRAPHENE_NULL_ACCOUNT;
-
                   committee_op.to = active_committee.first;
 
                   auto fee = current_fee_schedule().calculate_fee(committee_op);
                   committee_op.amount = asset(proportion)-fee;
-                  //committee_op.memo = "allowance to committee from system";
+                  pair<string, bool> memo;
+                  memo.first = "allowance to committee from system";
+                  committee_op.memo = memo.first;
 
                   signed_transaction committee_tx;
                   
@@ -209,17 +203,19 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
             
             if(now>PROCESS_BUDGET_ASSERT_TIMEPOINT)
             {
-                  transfer_operation witness_op;
-
-                  witness_op.from = GRAPHENE_NULL_ACCOUNT;
-            
                   //give proportion to GRAPHENE_NULL_ACCOUNT
                   adjust_balance(GRAPHENE_NULL_ACCOUNT,asset(proportion));
 
+                  transfer_operation witness_op;
+                  witness_op.from = GRAPHENE_NULL_ACCOUNT;
                   witness_op.to = active_witness.first;
+
                   auto fee = current_fee_schedule().calculate_fee(witness_op);
                   witness_op.amount = asset(proportion) - fee;
-                  //witness_op.memo = "allowance to BP from system";
+                  
+                  pair<string, bool> memo;
+                  memo.first = "allowance to BP from system";
+                  witness_op.memo = memo.first;
 
                   signed_transaction witness_tx;
                   
