@@ -147,7 +147,7 @@ void database::pay_workers(share_type &budget)
       }
 }
 
-void database::pay_candidates(share_type &budget, const uint16_t &committee_percent_of_candidate_award, const uint16_t &unsuccessful_candidates_percent, uint64_t block_num)
+void database::pay_candidates(share_type &budget, const uint16_t &committee_percent_of_candidate_award, const uint16_t &unsuccessful_candidates_percent, uint64_t block_num,fc::time_point_sec now)
 {
       fc::uint128 temp_value = budget.value * committee_percent_of_candidate_award;
       share_type committee_ratio = (temp_value / GRAPHENE_100_PERCENT).to_uint64();
@@ -161,29 +161,42 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
             double prop = ((double)active_committee.second) / 2 / committee_relaxed.active.weight_threshold;
             share_type proportion = prop * ((double)committee_ratio.value);
             FC_ASSERT(proportion <= committee_ratio && committee_cumulative <= committee_ratio);
-            transfer_operation committee_op;
-
-            committee_op.from = GRAPHENE_NULL_ACCOUNT;
-
-            //give proportion to GRAPHENE_NULL_ACCOUNT
-            adjust_balance(GRAPHENE_NULL_ACCOUNT,asset(proportion));
-
-            committee_op.to = active_committee.first;
             
-            committee_op.amount = asset(proportion);
-            //committee_op.memo = "allowance to committee from system";
+            if(now>PROCESS_BUDGET_ASSERT_TIMEPOINT)
+            {
+                  auto tmp1 = get_balance(GRAPHENE_NULL_ACCOUNT,asset_id_type());
+                  ilog("before adjust_balance of GRAPHENE_NULL_ACCOUNT  is:${x}",("x",tmp1));
 
-            signed_transaction committee_tx;
+                  adjust_balance(GRAPHENE_NULL_ACCOUNT,asset(proportion)); 
+                  ilog("adjust_balance of GRAPHENE_NULL_ACCOUNT  ${x}",("x",proportion));
+
+                  auto tmp = get_balance(GRAPHENE_NULL_ACCOUNT,asset_id_type());
+                  ilog("after adjust_balance of GRAPHENE_NULL_ACCOUNT after is: ${x}",("x",tmp));
+                  sleep(block_interval());
+                  transfer_operation committee_op;
+
+                  committee_op.from = GRAPHENE_NULL_ACCOUNT;
+
+                  committee_op.to = active_committee.first;
+
+                  auto fee = current_fee_schedule().calculate_fee(committee_op);
+                  committee_op.amount = asset(proportion)-fee;
+                  //committee_op.memo = "allowance to committee from system";
+
+                  signed_transaction committee_tx;
                   
-            committee_tx.operations.push_back(committee_op);
-            //committee_tx.validate();
+                  committee_tx.operations.push_back(committee_op);
+                  //committee_tx.validate();
 
-            auto dyn_props = get_dynamic_global_properties();
+                  auto dyn_props = get_dynamic_global_properties();
 
-            uint32_t expiration_time_offset = GRAPHENE_EXPIRATION_TIME_OFFSET;
-            committee_tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
+                  uint32_t expiration_time_offset = GRAPHENE_EXPIRATION_TIME_OFFSET;
+                  committee_tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
 
-            apply_transaction(committee_tx,~0);
+                  apply_transaction(committee_tx,~0);
+            }
+	      else
+                  adjust_balance(active_committee.first, proportion);
             
             committee_cumulative += proportion;
       }
@@ -194,28 +207,35 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
             share_type proportion = prop * ((double)witness_ratio.value);
             FC_ASSERT(proportion <= witness_ratio && witness_cumulative <= witness_ratio);
             
-            transfer_operation witness_op;
+            if(now>PROCESS_BUDGET_ASSERT_TIMEPOINT)
+            {
+                  transfer_operation witness_op;
 
-            witness_op.from = GRAPHENE_NULL_ACCOUNT;
+                  witness_op.from = GRAPHENE_NULL_ACCOUNT;
             
-            //give proportion to GRAPHENE_NULL_ACCOUNT
-            adjust_balance(GRAPHENE_NULL_ACCOUNT,asset(proportion));
+                  //give proportion to GRAPHENE_NULL_ACCOUNT
+                  adjust_balance(GRAPHENE_NULL_ACCOUNT,asset(proportion));
 
-            witness_op.to = active_witness.first;
-            witness_op.amount = asset(proportion);
-            //witness_op.memo = "allowance to BP from system";
+                  witness_op.to = active_witness.first;
+                  auto fee = current_fee_schedule().calculate_fee(witness_op);
+                  witness_op.amount = asset(proportion) - fee;
+                  //witness_op.memo = "allowance to BP from system";
 
-            signed_transaction witness_tx;
+                  signed_transaction witness_tx;
                   
-            witness_tx.operations.push_back(witness_op);
+                  witness_tx.operations.push_back(witness_op);
               
-            auto dyn_props = get_dynamic_global_properties();
-            uint32_t expiration_time_offset = GRAPHENE_EXPIRATION_TIME_OFFSET;
-            witness_tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
+                  auto dyn_props = get_dynamic_global_properties();
+                  uint32_t expiration_time_offset = GRAPHENE_EXPIRATION_TIME_OFFSET;
+                  witness_tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
 
-            witness_tx.validate();
+                  witness_tx.validate();
 
-            apply_transaction(witness_tx,~0);
+                  apply_transaction(witness_tx,~0);
+            }
+            else
+                  adjust_balance(active_witness.first, proportion);
+
 
             witness_cumulative += proportion;
       }
@@ -507,7 +527,7 @@ void database::process_budget(const global_property_object old_gpo, uint64_t blo
                   leftover_worker_funds = last_rec->worker_budget;
                   pay_workers(leftover_worker_funds);
                   leftover_candidates_budget = last_rec->candidates_budget;
-                  pay_candidates(leftover_candidates_budget, old_gpo.parameters.committee_percent_of_candidate_award, old_gpo.parameters.unsuccessful_candidates_percent, block_num);
+                  pay_candidates(leftover_candidates_budget, old_gpo.parameters.committee_percent_of_candidate_award, old_gpo.parameters.unsuccessful_candidates_percent, block_num,now);
             }
             rec.leftover_candidates_budget = leftover_candidates_budget;
             rec.leftover_worker_funds = leftover_worker_funds;
@@ -525,12 +545,9 @@ void database::process_budget(const global_property_object old_gpo, uint64_t blo
                         _core.accumulated_fees - dpo.witness_budget - rec.leftover_candidates_budget;
 
             if(now>PROCESS_BUDGET_ASSERT_TIMEPOINT)
-                  supply_budget = supply_budget+2*_core.accumulated_fees;
+                  supply_budget = supply_budget + _core.accumulated_fees;
 
-            assert(rec.supply_delta ==
-                        witness_budget + worker_budget + rec.candidates_budget -
-                        leftover_worker_funds -
-                        _core.accumulated_fees - dpo.witness_budget - rec.leftover_candidates_budget);
+            assert(rec.supply_delta == supply_budget);
                   _core.accumulated_fees = 0;
             });
 
