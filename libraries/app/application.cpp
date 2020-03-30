@@ -51,6 +51,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include <iostream>
+#include <regex>
 
 #include <fc/log/file_appender.hpp>
 #include <fc/log/logger.hpp>
@@ -239,7 +240,7 @@ public:
 
   void new_connection(const fc::http::websocket_connection_ptr &c) // new websocket connection
   {
-    auto wsc = std::make_shared<fc::rpc::websocket_api_connection>(*c);
+    auto wsc = std::make_shared<fc::rpc::websocket_api_connection>(c);
     auto login = std::make_shared<graphene::app::login_api>(std::ref(*_self));
     login->enable_api("database_api");
 
@@ -341,6 +342,11 @@ public:
           std::string genesis_str;
           fc::read_file_contents(_options->at("genesis-json").as<boost::filesystem::path>(), genesis_str);
           genesis_state_type genesis = fc::json::from_string(genesis_str).as<genesis_state_type>();
+
+          //remove the extension   -----yp add -----
+          std::regex e(R"#((?=\n|^)([\t\s]+"extensions":\s+\[)(.*?\]))#");
+          genesis_str = std::regex_replace(genesis_str, e, "$1]");
+
           //idump((genesis.initial_parameters.maximum_run_time_ratio));
           bool modified_genesis = false;
           if (_options->count("genesis-timestamp"))

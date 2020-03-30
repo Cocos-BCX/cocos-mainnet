@@ -32,7 +32,7 @@
 
 #include <algorithm>
 
-
+#include <boost/multi_index/composite_key.hpp>
 
 namespace graphene { namespace chain {
    using namespace graphene::db;
@@ -138,6 +138,8 @@ namespace graphene { namespace chain {
          /// Total amount remaining in this vesting balance
          /// Includes the unvested funds, and the vested funds which have not yet been withdrawn
          asset balance;
+         fc::time_point_sec create_time;
+         fc::time_point_sec update_time;
          /// The vesting policy stores details on when funds vest, and controls when they may be withdrawn
          vesting_policy policy;
          fc::optional<string> describe;
@@ -172,20 +174,29 @@ namespace graphene { namespace chain {
     * @ingroup object_index
     */
    struct by_account;
+   struct by_create_time{};
+   struct by_update_time{};
    typedef multi_index_container<
       vesting_balance_object,
       indexed_by<
          ordered_unique< tag<by_id>, member< object, object_id_type, &object::id > >,
          ordered_non_unique< tag<by_account>,
             member<vesting_balance_object, account_id_type, &vesting_balance_object::owner>
+         >,
+         ordered_non_unique< tag<by_create_time>,
+         member<vesting_balance_object, fc::time_point_sec, &vesting_balance_object::create_time>
+         >,
+         ordered_non_unique< tag<by_update_time>,
+         member<vesting_balance_object, fc::time_point_sec, &vesting_balance_object::update_time>
          >
+         
       >
    > vesting_balance_multi_index_type;
    /**
     * @ingroup object_index
     */
    typedef generic_index<vesting_balance_object, vesting_balance_multi_index_type> vesting_balance_index;
-
+   
 } } // graphene::chain
 
 FC_REFLECT(graphene::chain::linear_vesting_policy,

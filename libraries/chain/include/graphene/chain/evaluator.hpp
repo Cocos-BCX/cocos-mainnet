@@ -64,6 +64,8 @@ class generic_evaluator
     {
     }
     virtual operation_result start_evaluate(transaction_evaluation_state &eval_state, const operation &op, bool apply, const boost::program_options::variables_map *options);
+    
+    void pay_fee_for_gas(const operation& op) {}
 
     /**
        * @note derived classes should ASSUME that the default validation that is
@@ -89,6 +91,7 @@ class generic_evaluator
 
     database &db() const;
     transaction_evaluation_state *trx_state;
+  
     operation_result result;
     operation_fee_visitor fee_visitor;
 

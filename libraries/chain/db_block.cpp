@@ -109,6 +109,18 @@ const transaction_in_block_info &database::get_transaction_in_block_info(const s
   return *itr;
 }
 
+const transaction_in_block_info &database::get_transaction_in_block_info(const string &trx_id,int &ret) const
+{
+   //wdump((trx_id));
+   auto &index = get_index_type<transaction_in_block_index>().indices().get<by_trx_hash>();
+   auto itr = index.find(tx_hash_type(trx_id));
+   if(itr != index.end())
+     ret = 1;
+   else
+     ret = 0;
+   return *itr;
+ }
+
 std::vector<block_id_type> database::get_block_ids_on_fork(block_id_type head_of_fork) const
 {
   pair<fork_database::branch_type, fork_database::branch_type> branches = _fork_db.fetch_branch_from(head_block_id(), head_of_fork);
@@ -278,7 +290,9 @@ processed_transaction database::_push_transaction(const signed_transaction &trx,
     if (push_state == transaction_push_state::from_me)
     {
       //get_message_send_cache_size();
-      _pending_size=std::max(_pending_size,_pending_tx.size());
+      // Casting std::vector.size() return type to uint64_t is needed for macos compiling,
+      // check here (https://stackoverflow.com/questions/36814040) for more info.
+      _pending_size=std::max(_pending_size,(uint64_t)_pending_tx.size());
       if (_message_cache_size_limit)
         FC_ASSERT(_pending_size <= _message_cache_size_limit, "The number of messages cached by the current node has exceeded the maximum limit,size:${size}", ("size", _pending_size));
       mode = transaction_apply_mode::push_mode;
@@ -293,6 +307,10 @@ processed_transaction database::_push_transaction(const signed_transaction &trx,
   else
   {
     uint32_t skip = get_node_properties().skip_flags;
+    auto share_flag = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
+    if((trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)&&(skip!=share_flag))
+      skip = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
+
     const chain_parameters &chain_parameters = get_global_properties().parameters;
     if (BOOST_LIKELY(head_block_num() > 0))
     {
@@ -443,6 +461,10 @@ signed_block database::_generate_block(
       {
         //if (tx.operation_results.size() > 0)
         //{
+          
+        if((tx.operations[0].which() == operation::tag<contract_share_fee_operation>::value))
+          skip = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
+
         if (BOOST_LIKELY(head_block_num() > 0)&& !tx.agreed_task)
         {
           if (!(skip & skip_tapos_check) )
@@ -661,11 +683,15 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
 {
   //fc::microseconds start1 = fc::time_point::now().time_since_epoch();
   try
-  {
+  { 
     uint32_t skip = get_node_properties().skip_flags;
 
+    auto share_flag = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
+    if((trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)&&(skip!=share_flag))
+    {
+      skip = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
+    }
     auto &chain_parameters = get_global_properties().parameters;
-
 
     int op_maxsize_proportion_percent = 1; //default
 
@@ -676,7 +702,6 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
       if(percent>=0 && percent<=100) //if percent out of range,just do nothing
         op_maxsize_proportion_percent = percent;
     }
-
     int size = chain_parameters.maximum_block_size*op_maxsize_proportion_percent/100;
     FC_ASSERT(fc::raw::pack_size(trx) < size);//交易尺寸验证，单笔交易最大尺寸不能超过区块最大尺寸的百分比
     if (!(skip & skip_validate))                                                    /* issue #505 explains why this skip_flag is disabled */
@@ -777,6 +802,9 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
     uint64_t real_run_time = 0;
     auto get_runtime = operation_result_visitor_get_runtime();
     bool result_contains_error = false;
+    
+    // add auto gas
+    account_id_type last_from = account_id_type();
     for (const auto &op : ptrx.operations)
     {
       auto op_result = apply_operation(eval_state, op, eval_state.is_agreed_task);
@@ -792,6 +820,26 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
       if (op_result.which() == operation_result::tag<error_result>::value)
       {
         result_contains_error = true;
+      }
+
+      if( head_block_time() > AUTO_GAS_TIMEPOINT )
+      {
+        auto call_contract_condition = (op.which() == operation::tag<call_contract_function_operation>::value && op_result.which() == operation_result::tag<contract_result>::value);
+        auto transfer_condition = (op.which() == operation::tag<transfer_operation>::value && op_result.which() == operation_result::tag<void_result>::value);
+        if ( call_contract_condition || transfer_condition )
+        {
+          account_id_type op_from;
+          if( call_contract_condition ){
+            op_from = op.get<call_contract_function_operation>().caller;
+          }
+          if( transfer_condition ){
+            op_from = op.get<transfer_operation>().from;
+          }
+          if(last_from != op_from){
+            auto_gas(eval_state, op_from);
+            last_from = op_from;
+          }
+        }
       }
     }
 
@@ -820,6 +868,47 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
     return ptrx;
   }
   FC_CAPTURE_AND_RETHROW((trx))
+}
+
+void database::auto_gas(transaction_evaluation_state &eval_state, account_id_type from){
+    vector<vesting_balance_object> vbos;
+    auto vesting_range = get_index_type<vesting_balance_index>().indices().get<by_account>().equal_range(from);
+    std::for_each(vesting_range.first, vesting_range.second,
+                  [&vbos](const vesting_balance_object &balance) {
+                      vbos.emplace_back(balance);
+                  });
+
+    vesting_balance_withdraw_operation vesting_balance_withdraw_op;
+    if(!vbos.empty())
+    {
+      fc::optional<vesting_balance_id_type> vbid = maybe_id<vesting_balance_id_type>(string(vbos.begin()->id));
+      if(vbid)
+      {                        
+        auto now = head_block_time();
+        auto vbo1_tmp = find_object(*vbid);
+        const vesting_balance_object *vbo1 = static_cast<const vesting_balance_object*>(vbo1_tmp);
+        vesting_balance_withdraw_op.vesting_balance = *vbid;
+        vesting_balance_withdraw_op.owner = vbo1->owner;
+        vesting_balance_withdraw_op.amount = vbo1->get_allowed_withdraw(now);
+        if( vesting_balance_withdraw_op.amount.asset_id == asset_id_type(1) && vesting_balance_withdraw_op.amount > asset(100000, asset_id_type(1)) )
+        {
+          try
+          {
+            auto op_result = apply_operation(eval_state, vesting_balance_withdraw_op);
+            if (op_result.which() != operation_result::tag<error_result>::value)
+            {
+              eval_state.operation_results.emplace_back(op_result);
+              return ;
+            }
+            wlog("auto gas failed...");
+          }
+          catch (...)
+          {
+            wlog("auto gas failed...");
+          }
+        }
+      }
+    }
 }
 
 operation_result database::apply_operation(transaction_evaluation_state &eval_state, const operation &op, bool is_agreed_task)

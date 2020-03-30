@@ -842,6 +842,14 @@ public:
 
             return true;
       }
+
+      void quit()
+      {
+            ilog( "Quitting Cli Wallet ..." );
+
+            throw fc::canceled_exception();
+      }
+
       void save_wallet_file(string wallet_filename = "")
       {
             //
@@ -1910,6 +1918,7 @@ public:
       }
 
       signed_transaction transfer(string from, string to, string amount,
+
                                   string asset_symbol, pair<string, bool> memo, bool broadcast = false)
       {
             try
@@ -1917,7 +1926,6 @@ public:
                   FC_ASSERT(!self.is_locked());
                   fc::optional<asset_object> asset_obj = get_asset(asset_symbol);
                   FC_ASSERT(asset_obj, "Could not find asset matching ${asset}", ("asset", asset_symbol));
-
                   account_object from_account = get_account(from);
                   account_object to_account = get_account(to);
                   account_id_type from_id = from_account.id;
@@ -1945,6 +1953,7 @@ public:
                   }
 
                   signed_transaction tx;
+                  
                   tx.operations.push_back(xfer_op);
                   tx.validate();
 
@@ -1981,7 +1990,7 @@ public:
             try
             {
                   FC_ASSERT(!self.is_locked());
-
+                  
                   account_object owner_account = get_account(owner);
                   account_id_type owner_id = owner_account.id;
 
@@ -2027,7 +2036,7 @@ public:
       }
 
       signed_transaction call_contract_function(string account_id_or_name, string contract_id_or_name, string function_name,
-                                                vector<lua_types> value_list, bool broadcast = false) // wallet 合约 API
+                                                vector<lua_types> value_list,wallet_api *ptr,bool broadcast = false) // wallet 合约 API
       {
             try
             {
@@ -2042,7 +2051,6 @@ public:
                   op.contract_id = contract.id;
                   op.function_name = function_name;
                   op.value_list = value_list;
-
                   signed_transaction tx;
                   tx.operations.push_back(op);
                   tx.validate();
@@ -2051,6 +2059,8 @@ public:
             }
             FC_CAPTURE_AND_RETHROW((account_id_or_name)(contract_id_or_name)(function_name)(value_list)(broadcast))
       }
+     
+     
 
       signed_transaction adjustment_temporary_authorization(string account_id_or_name, string describe, fc::time_point_sec expiration_time,
                                                             flat_map<public_key_type, weight_type> temporary_active, bool broadcast = false) //nico add :: wallet 合约 API
@@ -2094,6 +2104,8 @@ public:
             }
             FC_CAPTURE_AND_RETHROW((fee_paying_account))
       }
+
+
 
       signed_transaction create_world_view(const string &fee_paying_account, const string &world_view, bool broadcast = false)
       {
@@ -3150,6 +3162,11 @@ fc::optional<signed_block> wallet_api::get_block(uint32_t num)
       return my->_remote_db->get_block(num);
 }
 
+fc::optional<signed_block> wallet_api::get_block_by_id(block_id_type block_id)
+{
+      return my->_remote_db->get_block_by_id(block_id);
+}
+
 uint64_t wallet_api::get_account_count() const
 {
       return my->_remote_db->get_account_count();
@@ -3550,7 +3567,7 @@ lua_map wallet_api::get_contract_public_data(string contract_id_or_name, lua_map
 }
 pair<tx_hash_type, signed_transaction> wallet_api::call_contract_function(string account_id_or_name, string contract_id_or_name, string function_name, vector<lua_types> value_list, bool broadcast /* = false */)
 {
-      auto tx = my->call_contract_function(account_id_or_name, contract_id_or_name, function_name, value_list, broadcast);
+      auto tx = my->call_contract_function(account_id_or_name, contract_id_or_name, function_name, value_list, this,broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 pair<tx_hash_type, signed_transaction> wallet_api::adjustment_temporary_authorization(string account_id_or_name, string describe, fc::time_point_sec expiration_time, flat_map<public_key_type, weight_type> temporary_active, bool broadcast /* = false */) //nico add :: wallet 合约 API
@@ -4137,7 +4154,6 @@ string wallet_api::help() const
             }
       }
       ss << " (You can use `gethelp command` for single command usage)\n";
-	  
       return ss.str();
 }
 
@@ -4155,9 +4171,9 @@ string wallet_api::gethelp(const string &method) const
       }
       else if (method == "transfer")
       {
-            ss << "usage: transfer FROM TO AMOUNT SYMBOL \"memo\" BROADCAST\n\n";
-            ss << "example: transfer \"1.3.11\" \"1.3.4\" 1000.03 CORE \"memo\" true\n";
-            ss << "example: transfer \"usera\" \"userb\" 1000.123 CORE \"memo\" true\n";
+            ss << "usage: transfer FROM TO AMOUNT SYMBOL [\"memo\",false] BROADCAST\n\n";
+            ss << "example: transfer \"1.3.11\" \"1.3.4\" 1000.03 CORE [\"memo\",false] true\n";
+            ss << "example: transfer \"usera\" \"userb\" 1000.123 CORE [\"memo\",false] true\n";
       }
       else if (method == "create_account_with_brain_key")
       {
@@ -4201,6 +4217,11 @@ string wallet_api::gethelp(const string &method) const
 bool wallet_api::load_wallet_file(string wallet_filename)
 {
       return my->load_wallet_file(wallet_filename);
+}
+
+void wallet_api::quit()
+{
+      my->quit();
 }
 
 void wallet_api::save_wallet_file(string wallet_filename)

@@ -320,7 +320,6 @@ typedef object_id<implementation_ids, impl_collateral_bid_object_type, collatera
 typedef object_id<extension_id_for_nico, asset_restricted_object_type, asset_restricted_object> asset_restricted_id_type;
 typedef object_id<extension_id_for_nico, unsuccessful_candidates_type,unsuccessful_candidates_object>unsuccessful_candidates_id_type;
 
-typedef fc::array<char, GRAPHENE_MAX_ASSET_SYMBOL_LENGTH> symbol_type;
 typedef fc::ripemd160 block_id_type;
 typedef fc::ripemd160 checksum_type;
 typedef fc::ripemd160 transaction_id_type;

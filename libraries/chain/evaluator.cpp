@@ -34,6 +34,7 @@
 #include <graphene/chain/market_evaluator.hpp>
 #include <graphene/chain/contract_evaluator.hpp>
 #include <graphene/chain/protocol/fee_schedule.hpp>
+#include <graphene/chain/vesting_balance_evaluator.hpp>
 /***************************nico add************************/
 #include <boost/thread/thread.hpp>
 //#include <boost/exception_ptr.hpp>
@@ -86,6 +87,9 @@ operation_result generic_evaluator::start_evaluate(transaction_evaluation_state 
             static_cast<graphene::chain::call_contract_function_evaluator *>(this)->pay_fee_for_result(result.get<contract_result>());   
             FC_ASSERT(core_fee_paid.value < db().get_global_properties().parameters.current_fees->maximun_handling_fee);
           }
+          if (op.which() == operation::tag<vesting_balance_withdraw_operation>::value){
+            static_cast<graphene::chain::vesting_balance_withdraw_evaluator *>(this)->pay_fee_for_gas(op);
+          }
         }
         catch (fc::exception &e)
         {
@@ -128,6 +132,9 @@ operation_result generic_evaluator::start_evaluate(transaction_evaluation_state 
         result = temp_result;
         static_cast<graphene::chain::call_contract_function_evaluator *>(this)->pay_fee_for_result(result.get<contract_result>());
         FC_ASSERT(core_fee_paid.value < db().get_global_properties().parameters.current_fees->maximun_handling_fee);
+      }
+      if (op.which() == operation::tag<vesting_balance_withdraw_operation>::value){
+        static_cast<graphene::chain::vesting_balance_withdraw_evaluator *>(this)->pay_fee_for_gas(op);
       }
     }
     pay_fee_for_operation(op);

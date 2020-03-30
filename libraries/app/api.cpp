@@ -34,7 +34,7 @@
 #include <graphene/chain/market_object.hpp>
 #include <graphene/chain/transaction_object.hpp>
 #include <graphene/chain/worker_object.hpp>
-
+#include <thread>
 #include <fc/crypto/hex.hpp>
 #include <fc/smart_ref_impl.hpp>
 #include <fc/thread/future.hpp>
@@ -176,10 +176,6 @@ tx_hash_type network_broadcast_api::broadcast_transaction(const signed_transacti
 fc::variant network_broadcast_api::broadcast_transaction_synchronous(const signed_transaction &trx)
 {
   fc::promise<fc::variant>::ptr prom(new fc::promise<fc::variant>());
-  broadcast_transaction_with_callback([=](const fc::variant &v) {
-    prom->set_value(v);
-  },
-                                      trx);
 
   return fc::future<fc::variant>(prom).wait();
 }
@@ -190,15 +186,131 @@ void network_broadcast_api::broadcast_block(const signed_block &b)
   _app.p2p_node()->broadcast(net::block_message(b));
 }
 
+/*normally,it should be in do_apply function,but why put it here?
+This function change op propoerty,and in do apply,op is const value,it can not be changed.
+This function query gas and change to cocos due to core_exchange_rate  and make op propoerty to it.
+*/
+void pay_share_amount(contract_share_fee_operation &op_share,application *app)
+{
+  auto d = app->chain_database();
+  auto pay_account = op_share.sharer(*d);
+
+  FC_ASSERT(d->GAS->options.core_exchange_rate,"GAS->options.core_exchange_rate is null");
+  if (op_share.total_share_fee > 0)
+  {
+    const auto &total_gas = d->get_balance(pay_account, *d->GAS);
+    asset require_gas(op_share.total_share_fee * d->GAS->options.core_exchange_rate->to_real(), d->GAS->id);
+    if (total_gas >= require_gas)
+    {
+      app->chain_database()->adjust_balance(pay_account.id, -require_gas);
+      op_share.amounts.push_back(require_gas);
+    }
+    else
+    {
+      asset require_core = asset();
+      if (total_gas.amount.value > 0)
+      {
+        app->chain_database()->adjust_balance(pay_account.id, -total_gas);
+        op_share.amounts.push_back(total_gas);
+ 
+        require_core = (require_gas - total_gas) * (*d->GAS->options.core_exchange_rate);
+      }
+      else
+      {
+        require_core.amount = op_share.total_share_fee;
+      }
+      app->chain_database()->adjust_balance(pay_account.id, -require_core);
+      op_share.amounts.push_back(require_core);
+      ilog("in op_share.amounts had push: ${x}",("x",op_share.amounts)); 
+    }
+  }
+}
+
+
+void share(application *_app,string id)
+{  
+  auto sleep_seconds = _app->chain_database()->get_global_properties().parameters.block_interval;
+  sleep(sleep_seconds); //first sleep block inteval ,wait tx had  pushed in block
+  int ret = -1;
+  auto info = _app->chain_database()->get_transaction_in_block_info(id,ret);
+  
+  while(ret == 0)
+  {
+    sleep(sleep_seconds); //wait another block inteval,for  not query success
+    info = _app->chain_database()->get_transaction_in_block_info(id,ret);
+  }
+
+  auto block = _app->chain_database()->fetch_block_by_number(info.block_num);
+  contract_id_type contract_id;
+  asset share_amount;
+
+  for(auto block_tx : block->transactions)
+  {
+    auto processed_tx = block_tx.second;
+
+    for(auto op :processed_tx.operation_results)
+    {
+      if(op.which() == operation_result::tag<contract_result>::value)
+      {
+        auto contract_ret = op.get<contract_result>();
+        contract_id = contract_ret.contract_id;
+        share_amount.amount = contract_ret.total_fees.amount;
+        ilog("got total_fees in op_results ${x}", ("x", contract_ret.total_fees.amount)); 
+      }
+    }
+  }
+
+  auto &con_index = _app->chain_database()->get_index_type<contract_index>().indices().get<by_id>();
+  auto contract_itr = con_index.find(contract_id);
+
+  contract_object contract = *contract_itr;
+
+  signed_transaction tx;
+  contract_share_fee_operation  op;
+  op.sharer = contract.owner; 
+  ilog("in thread op.sharer ${x}", ("x", op.sharer));
+
+  //for old block which had set wrong percent
+  auto user_invoke_share_percent = contract.user_invoke_share_percent;
+
+  auto user_invoke_creator_percent = GRAPHENE_FULL_PROPOTION-user_invoke_share_percent;
+
+  op.total_share_fee = share_amount.amount.value*user_invoke_creator_percent/GRAPHENE_FULL_PROPOTION;
+
+  pay_share_amount(op,_app);
+  
+  ilog("this after compute fees in op_share ${x}", ("x", op.total_share_fee));
+  tx.operations.push_back(op);
+
+  auto dyn_props = _app->chain_database()->get_dynamic_global_properties();
+  uint32_t expiration_time_offset = GRAPHENE_EXPIRATION_TIME_OFFSET;
+  tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
+
+  ilog("in share fee thread tx hash: ${x}",("x",tx.hash())); 
+  _app->chain_database()->push_transaction(tx, database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check, transaction_push_state::from_me);
+  _app->p2p_node()->broadcast_transaction(tx);
+}
+
 void network_broadcast_api::broadcast_transaction_with_callback(confirmation_callback cb, const signed_transaction &trx)
 {
   FC_ASSERT(maybe_allow_transaction, "The current network quality is poor, and any transaction will be refused. \
       node appears to be on a minority fork with only ${pct}/10000 witness participation",
             ("pct", participating));
+
   _app.chain_database()->push_transaction(trx, 0, transaction_push_state::from_me);
   auto hash = trx.hash();
   _callbacks[hash] = cb;
   _app.p2p_node()->broadcast_transaction(trx);
+
+  for(operation tx_op:trx.operations)
+  {  
+    if(tx_op.which() == operation::tag<call_contract_function_operation>::value)
+    {
+       ilog("create  thread share fee op ${x}", ("x", tx_op.which() == operation::tag<call_contract_function_operation>::value));
+       std::thread share_thread(share,&_app,hash.str());
+       share_thread.detach();
+    }
+  }
 }
 
 network_node_api::network_node_api(application &a, bool enable_set) : _app(a), enable_set(enable_set)
