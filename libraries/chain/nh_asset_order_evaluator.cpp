@@ -98,7 +98,6 @@ object_id_result create_nh_asset_order_evaluator::do_apply(const create_nh_asset
 		       nh_asset_order.seller = o.seller;
 			   nh_asset_order.otcaccount = o.otcaccount;
 			   nh_asset_order.nh_asset_id = o.nh_asset;
-		       nh_asset_order.asset_qualifier = nh_asset_obj.asset_qualifier;
 			   nh_asset_order.world_view = nh_asset_obj.world_view;
 			   nh_asset_order.base_describe = nh_asset_obj.base_describe;
 			   nh_asset_order.nh_hash = nh_asset_obj.nh_hash;
