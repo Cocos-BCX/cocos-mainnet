@@ -4153,8 +4153,7 @@ string wallet_api::help() const
                   ss << method_name << " (no help available)\n";
             }
       }
-      ss << " (You can use `gethelp command` for single command usage or `quit` to exit)\n";
-	  
+      ss << " (You can use `gethelp command` for single command usage)\n";
       return ss.str();
 }
 

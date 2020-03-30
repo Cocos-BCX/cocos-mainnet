@@ -39,10 +39,6 @@ class call_contract_function_evaluator : public evaluator<call_contract_function
     const contract_object *contract_pir= nullptr;
     const contract_bin_code_object *contract_code_pir= nullptr;
     const operation_type* op;
-
-  private:
-    share_type user_invoke_creator_fee;
-
 };
 
 class revise_contract_evaluator : public evaluator<revise_contract_evaluator>
