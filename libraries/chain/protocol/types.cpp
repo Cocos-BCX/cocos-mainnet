@@ -33,109 +33,92 @@ namespace graphene { namespace chain {
 
     public_key_rsa_type::public_key_rsa_type():key_data(){};
 
-     public_key_rsa_type::public_key_rsa_type( const fc::bytes& data )
+    public_key_rsa_type::public_key_rsa_type( const fc::bytes& data )
         :key_data( data ) {};
 
     //  public_key_rsa_type::public_key_rsa_type( const fc::public_key& pubkey )
    //      :key_data( pubkey.serialize() ){};
 
      public_key_rsa_type::public_key_rsa_type( const fc::public_key& pubkey )
-    {
-       const fc::bytes pub = pubkey.serialize();
-       key_data = pub;
-    };
+     {
+         const fc::bytes pub = pubkey.serialize();
+         key_data = pub;
+     };
 
      public_key_rsa_type::public_key_rsa_type( const std::string& base64str )
-    {
-       try
-       {
-            std::string tmp_pub = base64str;
-            if(base64str.compare(0, GRAPHENE_RSA_PUBLIC_BEGIN_SIZE - 1, GRAPHENE_RSA_PUBLIC_BEGIN) == 0)
-            {
-                  tmp_pub = tmp_pub.substr( GRAPHENE_RSA_PUBLIC_BEGIN_SIZE -1 );
-            }      
-            if(base64str.compare(base64str.length() - GRAPHENE_RSA_PUBLIC_END_SIZE + 1, base64str.length(), GRAPHENE_RSA_PUBLIC_END) == 0)
-            {
-                  tmp_pub = tmp_pub.substr(0, tmp_pub.length() - GRAPHENE_RSA_PUBLIC_END_SIZE);
-            }
-            if(tmp_pub.find_first_of("\n") == 64)
-            {
-                  for(unsigned int i = 64; i < tmp_pub.length(); i += 64)
-                  {
-                        tmp_pub = tmp_pub.replace(i, 1, "");
-                  }
-            }
-
-            std::string bin = fc::base64_decode( tmp_pub );
-            key_data = fc::bytes( bin.begin(), bin.end() );
-       }
-       FC_CAPTURE_AND_RETHROW((base64str))
-    };
+     {
+         try
+         {
+               std::string tmp_pub = base64str;
+               if(base64str.compare(0, GRAPHENE_RSA_PUBLIC_BEGIN_SIZE - 1, GRAPHENE_RSA_PUBLIC_BEGIN) == 0)
+               {
+                     tmp_pub = tmp_pub.substr( GRAPHENE_RSA_PUBLIC_BEGIN_SIZE -1 );
+               }      
+               if(base64str.compare(base64str.length() - GRAPHENE_RSA_PUBLIC_END_SIZE + 1, base64str.length(), GRAPHENE_RSA_PUBLIC_END) == 0)
+               {
+                     tmp_pub = tmp_pub.substr(0, tmp_pub.length() - GRAPHENE_RSA_PUBLIC_END_SIZE);
+               }
+               if(tmp_pub.find_first_of("\n") == 64)
+               {
+                     tmp_pub.erase(std::remove(tmp_pub.begin(), tmp_pub.end(), '\n'), tmp_pub.end());
+               }
+               FC_ASSERT( tmp_pub.length() == 360, "Wrong public key ${pub_key_base64}", ("pub_key_base64", rsa_public_base64_str) );
+               std::string bin = fc::base64_decode( tmp_pub );
+               key_data = fc::bytes( bin.begin(), bin.end() );
+         }
+         FC_CAPTURE_AND_RETHROW((base64str))
+     };
 
      public_key_rsa_type::operator fc::bytes() const
-    {
-       return key_data;
-    };
+     {
+         return key_data;
+     };
 
      public_key_rsa_type::operator fc::public_key() const
-    {
-       return fc::public_key( key_data );
-    };
+     {
+         return fc::public_key( key_data );
+     };
 
      public_key_rsa_type::operator std::string() const
-    {
-       std::string pem = GRAPHENE_RSA_PUBLIC_BEGIN;
-       auto b64 = fc::base64_encode( (const unsigned char*)key_data.data(), key_data.size() );
-       for( size_t i = 0; i < b64.size(); i += 64 )
-           pem += b64.substr( i, 64 ) + "\n";
-       pem += GRAPHENE_RSA_PUBLIC_END;
+     {
+         std::string pem = GRAPHENE_RSA_PUBLIC_BEGIN;
+         auto b64 = fc::base64_encode( (const unsigned char*)key_data.data(), key_data.size() );
+         for( size_t i = 0; i < b64.size(); i += 64 )
+            pem += b64.substr( i, 64 ) + "\n";
+         pem += GRAPHENE_RSA_PUBLIC_END;
 
-        return pem;
-    }
+         return pem;
+     }
 
      bool operator == ( const public_key_rsa_type& p1, const fc::public_key& p2)
-    {
-       return p1.key_data == p2.serialize();
-    }
+     {
+         return p1.key_data == p2.serialize();
+     }
 
      bool operator == ( const public_key_rsa_type& p1, const public_key_rsa_type& p2)
-    {
-       return p1.key_data == p2.key_data;
-    }
+     {
+         return p1.key_data == p2.key_data;
+     }
 
      bool operator != ( const public_key_rsa_type& p1, const public_key_rsa_type& p2)
-    {
-       return p1.key_data != p2.key_data;
-    }
-
-     // TODO: This is temporary for testing
-    bool public_key_rsa_type::is_valid_v1( const std::string& base58str )
-    {
-       std::string prefix( GRAPHENE_ADDRESS_PREFIX );
-       const size_t prefix_len = prefix.size();
-       FC_ASSERT( base58str.size() > prefix_len );
-       FC_ASSERT( base58str.substr( 0, prefix_len ) ==  prefix , "", ("base58str", base58str) );
-       auto bin = fc::from_base58( base58str.substr( prefix_len ) );
-       auto bin_key = fc::raw::unpack<binary_key>(bin);
-       fc::bytes key_data = bin_key.data;
-       FC_ASSERT( fc::ripemd160::hash( &key_data[0], key_data.size() )._hash[0] == bin_key.check );
-       return true;
-    }
+     {
+         return p1.key_data != p2.key_data;
+     }
 
      bool public_key_rsa_type::verify( string digest_str, string sig_str )const
-    {
-      try
-      {
-         std::string sig_str_dec = fc::base64_decode( sig_str );
-         fc::signature sig = fc::signature( sig_str_dec.begin(), sig_str_dec.end() );
-         const digest_type digest = digest_type(digest_str);
-         return fc::public_key( key_data ).verify(digest, sig);
-      }
-      catch( ... )
-      {
-      }
-      return false;
-    }
+     {
+         try
+         {
+            std::string sig_str_dec = fc::base64_decode( sig_str );
+            fc::signature sig = fc::signature( sig_str_dec.begin(), sig_str_dec.end() );
+            const digest_type digest = digest_type(digest_str);
+            return fc::public_key( key_data ).verify(digest, sig);
+         }
+         catch( ... )
+         {
+         }
+         return false;
+     }
 
      // public_key_type
 

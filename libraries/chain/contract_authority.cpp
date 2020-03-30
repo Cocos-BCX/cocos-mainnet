@@ -62,29 +62,12 @@ void register_scheduler::change_contract_authority(string authority)
     }
 }
 
-void register_scheduler::set_random_key( string d_str )
+void register_scheduler::set_random_key( string rsa_public_base64_str )
 {
     try
     {
-        std::string tmp_pub = d_str;
-        if(d_str.compare(0, GRAPHENE_RSA_PUBLIC_BEGIN_SIZE - 1, GRAPHENE_RSA_PUBLIC_BEGIN) == 0)
-        {
-            tmp_pub = tmp_pub.substr( GRAPHENE_RSA_PUBLIC_BEGIN_SIZE -1 );
-        }      
-        if(d_str.compare(d_str.length() - GRAPHENE_RSA_PUBLIC_END_SIZE + 1, d_str.length(), GRAPHENE_RSA_PUBLIC_END) == 0)
-        {
-            tmp_pub = tmp_pub.substr(0, tmp_pub.length() - GRAPHENE_RSA_PUBLIC_END_SIZE);
-        }
-        if(tmp_pub.find_first_of("\n") == 64)
-        {
-            for(unsigned int i = 64; i < tmp_pub.length(); i += 64)
-            {
-                tmp_pub = tmp_pub.replace(i, 1, "");
-            }
-        }
-        FC_ASSERT( tmp_pub.length() == 360, "Wrong public key ${pub_key_base64}", ("pub_key_base64", d_str) );
-        public_key_rsa_type rand_key(tmp_pub);
         FC_ASSERT(is_owner(), "You`re not the contract`s owner");
+        public_key_rsa_type rand_key( rsa_public_base64_str );
         contract_id_type db_index = contract.id;
         db.modify(db_index(db), [&](contract_object &co) {
             co.random_key = rand_key;

@@ -3323,14 +3323,14 @@ rsa_key_info wallet_api::suggest_rsa_key() const
       fc::public_key pub_key = fc::public_key();
       generate_key_pair( pub_key, priv_key );
 
-       fc::bytes d = priv_key.serialize();
+      fc::bytes d = priv_key.serialize();
       std::string pem = GRAPHENE_RSA_PRIVATE_BEGIN;
       auto b64 = fc::base64_encode( (const unsigned char*)d.data(), d.size() );
       for( size_t i = 0; i < b64.size(); i += 64 )
             pem += b64.substr( i, 64 ) + "\n";
       pem += GRAPHENE_RSA_PRIVATE_END;
 
-       result.wif_priv_key = pem;
+      result.wif_priv_key = pem;
       result.pub_key = pub_key;
       return result;
 }
@@ -3344,33 +3344,14 @@ bool wallet_api::rsa_verify(std::string digest_str, std::string sig_str, std::st
                   return false;
             }
 
-             std::string tmp_pub = pub_key_base64;
-            if(pub_key_base64.compare(0, GRAPHENE_RSA_PUBLIC_BEGIN_SIZE - 1, GRAPHENE_RSA_PUBLIC_BEGIN) == 0)
-            {
-                  tmp_pub = tmp_pub.substr( GRAPHENE_RSA_PUBLIC_BEGIN_SIZE -1 );
-            }      
-            if(pub_key_base64.compare(pub_key_base64.length() - GRAPHENE_RSA_PUBLIC_END_SIZE + 1, pub_key_base64.length(), GRAPHENE_RSA_PUBLIC_END) == 0)
-            {
-                  tmp_pub = tmp_pub.substr(0, tmp_pub.length() - GRAPHENE_RSA_PUBLIC_END_SIZE);
-            }
-            if(tmp_pub.find_first_of("\n") == 64)
-            {
-                  for(unsigned int i = 64; i < tmp_pub.length(); i += 64)
-                  {
-                        tmp_pub = tmp_pub.replace(i, 1, "");
-                  }
-            }
-            if( tmp_pub.length() != 360 ){
-                  elog("Wrong public key ${pub_key_base64}", ("pub_key_base64", pub_key_base64));
-                  return false;
-            }
-            public_key_rsa_type pub_key(pub_key_base64);
+            public_key_rsa_type pub_key( pub_key_base64 );
             bool result = pub_key.verify( digest_str, sig_str );
             return result;
       }
       catch( ... )
       {
-          elog("Wrong public key ${pub_key_base64}, or digest ${digest_str}, or signature: ${sig_str}", ("pub_key_base64", pub_key_base64)("digest_str", digest_str)("sig_str", sig_str));
+          elog("Wrong public key ${pub_key_base64}, or digest ${digest_str}, or signature: ${sig_str}", 
+               ("pub_key_base64", pub_key_base64)("digest_str", digest_str)("sig_str", sig_str));
       }
       return false;
 }
@@ -3385,7 +3366,7 @@ rsa_sig_info wallet_api::rsa_sig(std::string input, std::string priv_key) const
                   return result;
             }
 
-             std::string tmp_priv = priv_key;
+            std::string tmp_priv = priv_key;
             if(priv_key.compare(0, GRAPHENE_RSA_PRIVATE_BEGIN_SIZE - 1, GRAPHENE_RSA_PRIVATE_BEGIN) == 0)
             {
                   tmp_priv = tmp_priv.substr( GRAPHENE_RSA_PRIVATE_BEGIN_SIZE -1 );
@@ -3396,13 +3377,10 @@ rsa_sig_info wallet_api::rsa_sig(std::string input, std::string priv_key) const
             }
             if(tmp_priv.find_first_of("\n") == 64)
             {
-                  for(int i = 64; i < tmp_priv.length(); i += 64)
-                  {
-                        tmp_priv.replace(i, 1, "");
-                  }
+                  tmp_priv.erase(std::remove(tmp_priv.begin(), tmp_priv.end(), '\n'), tmp_priv.end());
             }
 
-             if( tmp_priv.length() != 1588 ){
+            if( tmp_priv.length() != 1588 ){
                   elog("Wrong private key ${tmp_priv}", ("tmp_priv", tmp_priv));
                   return result;
             }
@@ -3413,14 +3391,14 @@ rsa_sig_info wallet_api::rsa_sig(std::string input, std::string priv_key) const
             fc::sha256 digest_str = fc::sha256::hash(input);
             fc::signature sig = priv.sign(digest_str);
 
-             std::string sig_str = "";
+            std::string sig_str = "";
             auto b64 = fc::base64_encode( (const unsigned char*)sig.data(), sig.size() );
             for( size_t i = 0; i < b64.size(); i += 64 )
                   sig_str += b64.substr( i, 64 );
             result.sig_str = sig_str;
             result.digest_str = digest_str.str();
 
-             return result;
+            return result;
       }
       FC_CAPTURE_AND_RETHROW((0))
 }
