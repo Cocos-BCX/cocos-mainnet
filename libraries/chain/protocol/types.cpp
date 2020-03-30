@@ -62,7 +62,7 @@ namespace graphene { namespace chain {
                {
                      tmp_pub.erase(std::remove(tmp_pub.begin(), tmp_pub.end(), '\n'), tmp_pub.end());
                }
-               FC_ASSERT( tmp_pub.length() == 360, "Wrong public key ${pub_key_base64}", ("pub_key_base64", rsa_public_base64_str) );
+               FC_ASSERT( tmp_pub.length() == 360, "Wrong public key ${pub_key_base64}", ("pub_key_base64", base64str) );
                std::string bin = fc::base64_decode( tmp_pub );
                key_data = fc::bytes( bin.begin(), bin.end() );
          }
