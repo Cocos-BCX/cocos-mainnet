@@ -71,6 +71,7 @@ class contract_object : public graphene::db::abstract_object<contract_object>
     void push_function_actual_parameters(lua_State *L, vector<lua_types> &value_list);
     void get_code(vector<char>&target){target=lua_code_b;lua_code_b.clear();}
     void set_code(vector<char>source){FC_ASSERT(source.size()>0); lua_code_b=source;}
+    uint32_t data_size() const { return fc::raw::pack_size(this->contract_data); }
   private:
     process_encryption_helper encryption_helper; 
     vector<char> lua_code_b;
@@ -94,6 +95,7 @@ class account_contract_data : public graphene::db::abstract_object<account_contr
     lua_map contract_data;
     account_contract_data(){};
     contract_data_id_type get_id() const { return id; }
+    uint32_t data_size() const { return fc::raw::pack_size(this->contract_data); }
 };
 
 struct contract_base_info

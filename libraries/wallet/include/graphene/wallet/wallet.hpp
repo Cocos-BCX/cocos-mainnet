@@ -1453,6 +1453,7 @@ class wallet_api
     // zhangfan end
     int add_extern_sign_key(string wif);
 
+   map<string, uint32_t> get_contract_data_size(string contract_id_or_name) const;
     /**********************************************nico end*********************************************************************************/
 };
 
@@ -1488,7 +1489,7 @@ FC_API(graphene::wallet::wallet_api,
        (help)(gethelp)(info)(about)(begin_builder_transaction)(add_operation_to_builder_transaction)(replace_operation_in_builder_transaction)(preview_builder_transaction)(sign_builder_transaction)(propose_builder_transaction)(remove_builder_transaction)(is_new)(is_locked)(lock)(unlock)(set_password)(dump_private_keys)(list_my_accounts)(list_accounts)(list_account_balances)
        /*nico add*/
        //contract
-       (call_contract_function)(create_contract)(revise_contract)(get_account_contract_data)(get_contract)(get_contract_public_data)
+       (call_contract_function)(create_contract)(revise_contract)(get_account_contract_data)(get_contract)(get_contract_public_data)(get_contract_data_size)
        //transaction
        (get_transaction_by_id)(get_transaction_in_block_info)(get_account_top_transaction)(get_account_transaction)(adjustment_temporary_authorization)(get_chain_properties)(validate_transaction)(add_extern_sign_key)
        //nh asset

@@ -635,6 +635,9 @@ class database_api
       operation get_prototype_operation_by_idx(uint index);
       fc::variant get_account_contract_data(account_id_type account_id, const contract_id_type contract_id) const;
       lua_map get_contract_public_data(string contract_id_or_name, lua_map filter) const;
+      uint32_t get_contract_public_data_size(const contract_id_type& contract_id) const;
+      uint32_t get_contract_private_data_size(const account_id_type& account_id, const contract_id_type& contract_id) const;
+      map<string, uint32_t> get_contract_data_size(const contract_id_type& contract_id) const;
       optional<processed_transaction> get_transaction_by_id(const string &id) const;
       vector<contract_id_type> list_account_contracts(const account_id_type& owner)const;
       optional<contract_object> get_contract(string contract_id_or_name);
@@ -698,6 +701,7 @@ FC_API(graphene::app::database_api,
        (get_account_balances)(get_named_account_balances)(get_balance_objects)(get_vested_balances)(get_vesting_balances)(get_prototype_operation_by_idx)
        // Lua contract
        (list_account_contracts)(get_account_contract_data)(get_contract_public_data)(get_contract)(get_transaction_by_id)(get_transaction_in_block_info)
+       (get_contract_public_data_size)(get_contract_private_data_size)(get_contract_data_size)
        //nh asset
        (lookup_world_view)(lookup_nh_asset)(list_nh_asset_by_creator)(list_account_nh_asset)(get_nh_creator)(list_nh_asset_order)(list_new_nh_asset_order)(list_account_nh_asset_order)
        //file

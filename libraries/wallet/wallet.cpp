@@ -4541,6 +4541,12 @@ order_book wallet_api::get_order_book(const string &base, const string &quote, u
       return (my->_remote_db->get_order_book(base, quote, limit));
 }
 
+map<string, uint32_t> wallet_api::get_contract_data_size(string contract_id_or_name) const
+{
+      fc::optional<contract_object> contract = my->_remote_db->get_contract(contract_id_or_name);
+      return my->_remote_db->get_contract_data_size(contract->id);
+}
+
 vesting_balance_object_with_info::vesting_balance_object_with_info(const vesting_balance_object &vbo, fc::time_point_sec now)
     : vesting_balance_object(vbo)
 {
