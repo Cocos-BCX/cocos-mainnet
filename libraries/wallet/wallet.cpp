@@ -57,6 +57,7 @@
 #include <fc/rpc/websocket_api.hpp>
 #include <fc/crypto/aes.hpp>
 #include <fc/crypto/hex.hpp>
+#include <fc/crypto/pke.hpp>
 #include <fc/thread/mutex.hpp>
 #include <fc/thread/scoped_lock.hpp>
 
@@ -3312,6 +3313,94 @@ brain_key_info wallet_api::suggest_brain_key() const
       result.address_info = priv_key.get_public_key();
       result.pub_key = priv_key.get_public_key();
       return result;
+}
+
+rsa_key_info wallet_api::suggest_rsa_key() const
+{
+      rsa_key_info result;
+      // create a private key for secure entropy
+      fc::private_key priv_key = fc::private_key();
+      fc::public_key pub_key = fc::public_key();
+      generate_key_pair( pub_key, priv_key );
+
+      fc::bytes d = priv_key.serialize();
+      std::string pem = GRAPHENE_RSA_PRIVATE_BEGIN;
+      auto b64 = fc::base64_encode( (const unsigned char*)d.data(), d.size() );
+      for( size_t i = 0; i < b64.size(); i += 64 )
+            pem += b64.substr( i, 64 ) + "\n";
+      pem += GRAPHENE_RSA_PRIVATE_END;
+
+      result.wif_priv_key = pem;
+      result.pub_key = pub_key;
+      return result;
+}
+
+bool wallet_api::rsa_verify(std::string digest_str, std::string sig_str, std::string pub_key_base64) const
+{
+      try
+      {
+            if( digest_str.length() != 64 || sig_str.length() != 344 ){
+                  elog("Wrong digest ${digest_str}, or signature: ${sig_str}", ("digest_str", digest_str)("sig_str", sig_str));
+                  return false;
+            }
+
+            public_key_rsa_type pub_key( pub_key_base64 );
+            bool result = pub_key.verify( digest_str, sig_str );
+            return result;
+      }
+      catch( ... )
+      {
+          elog("Wrong public key ${pub_key_base64}, or digest ${digest_str}, or signature: ${sig_str}", 
+               ("pub_key_base64", pub_key_base64)("digest_str", digest_str)("sig_str", sig_str));
+      }
+      return false;
+}
+
+rsa_sig_info wallet_api::rsa_sig(std::string input, std::string priv_key) const
+{
+      try
+      {
+            rsa_sig_info result;
+            if( input.length() < 1 ){
+                  elog("please input something ${input}", ("input", input));
+                  return result;
+            }
+
+            std::string tmp_priv = priv_key;
+            if(priv_key.compare(0, GRAPHENE_RSA_PRIVATE_BEGIN_SIZE - 1, GRAPHENE_RSA_PRIVATE_BEGIN) == 0)
+            {
+                  tmp_priv = tmp_priv.substr( GRAPHENE_RSA_PRIVATE_BEGIN_SIZE -1 );
+            }      
+            if(priv_key.compare(priv_key.length() - GRAPHENE_RSA_PRIVATE_END_SIZE + 1, priv_key.length(), GRAPHENE_RSA_PRIVATE_END) == 0)
+            {
+                  tmp_priv = tmp_priv.substr(0, tmp_priv.length() - GRAPHENE_RSA_PRIVATE_END_SIZE);
+            }
+            if(tmp_priv.find_first_of("\n") == 64)
+            {
+                  tmp_priv.erase(std::remove(tmp_priv.begin(), tmp_priv.end(), '\n'), tmp_priv.end());
+            }
+
+            if( tmp_priv.length() != 1588 ){
+                  elog("Wrong private key ${tmp_priv}", ("tmp_priv", tmp_priv));
+                  return result;
+            }
+            std::string tmp_priv_decode = fc::base64_decode( tmp_priv );
+            fc::bytes ba = fc::bytes( tmp_priv_decode.begin(), tmp_priv_decode.end() );
+            fc::private_key priv = fc::private_key( ba );
+            //signature sign( const sha256& digest )const;
+            fc::sha256 digest_str = fc::sha256::hash(input);
+            fc::signature sig = priv.sign(digest_str);
+
+            std::string sig_str = "";
+            auto b64 = fc::base64_encode( (const unsigned char*)sig.data(), sig.size() );
+            for( size_t i = 0; i < b64.size(); i += 64 )
+                  sig_str += b64.substr( i, 64 );
+            result.sig_str = sig_str;
+            result.digest_str = digest_str.str();
+
+            return result;
+      }
+      FC_CAPTURE_AND_RETHROW((0))
 }
 
 address_key_info wallet_api::suggest_brain_address_key() const

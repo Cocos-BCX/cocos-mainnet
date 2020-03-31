@@ -190,3 +190,12 @@
                             cosh=math.cosh, deg=math.deg, exp=math.exp, floor=math.floor, fmod=math.fmod, frexp=math.frexp, huge=math.huge,  ldexp=math.ldexp, log=math.log,\
                             log10=math.log10, max=math.max, min=math.min, modf=math.modf, pi=math.pi, pow=math.pow, rad=math.rad,sin=math.sin, sinh=math.sinh, sqrt=math.sqrt,\
                             tan=math.tan, tanh=math.tanh }  } return baseENV"
+
+#define GRAPHENE_RSA_PRIVATE_BEGIN      "-----BEGIN RSA PRIVATE KEY-----\n"
+#define GRAPHENE_RSA_PRIVATE_END        "-----END RSA PRIVATE KEY-----\n"
+#define GRAPHENE_RSA_PUBLIC_BEGIN       "-----BEGIN RSA PUBLIC KEY-----\n"
+#define GRAPHENE_RSA_PUBLIC_END         "-----END RSA PUBLIC KEY-----\n"
+#define GRAPHENE_RSA_PRIVATE_BEGIN_SIZE 33
+#define GRAPHENE_RSA_PRIVATE_END_SIZE   31
+#define GRAPHENE_RSA_PUBLIC_BEGIN_SIZE  32
+#define GRAPHENE_RSA_PUBLIC_END_SIZE    30

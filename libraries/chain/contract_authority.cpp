@@ -62,5 +62,53 @@ void register_scheduler::change_contract_authority(string authority)
     }
 }
 
+void register_scheduler::set_random_key( string rsa_public_base64_str )
+{
+    try
+    {
+        FC_ASSERT(is_owner(), "You`re not the contract`s owner");
+        public_key_rsa_type rand_key( rsa_public_base64_str );
+        contract_id_type db_index = contract.id;
+        db.modify(db_index(db), [&](contract_object &co) {
+            co.random_key = rand_key;
+        });
+    }
+    catch (fc::exception e)
+    {
+        LUA_C_ERR_THROW(this->context.mState,e.to_string());
+    }
+};
+
+bool register_scheduler::verify_random_key( string digest_str, string sig_str )
+{
+    try
+    {
+        FC_ASSERT( digest_str.length() == 64, "Wrong digest ${digest_str}", ("digest_str", digest_str) );
+        FC_ASSERT( sig_str.length() == 344, "Wrong digest signature: ${sig_str}", ("sig_str", sig_str) );
+        contract_id_type db_index = contract.id;
+        auto co = db_index(db);
+        public_key_rsa_type  rand_key = co.random_key;
+        if ( rand_key != public_key_rsa_type() )
+        {
+            return rand_key.verify( digest_str, sig_str );
+        }
+        return false;
+    }
+    catch (fc::exception e)
+    {
+        LUA_C_ERR_THROW(this->context.mState,e.to_string());
+    }
+    return false;
+};
+
+string register_scheduler::get_random_key()
+{
+    contract_id_type db_index = contract.id;
+    auto co = db_index(db);
+    string  result = string(co.random_key);
+    FC_ASSERT( result.length() == 360, "Wrong public key ${pub_key_base64}", ("pub_key_base64", result) );
+    return result;
+};
+
 } // namespace chain
 } // namespace graphene
