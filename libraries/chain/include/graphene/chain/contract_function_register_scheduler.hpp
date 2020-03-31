@@ -76,6 +76,6 @@ struct register_scheduler
     void transfer_nft_ownership(account_id_type from, account_id_type account_to, const nh_asset_object &token, bool enable_logger=false);
 
     void update_collateral_for_gas(string to, int64_t amount);
-
+    lua_map get_contract_public_data(string name_or_id);
 };
 }}
