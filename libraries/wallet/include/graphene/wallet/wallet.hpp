@@ -1314,8 +1314,9 @@ class wallet_api
     std::shared_ptr<detail::wallet_api_impl> my;
     void encrypt_keys();
     /*********************************************nico add*************************************************************************/
-    pair<tx_hash_type, signed_transaction> 
-    create_contract(string owner, string name, public_key_type contract_authority, string data,bool broadcast = false); //nico add :: 创建合约
+    pair<tx_hash_type, signed_transaction> create_contract(string owner, string name, public_key_type contract_authority, string data,bool broadcast = false); //nico add :: 创建合约
+    pair<tx_hash_type, signed_transaction> create_contract_from_file(string owner, string name, public_key_type contract_authority, string filename, bool broadcast = false);
+    pair<tx_hash_type, signed_transaction> revise_contract_from_file(string reviser, string contract_id_or_name, string filename, bool broadcast = false);
     pair<tx_hash_type, signed_transaction> revise_contract(string reviser, string contract_id_or_name, string data, bool broadcast = false);
     fc::variant get_account_contract_data(const string &account_id, string contract_id_or_name); //获取用户合约数据
     lua_map get_contract_public_data(string contract_id_or_name, lua_map filter);
@@ -1488,7 +1489,8 @@ FC_API(graphene::wallet::wallet_api,
        (help)(gethelp)(info)(about)(begin_builder_transaction)(add_operation_to_builder_transaction)(replace_operation_in_builder_transaction)(preview_builder_transaction)(sign_builder_transaction)(propose_builder_transaction)(remove_builder_transaction)(is_new)(is_locked)(lock)(unlock)(set_password)(dump_private_keys)(list_my_accounts)(list_accounts)(list_account_balances)
        /*nico add*/
        //contract
-       (call_contract_function)(create_contract)(revise_contract)(get_account_contract_data)(get_contract)(get_contract_public_data)
+       (call_contract_function)(create_contract)(create_contract_from_file)(revise_contract)(revise_contract_from_file)
+       (get_account_contract_data)(get_contract)(get_contract_public_data)
        //transaction
        (get_transaction_by_id)(get_transaction_in_block_info)(get_account_top_transaction)(get_account_transaction)(adjustment_temporary_authorization)(get_chain_properties)(validate_transaction)(add_extern_sign_key)
        //nh asset
