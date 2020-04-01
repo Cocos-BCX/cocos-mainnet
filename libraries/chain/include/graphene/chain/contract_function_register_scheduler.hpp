@@ -45,6 +45,12 @@ struct register_scheduler
     void adjust_lock_asset(string symbol_or_id,int64_t amount);
     static std::pair<bool, lua_types *>  find_luaContext( lua_map* context, vector<lua_types> keys,int start=0,bool is_clean=false);
     string create_nh_asset(string owner_id_or_name,string symbol,string world_view,string base_describe,bool enable_logger);
+
+    /// This function create NFT asset by the contract owner. It will take the contract owner as the generated NFT asset's dealership
+    /// if delegated flag is set to true, otherwise the will-be owner.
+    /// @return The NFT asset id.
+    string create_nft_asset( string owner_id_or_name, string world_view, string base_describe, bool delegated, bool enable_logger );
+
     void fllush_context(const lua_map& keys, lua_map &data_table,vector<lua_types>&stacks, string tablename);
     void read_context( lua_map& keys, lua_map &data_table,vector<lua_types>&stacks, string tablename);
     static void filter_context(const lua_map &data_table, lua_map keys,vector<lua_types>&stacks,lua_map *result_table);
@@ -73,5 +79,8 @@ struct register_scheduler
 
     void update_collateral_for_gas(string to, int64_t amount);
     lua_map get_contract_public_data(string name_or_id);
+
+private:
+    struct nft_impl;
 };
 }}
