@@ -1350,7 +1350,7 @@ class wallet_api
 
     // create non homogenesis asset
     pair<tx_hash_type, signed_transaction> create_nh_asset(const string &creator, const string &owner,
-                                                           const string &asset_id, const string &world_view, const string &base_describe, bool broadcast = false);
+                                                           const string &world_view, const string &base_describe, bool broadcast = false);
 
     // list non homogenesis asset that created by this creator
     std::pair<vector<nh_asset_object>, uint32_t> list_nh_asset_by_creator(const string &nh_asset_creator,const string& world_view,uint32_t pagesize,uint32_t page);

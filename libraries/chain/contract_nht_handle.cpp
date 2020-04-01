@@ -58,7 +58,6 @@ string register_scheduler::create_nh_asset(string owner_id_or_name, string symbo
             nh_asset.nh_asset_creator = contract.owner;
             nh_asset.nh_asset_active = owner_id;
             nh_asset.dealership = owner_id;
-            nh_asset.asset_qualifier = symbol;
             nh_asset.world_view = world_view;
             nh_asset.base_describe = base_describe;
             nh_asset.create_time = db.head_block_time();

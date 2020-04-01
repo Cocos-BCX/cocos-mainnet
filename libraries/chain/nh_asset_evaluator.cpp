@@ -72,7 +72,6 @@ object_id_result create_nh_asset_evaluator::do_apply(const create_nh_asset_opera
             nh_asset.nh_asset_creator = o.fee_paying_account;
 			nh_asset.nh_asset_active = nh_asset.nh_asset_owner;
 			nh_asset.dealership = nh_asset.nh_asset_owner;
-            nh_asset.asset_qualifier = o.asset_id;
             nh_asset.world_view = o.world_view;
             nh_asset.base_describe =o.base_describe;
             nh_asset.create_time = d.head_block_time();
