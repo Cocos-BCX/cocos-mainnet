@@ -173,9 +173,7 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
 
                   auto fee = current_fee_schedule().calculate_fee(committee_op);
                   committee_op.amount = asset(proportion)-fee;
-                  pair<string, bool> memo;
-                  memo.first = "allowance to committee from system";
-                  committee_op.memo = memo.first;
+                  committee_op.memo = string("allowance to committee from system");
 
                   signed_transaction committee_tx;
                   
@@ -212,10 +210,7 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
 
                   auto fee = current_fee_schedule().calculate_fee(witness_op);
                   witness_op.amount = asset(proportion) - fee;
-                  
-                  pair<string, bool> memo;
-                  memo.first = "allowance to BP from system";
-                  witness_op.memo = memo.first;
+                  witness_op.memo = string("allowance to BP from system");
 
                   signed_transaction witness_tx;
                   
