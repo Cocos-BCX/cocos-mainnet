@@ -162,7 +162,7 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
             share_type proportion = prop * ((double)committee_ratio.value);
             FC_ASSERT(proportion <= committee_ratio && committee_cumulative <= committee_ratio);
             
-            if(now>PROCESS_BUDGET_ASSERT_TIMEPOINT)
+            if(now > PROCESS_BUDGET_ASSERT_TIMEPOINT)
             {
                   //give proportion to GRAPHENE_NULL_ACCOUNT
                   adjust_balance(GRAPHENE_NULL_ACCOUNT,asset(proportion)); 
@@ -201,7 +201,7 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
             share_type proportion = prop * ((double)witness_ratio.value);
             FC_ASSERT(proportion <= witness_ratio && witness_cumulative <= witness_ratio);
             
-            if(now>PROCESS_BUDGET_ASSERT_TIMEPOINT)
+            if(now > PROCESS_BUDGET_ASSERT_TIMEPOINT)
             {
                   //give proportion to GRAPHENE_NULL_ACCOUNT
                   adjust_balance(GRAPHENE_NULL_ACCOUNT,asset(proportion));
@@ -239,7 +239,7 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
 
       if (block_num <= UNSUCCESSFUL_CANDIDATE_DIFFPOINT)
       {
-            if (unsuccessful_candidates.size())
+            if(unsuccessful_candidates.size())
             {
                   share_type proportion = ((double)unsuccessful_candidates_ratio.value) / unsuccessful_candidates.size();
                   unsuccessful_candidates_cumulative = proportion * unsuccessful_candidates.size();
@@ -254,7 +254,7 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
             map<account_id_type, uint64_t> unsuccessful_candidates_and_votes;
             uint64_t unsuccessful_candidates_total_votes = 0;
 
-            if (unsuccessful_candidates.size())
+            if(unsuccessful_candidates.size())
             {
                   for (auto unsuccessful_candidate : unsuccessful_candidates)
                   {
