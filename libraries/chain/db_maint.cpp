@@ -537,10 +537,10 @@ void database::process_budget(const global_property_object old_gpo, uint64_t blo
                   _core.current_supply = (_core.current_supply + rec.supply_delta);
 
             auto supply_budget = witness_budget + worker_budget + rec.candidates_budget -
-                        leftover_worker_funds -
-                        _core.accumulated_fees - dpo.witness_budget - rec.leftover_candidates_budget;
+                        leftover_worker_funds - _core.accumulated_fees - dpo.witness_budget - 
+                        rec.leftover_candidates_budget;
 
-            if(now>PROCESS_BUDGET_ASSERT_TIMEPOINT)
+            if(now > PROCESS_BUDGET_ASSERT_TIMEPOINT)
                   supply_budget = supply_budget + _core.accumulated_fees;
 
             assert(rec.supply_delta == supply_budget);
