@@ -80,7 +80,5 @@ struct register_scheduler
     void update_collateral_for_gas(string to, int64_t amount);
     lua_map get_contract_public_data(string name_or_id);
 
-private:
-    struct nft_impl;
 };
 }}

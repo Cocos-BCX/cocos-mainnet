@@ -10,57 +10,8 @@ namespace graphene
 namespace chain
 {
 
-struct register_scheduler::nft_impl
-{
-    // Private functions relative to NFT asset added here
-    static string create_nft_asset( register_scheduler& rs, account_id_type owner, account_id_type dealer, string world_view, string base_describe, bool enable_logger );
-};
-
-string register_scheduler::nft_impl::create_nft_asset( register_scheduler& rs, account_id_type owner, account_id_type dealer, string world_view, string base_describe, bool enable_logger )
-{
-    database &db = rs.db;
-    contract_object &contract = rs.contract;
-    contract_result &result = rs.result;
-
-    // Verify that if the contract owner is a nft asset creator and have the world view
-    const auto &nh_asset_creator_idx_by_nh_asset_creator = db.get_index_type<nh_asset_creator_index>().indices().get<by_nh_asset_creator>();
-    const auto &nh_asset_creator_idx = nh_asset_creator_idx_by_nh_asset_creator.find(contract.owner);
-    FC_ASSERT(nh_asset_creator_idx != nh_asset_creator_idx_by_nh_asset_creator.end(), "contract owner isn't a nft asset creator, so you can't create nft asset.");
-    FC_ASSERT(find(nh_asset_creator_idx->world_view.begin(), nh_asset_creator_idx->world_view.end(), world_view) != nh_asset_creator_idx->world_view.end(),
-                  "contract owner don't have this world view.");
-
-    // Verify that if the world view exists
-    const auto &version_idx_by_symbol = db.get_index_type<world_view_index>().indices().get<by_world_view>();
-    const auto &ver_idx = version_idx_by_symbol.find(world_view);
-    FC_ASSERT(ver_idx != version_idx_by_symbol.end(), "The world view is not exist.");
-
-    // Create the nft asset object
-    const nh_asset_object &nh_asset_obj = db.create<nh_asset_object>([&](nh_asset_object &nh_asset) {
-        nh_asset.nh_asset_owner = owner;
-        nh_asset.nh_asset_creator = contract.owner;
-        nh_asset.nh_asset_active = owner;
-        nh_asset.dealership = dealer;
-        nh_asset.world_view = world_view;
-        nh_asset.base_describe = base_describe;
-        nh_asset.create_time = db.head_block_time();
-        nh_asset.get_hash();
-    });
-
-    // Append log
-    if (enable_logger)
-    {
-        graphene::chain::nht_affected contract_transaction;
-        contract_transaction.affected_account = owner;
-        contract_transaction.affected_item = nh_asset_obj.id;
-        contract_transaction.action = nht_affected_type::create_for;
-        result.contract_affecteds.push_back(std::move(contract_transaction));
-        contract_transaction.affected_account = contract.owner;
-        contract_transaction.action = nht_affected_type::create_by;
-        result.contract_affecteds.push_back(std::move(contract_transaction));
-    }
-
-    return string(nh_asset_obj.id);
-}
+// helper function
+string _create_nft_asset( register_scheduler& rs, account_id_type owner, account_id_type dealer, string world_view, string base_describe, bool enable_logger );
 
 const nh_asset_object &register_scheduler::get_nh_asset(string hash_or_id)
 {
@@ -94,7 +45,7 @@ string register_scheduler::create_nft_asset( string owner_id_or_name, string wor
         auto owner = get_account( owner_id_or_name ).get_id();
         auto dealer = delegated ? contract.owner : owner;
 
-        return nft_impl::create_nft_asset( *this, owner, dealer, world_view, base_describe, enable_logger );
+        return _create_nft_asset( *this, owner, dealer, world_view, base_describe, enable_logger );
     } 
     catch ( fc::exception e ) {
         LUA_C_ERR_THROW(this->context.mState, e.to_string());
@@ -106,7 +57,7 @@ string register_scheduler::create_nh_asset( string owner_id_or_name, string symb
     try
     {
         auto owner = get_account( owner_id_or_name ).get_id();
-        return nft_impl::create_nft_asset( *this, owner, owner, world_view, base_describe, enable_logger);
+        return _create_nft_asset( *this, owner, owner, world_view, base_describe, enable_logger);
     }
     catch (fc::exception e) {
         LUA_C_ERR_THROW(this->context.mState, e.to_string());
@@ -417,6 +368,52 @@ void register_scheduler::relate_nh_asset(account_id_type nht_creator, const nh_a
     {
         LUA_C_ERR_THROW(this->context.mState, e.to_string());
     }
+}
+
+string _create_nft_asset( register_scheduler& rs, account_id_type owner, account_id_type dealer, string world_view, string base_describe, bool enable_logger )
+{
+    database &db = rs.db;
+    contract_object &contract = rs.contract;
+    contract_result &result = rs.result;
+
+    // Verify that if the contract owner is a nft asset creator and have the world view
+    const auto &nh_asset_creator_idx_by_nh_asset_creator = db.get_index_type<nh_asset_creator_index>().indices().get<by_nh_asset_creator>();
+    const auto &nh_asset_creator_idx = nh_asset_creator_idx_by_nh_asset_creator.find(contract.owner);
+    FC_ASSERT(nh_asset_creator_idx != nh_asset_creator_idx_by_nh_asset_creator.end(), "contract owner isn't a nft asset creator, so you can't create nft asset.");
+    FC_ASSERT(find(nh_asset_creator_idx->world_view.begin(), nh_asset_creator_idx->world_view.end(), world_view) != nh_asset_creator_idx->world_view.end(),
+                  "contract owner don't have this world view.");
+
+    // Verify that if the world view exists
+    const auto &version_idx_by_symbol = db.get_index_type<world_view_index>().indices().get<by_world_view>();
+    const auto &ver_idx = version_idx_by_symbol.find(world_view);
+    FC_ASSERT(ver_idx != version_idx_by_symbol.end(), "The world view is not exist.");
+
+    // Create the nft asset object
+    const nh_asset_object &nh_asset_obj = db.create<nh_asset_object>([&](nh_asset_object &nh_asset) {
+        nh_asset.nh_asset_owner = owner;
+        nh_asset.nh_asset_creator = contract.owner;
+        nh_asset.nh_asset_active = owner;
+        nh_asset.dealership = dealer;
+        nh_asset.world_view = world_view;
+        nh_asset.base_describe = base_describe;
+        nh_asset.create_time = db.head_block_time();
+        nh_asset.get_hash();
+    });
+
+    // Append log
+    if (enable_logger)
+    {
+        graphene::chain::nht_affected contract_transaction;
+        contract_transaction.affected_account = owner;
+        contract_transaction.affected_item = nh_asset_obj.id;
+        contract_transaction.action = nht_affected_type::create_for;
+        result.contract_affecteds.push_back(std::move(contract_transaction));
+        contract_transaction.affected_account = contract.owner;
+        contract_transaction.action = nht_affected_type::create_by;
+        result.contract_affecteds.push_back(std::move(contract_transaction));
+    }
+
+    return string(nh_asset_obj.id);
 }
 
 } // namespace chain
