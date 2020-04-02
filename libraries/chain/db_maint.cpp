@@ -189,7 +189,7 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
 
                   apply_transaction(committee_tx,~0);
             }
-	      else
+	    else
                   adjust_balance(active_committee.first, proportion);
             
             committee_cumulative += proportion;
