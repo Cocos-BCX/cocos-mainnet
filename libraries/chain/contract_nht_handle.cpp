@@ -145,11 +145,14 @@ void register_scheduler::transfer_nht(account_id_type from, account_id_type acco
         FC_ASSERT(token.nh_asset_active == from, "You don`t have the nh asset's active, so you can't transfer it,nh asset:${token}.", ("token", token));
         FC_ASSERT(token.dealership == from, "You don`t have the nh asset's dealership, so you can't transfer it,nh asset:${token}.", ("token", token));
         FC_ASSERT(account_to != from, "You can't transfer it to yourslef,nh asset:${token}.", ("token", token));
+
         db.modify(token, [&](nh_asset_object &g) {
             g.nh_asset_owner = account_to;
             g.nh_asset_active = account_to;
             g.dealership = account_to;
+            g.delegate_auth_flag = 0; // reset delegate auth flag after transfer
         });
+
         if (enable_logger)
         {
             graphene::chain::nht_affected contract_transaction;
@@ -240,9 +243,14 @@ void register_scheduler::transfer_nht_dealership(account_id_type from, account_i
     {
         // Verify that the trader is the authority account of nh asset
         FC_ASSERT(token.dealership == from, "You're not the nh asset's authority account, so you can't transfer it's authority, nh asset:${token}.", ("token", token));
-
+        // Verify if transfer the dealership to yourself
         FC_ASSERT(account_to != from, "You can't transfer it to yourslef, nh asset:${token}.", ("token", token));
-        db.modify(token, [&](nh_asset_object &g) { g.dealership = account_to; });
+
+        db.modify(token, [&](nh_asset_object &g) {
+            g.dealership = account_to;
+            g.delegate_auth_flag = 0; // reset delegate auth flag after transfer
+        });
+
         if (enable_logger)
         {
             graphene::chain::nht_affected contract_transaction;

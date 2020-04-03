@@ -56,6 +56,8 @@ class nh_asset_object : public graphene::db::abstract_object<nh_asset_object>
 {
 
   public:
+	nh_asset_object() : delegate_auth_flag(0) {}
+
 	static const uint8_t space_id = nh_asset_protocol_ids;
 	static const uint8_t type_id = nh_asset_object_type;
 
