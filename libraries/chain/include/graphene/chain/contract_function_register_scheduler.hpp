@@ -50,6 +50,9 @@ struct register_scheduler
     /// if delegated flag is set to true, otherwise the will-be owner.
     /// @return The NFT asset id.
     string create_nft_asset( string owner_id_or_name, string world_view, string base_describe, bool delegated, bool enable_logger );
+    /// This function grant the contract owner modification authority for the NFT asset. The permission is flexibly set by bitwise operation.
+    /// @note Contract owner must be the dealership for the NFT asset, or this function will fail.
+    void grant_nft_delegate_authority( string nht_hash_or_id, uint8_t auth_flag, bool enable_logger );
 
     void fllush_context(const lua_map& keys, lua_map &data_table,vector<lua_types>&stacks, string tablename);
     void read_context( lua_map& keys, lua_map &data_table,vector<lua_types>&stacks, string tablename);

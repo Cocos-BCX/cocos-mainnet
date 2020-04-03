@@ -262,6 +262,43 @@ void register_scheduler::transfer_nht_dealership(account_id_type from, account_i
     }
 }
 
+void register_scheduler::grant_nft_delegate_authority( string nht_hash_or_id, uint8_t auth_flag, bool enable_logger )
+ {
+    try
+    {
+        auto& token = get_nh_asset( nht_hash_or_id );
+
+        // Verify that the caller is the ownner of the NFT asset and the contract owner is the dealership of the NFT asset
+        FC_ASSERT( token.nh_asset_owner == caller, "You're not the NFT asset's ownner, so you can't grant it's delegate authority, NFT asset:${token}.", ("token", token));
+        FC_ASSERT( token.dealership == contract.owner, "The contract owner isn't the dealership for this nft asset, so you can't grant the NFT asset's delegate authority");
+
+        // Modify the delegate auth flag for the dealership
+        db.modify(token, [&](nh_asset_object &g) {
+            g.delegate_auth_flag = auth_flag;
+        });
+
+        if (enable_logger)
+        {
+            // Log grant delegate auth action
+            graphene::chain::nht_affected contract_transaction;
+            contract_transaction.affected_account = token.nh_asset_owner;
+            contract_transaction.affected_item = token.id;
+            contract_transaction.action = nht_affected_type::grant_delegate_auth_from;
+            contract_transaction.modified = std::pair<string, string>("delegate_auth_flag", std::to_string(auth_flag));
+            result.contract_affecteds.push_back(std::move(contract_transaction));
+            // Log granted delegate auth event
+            contract_transaction.affected_account = contract.owner;
+            contract_transaction.affected_item = token.id;
+            contract_transaction.action = nht_affected_type::grant_delegate_auth_to;
+            result.contract_affecteds.push_back(std::move(contract_transaction));
+        }
+    }
+    catch (fc::exception e)
+    {
+        LUA_C_ERR_THROW(this->context.mState, e.to_string());
+    }
+ }
+
 // set non homogeneous asset's limit list
 void register_scheduler::set_nht_limit_list(account_id_type nht_owner, const nh_asset_object &token, const string &contract_name_or_ids, bool limit_type, bool enable_logger)
 {
