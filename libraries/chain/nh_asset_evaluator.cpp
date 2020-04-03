@@ -108,12 +108,16 @@ void_result delete_nh_asset_evaluator::do_apply(const delete_nh_asset_operation 
 void_result transfer_nh_asset_evaluator::do_evaluate(const transfer_nh_asset_operation &o)
 {
     database &d = db();
-    //校验游戏道具是否存在
+    // 校验游戏道具是否存在
     const auto &nht=o.nh_asset(d);
-    //FC_ASSERT( o.nh_asset(d).nh_asset_owner == o.fee_paying_account , "You’re not the item’s owner，so you can’t delete it." );
-    //校验交易人是否为道具所有人
+
+    // 校验交易人是否为道具所有人
     FC_ASSERT(nht.nh_asset_owner == o.from, "You’re not the item’s owner，so you can’t transfer it.");
-    FC_ASSERT(nht.nh_asset_owner==nht.nh_asset_active&&nht.nh_asset_owner==nht.dealership);
+    // 校验交易发起人是否拥有资产的代理权
+    FC_ASSERT(nht.nh_asset_owner == nht.dealership, "You don't have the NFT asset's dealership");
+    // 校验交易发起人是否拥有资产的使用权
+    FC_ASSERT(nht.nh_asset_owner == nht.nh_asset_active, "You don't have the NFT asset's active use rights");
+
     return void_result();
 }
 

@@ -41,11 +41,19 @@ namespace graphene { namespace chain {
 void_result create_nh_asset_order_evaluator::do_evaluate(const create_nh_asset_order_operation& o)
 {
    database& d = db();
-   FC_ASSERT( d.find_object(o.nh_asset) , "Could not find nh asset matching ${nh_asset}", ("nh_asset", o.nh_asset));
-   FC_ASSERT( o.nh_asset(d).nh_asset_owner == o.seller , "You’re not the item's owner." );
 
+   // Verity if NFT asset exists
+   FC_ASSERT( d.find_object(o.nh_asset), "Could not find NFT asset matching ${nh_asset}", ("nh_asset", o.nh_asset));
+   // Verify if the seller is the NFT asset owner
+   FC_ASSERT( o.nh_asset(d).nh_asset_owner == o.seller, "You’re not the NFT asset's owner, so you can't sell it" );
+   // Verify if the seller has the active use rights
+   FC_ASSERT( o.nh_asset(d).nh_asset_active == o.seller, "You don't have the NFT asset's active use rights, so you can't sell it");
+   // Verify if the seller has the dealership
+   FC_ASSERT( o.nh_asset(d).dealership == o.seller, "You don't have the NFT asset's dealership, so you can't sell it");
+   // Verify if the order has expired or beyond the maximum expiration duration
    FC_ASSERT( o.expiration >= d.head_block_time(), "Order has already expired on creation" );
-   FC_ASSERT( o.expiration <= d.head_block_time() + d.get_global_properties().parameters.maximum_nh_asset_order_expiration, "the expiration must less than the maximun expiration." );
+   FC_ASSERT( o.expiration <= d.head_block_time() + d.get_global_properties().parameters.maximum_nh_asset_order_expiration,
+            "The expiration time must be less than the maximun expiration duration" );
 
    const account_object& from_account    = o.seller(d);
    const account_object& to_account      = o.otcaccount(d);
