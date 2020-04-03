@@ -405,7 +405,6 @@ void lua_scheduler::chain_function_bind()
     registerFunction("write_chain", &register_scheduler::fllush_cache);
     registerFunction("create_nh_asset", &register_scheduler::create_nh_asset); // will be deprecated, use create_nft_asset instead
     registerFunction("create_nft_asset", &register_scheduler::create_nft_asset);
-    registerFunction("grant_nft_delegate_authority", &register_scheduler::grant_nft_delegate_authority);
     registerFunction("adjust_lock_asset", &register_scheduler::adjust_lock_asset);
     registerFunction("nht_describe_change", &register_scheduler::nht_describe_change);
     registerFunction("set_permissions_flag", &register_scheduler::set_permissions_flag);
@@ -417,6 +416,8 @@ void lua_scheduler::chain_function_bind()
     lua_register(mState, "import_contract", &import_contract);
     lua_register(mState, "get_account_contract_data", &get_account_contract_data);
     lua_register(mState, "format_vector_with_table", &format_vector_with_table);
+    registerFunction("grant_nft_delegate_authority", &register_scheduler::grant_nft_delegate_authority);
+    registerFunction("delegate_transfer_nft", &register_scheduler::delegate_transfer_nft);
     registerFunction<register_scheduler, void(string, double, string, bool)>("transfer_from_owner",
                                                                              [](register_scheduler &fc_register, string to, double amount, string symbol, bool enable_logger = false) {
                                                                                  fc_register.transfer_from(fc_register.contract.owner, to, amount, symbol, enable_logger);
