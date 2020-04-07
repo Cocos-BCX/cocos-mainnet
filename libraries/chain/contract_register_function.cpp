@@ -405,6 +405,7 @@ void lua_scheduler::chain_function_bind()
     registerFunction("write_chain", &register_scheduler::fllush_cache);
     registerFunction("create_nh_asset", &register_scheduler::create_nh_asset); // will be deprecated, use create_nft_asset instead
     registerFunction("create_nft_asset", &register_scheduler::create_nft_asset);
+    registerFunction("grant_nft_delegate_authority", &register_scheduler::grant_nft_delegate_authority);
     registerFunction("adjust_lock_asset", &register_scheduler::adjust_lock_asset);
     registerFunction("nht_describe_change", &register_scheduler::nht_describe_change);
     registerFunction("set_permissions_flag", &register_scheduler::set_permissions_flag);

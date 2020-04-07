@@ -38,18 +38,36 @@ enum class nh_asset_lease_limit_type
    white_list = 1
 };
 
+namespace nft
+{
+
+// NFT asset's delegate( dealership ) authority type enum
+enum class delegate_auth_type
+{
+    ownership_mod_auth_flag = 1 << 0,  // 0b0001 - Ownership modification permission
+    /// @note The following flags are reserved for later use, functions are not supported yet.
+    dealership_mod_auth_flag = 1 << 1, // 0b0010 - Dealership modification permission
+    active_mod_auth_flag = 1 << 2,     // 0b0100 - Active (Use rights) modification permission
+};
+
+} // namespace nft
+
 class nh_asset_object : public graphene::db::abstract_object<nh_asset_object>
 {
 
   public:
+	nh_asset_object() : delegate_auth_flag(0) {}
+
 	static const uint8_t space_id = nh_asset_protocol_ids;
 	static const uint8_t type_id = nh_asset_object_type;
 
 	nh_hash_type nh_hash;
 	account_id_type nh_asset_creator;
 	account_id_type nh_asset_owner;
-	account_id_type nh_asset_active; // the account who has the usage rights of the nht
-	account_id_type dealership; // this account has authority to modify the nht's  active by contract api
+	account_id_type nh_asset_active; // the account who has the usage rights of the NFT asset
+	account_id_type dealership; // this account can be authorized to modify the NFT asset's ownership/active/dealership by contract api
+	uint8_t delegate_auth_flag; // this flag indicates the approved authority for the NFT asset's dealership, which can be set by contract api
+
 	string asset_qualifier;
 	string world_view;
 	string base_describe;
@@ -125,9 +143,10 @@ typedef generic_index<nh_asset_object, nh_asset_object_multi_index_type> nh_asse
 } // namespace graphene
 
 FC_REFLECT_ENUM(graphene::chain::nh_asset_lease_limit_type, (black_list)(white_list))
+FC_REFLECT_ENUM(graphene::chain::nft::delegate_auth_type, (ownership_mod_auth_flag)(dealership_mod_auth_flag)(active_mod_auth_flag))
 
 FC_REFLECT_DERIVED(graphene::chain::nh_asset_object,
 				   (graphene::db::object),
-				   (nh_hash)(nh_asset_creator)(nh_asset_owner)(nh_asset_active)(dealership)(asset_qualifier)(world_view)
+				   (nh_hash)(nh_asset_creator)(nh_asset_owner)(nh_asset_active)(dealership)(delegate_auth_flag)(asset_qualifier)(world_view)
 				   (base_describe)(parent)(child)(describe_with_contract)(create_time)(limit_list)(limit_type))
 
