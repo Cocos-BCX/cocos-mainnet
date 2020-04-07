@@ -68,12 +68,16 @@ struct register_scheduler
     void invoke_contract_function(string contract_id_or_name,string function_name,string value_list_json);
     const contract_object& get_contract(string name_or_id);
     void make_release();
+
 	// transfer of non homogeneous asset's use rights
 	void transfer_nht_active(account_id_type from,account_id_type account_to,const nh_asset_object& token ,bool enable_logger=false);
 	// transfer of non homogeneous asset's ownership
     void transfer_nht_ownership(account_id_type from, account_id_type account_to,const nh_asset_object &token, bool enable_logger=false);
 	// transfer of non homogeneous asset's authority
 	void transfer_nht_dealership(account_id_type from, account_id_type account_to,const nh_asset_object &token, bool enable_logger=false);
+    /// This function let the contract owner to do the delegate transfer operation for the asset owner.
+    /// @note Contract owner must be the dealership for the NFT asset and granted the ownership modification authority, or this function will fail.
+    void delegate_transfer_nft( string to, string nht_hash_or_id, bool enable_logger );
 	// set non homogeneous asset's limit list
 	void set_nht_limit_list(account_id_type nht_owner,const nh_asset_object &token, const string& contract_name_or_ids, bool limit_type, bool enable_logger=false);
     // relate parent nh asset and child nh asset

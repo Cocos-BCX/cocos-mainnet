@@ -185,7 +185,10 @@ enum nht_affected_type
     set_limit_list = 11,
     relate_nh_asset = 12,
     grant_delegate_auth_from = 13,
-    grant_delegate_auth_to = 14
+    grant_delegate_auth_to = 14,
+    delegate_transfer_from = 15,
+    delegate_transfer_by = 16,
+    delegate_transfer_to = 17
 };
 
 enum extension_type_for_nico

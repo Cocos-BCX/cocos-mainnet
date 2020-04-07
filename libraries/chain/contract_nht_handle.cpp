@@ -236,6 +236,56 @@ void register_scheduler::transfer_nht_ownership(account_id_type from, account_id
     }
 }
 */
+
+// delegate transfer NFT asset
+void register_scheduler::delegate_transfer_nft(string to, string nht_hash_or_id, bool enable_logger)
+{
+    try
+    {
+        auto& token = get_nh_asset(nht_hash_or_id);
+        auto &account_to_id = get_account(to).id;
+
+        // Verity the contract owner is the active for the NFT asset
+        FC_ASSERT(token.nh_asset_owner == token.nh_asset_active, "This NFT asset is still be in used by someone else other than the asset owner.");
+        // Verity the contract owner is the dealership for the NFT asset
+        FC_ASSERT(token.dealership == contract.owner, "The contract owner isn't the dealership for this NFT asset, so it can't be delegated to transfer this asset.");
+        // Verify the contract owner is authorized to transfer the NFT asset
+        FC_ASSERT((nft::delegate_auth_type::ownership_mod_auth_flag & token.delegate_auth_flag ) != 0, "The contract owner is not authorized to transfer this asset.");
+        // Verify the transfer target is not the NFT asset owner
+        FC_ASSERT(token.nh_asset_owner != account_to_id, "It's meaningless to delegate transfer this NFT asset to the owner.");
+
+        // Delegate transfer this NFT asset, but still keep the dealership to the contract owner
+        db.modify(token, [&](nh_asset_object &g) {
+            g.nh_asset_owner = account_to_id;
+            g.nh_asset_active = account_to_id;
+        });
+
+        if (enable_logger)
+        {
+            // Log delegate_transfer_from
+            graphene::chain::nht_affected contract_transaction;
+            contract_transaction.affected_account = token.nh_asset_owner;
+            contract_transaction.affected_item = token.id;
+            contract_transaction.action = nht_affected_type::delegate_transfer_from;
+            result.contract_affecteds.push_back(std::move(contract_transaction));
+            // Log delegate_transfer_by
+            contract_transaction.affected_account = contract.owner;
+            contract_transaction.affected_item = token.id;
+            contract_transaction.action = nht_affected_type::delegate_transfer_by;
+            result.contract_affecteds.push_back(std::move(contract_transaction));
+            // Log delegate_transfer_to
+            contract_transaction.affected_account = account_to_id;
+            contract_transaction.affected_item = token.id;
+            contract_transaction.action = nht_affected_type::delegate_transfer_to;
+            result.contract_affecteds.push_back(std::move(contract_transaction));
+        }
+    }
+    catch (fc::exception e)
+    {
+        LUA_C_ERR_THROW(this->context.mState, e.to_string());
+    }
+}
+
 // transfer of non homogeneous asset's authority
 void register_scheduler::transfer_nht_dealership(account_id_type from, account_id_type account_to, const nh_asset_object &token, bool enable_logger)
 {
@@ -278,7 +328,7 @@ void register_scheduler::grant_nft_delegate_authority( string nht_hash_or_id, ui
 
         // Verify that the caller is the ownner of the NFT asset and the contract owner is the dealership of the NFT asset
         FC_ASSERT( token.nh_asset_owner == caller, "You're not the NFT asset's ownner, so you can't grant it's delegate authority, NFT asset:${token}.", ("token", token));
-        FC_ASSERT( token.dealership == contract.owner, "The contract owner isn't the dealership for this nft asset, so you can't grant the NFT asset's delegate authority");
+        FC_ASSERT( token.dealership == contract.owner, "The contract owner isn't the dealership for this NFT asset, so you can't grant the NFT asset's delegate authority");
 
         // Modify the delegate auth flag for the dealership
         db.modify(token, [&](nh_asset_object &g) {

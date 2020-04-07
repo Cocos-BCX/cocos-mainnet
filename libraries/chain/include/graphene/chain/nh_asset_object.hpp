@@ -50,6 +50,14 @@ enum class delegate_auth_type
     active_mod_auth_flag = 1 << 2,     // 0b0100 - Active (Use rights) modification permission
 };
 
+inline constexpr uint8_t operator&( delegate_auth_type a, uint8_t b ) {
+	return static_cast<uint8_t>( a ) & b;
+}
+
+inline constexpr uint8_t operator|( delegate_auth_type a, uint8_t b ) {
+	return static_cast<uint8_t>( a ) | b;
+}
+
 } // namespace nft
 
 class nh_asset_object : public graphene::db::abstract_object<nh_asset_object>
