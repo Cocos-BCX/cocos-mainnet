@@ -38,6 +38,10 @@ enum class nh_asset_lease_limit_type
    white_list = 1
 };
 
+namespace nft {
+    void transfer_assert( const account_id_type& from, const account_id_type& to, const nh_asset_object& token);
+} // namespace nft
+
 class nh_asset_object : public graphene::db::abstract_object<nh_asset_object>
 {
 

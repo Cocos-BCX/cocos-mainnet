@@ -164,16 +164,7 @@ void register_scheduler::transfer_nht(account_id_type from, account_id_type acco
 {
     try
     {
-        // 验证转账方是否为资产所有人
-        FC_ASSERT(token.nh_asset_owner == from, "You'e not the NFT asset's owner, so you can't transfer it, NFT asset:${token}.", ("token", token));
-        // Verify beneficiary
-        FC_ASSERT(token.nh_asset_owner != account_to, "The beneficiary is already the asset's owner, NFT asset:${token}.", ("token", token));
-        // Verify dealership rights
-        bool dealership_transfer_ok = (token.nh_asset_owner == token.dealership) || (token.dealership == account_to);
-        FC_ASSERT(dealership_transfer_ok, "Neither the NFT asset's owner nor the beneficiary have the dealership rights, NFT asset:${token}", ("token", token));
-        // Verify active rights
-        bool active_transfer_ok = (token.nh_asset_owner == token.nh_asset_active) || (token.nh_asset_active == account_to);
-        FC_ASSERT(active_transfer_ok, "Neither the NFT asset's owner nor the beneficiary have the active rights, NFT asset:${token}", ("token", token));
+        nft::transfer_assert(from, account_to, token);
 
         db.modify(token, [&](nh_asset_object &g) {
             g.nh_asset_owner = account_to;

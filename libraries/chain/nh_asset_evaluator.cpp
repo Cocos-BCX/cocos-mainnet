@@ -39,6 +39,23 @@ namespace graphene
 namespace chain
 {
 
+namespace nft
+{
+    void transfer_assert( const account_id_type& from, const account_id_type& to, const nh_asset_object& token)
+    {
+        // Verify transfer
+        FC_ASSERT(token.nh_asset_owner == from, "The transfer account doesn't own the NFT asset:${token}.", ("token", token));
+        // Verify beneficiary
+        FC_ASSERT(token.nh_asset_owner != to, "The beneficiary account is already the owner for the NFT asset:${token}.", ("token", token));
+        // Verify dealership rights
+        bool dealership_transfer_ok = (token.nh_asset_owner == token.dealership) || (token.dealership == to);
+        FC_ASSERT(dealership_transfer_ok, "Neither the NFT asset's owner nor the beneficiary account have the dealership rights for the NFT asset:${token}", ("token", token));
+        // Verify active rights
+        bool active_transfer_ok = (token.nh_asset_owner == token.nh_asset_active) || (token.nh_asset_active == to);
+        FC_ASSERT(active_transfer_ok, "Neither the NFT asset's owner nor the beneficiary account have the active rights for the NFT asset:${token}", ("token", token));
+    }
+} // namespace nft
+
 void_result create_nh_asset_evaluator::do_evaluate(const create_nh_asset_operation &o)
 {
     database &d = db();
@@ -109,11 +126,9 @@ void_result transfer_nh_asset_evaluator::do_evaluate(const transfer_nh_asset_ope
 {
     database &d = db();
     //校验游戏道具是否存在
-    const auto &nht=o.nh_asset(d);
-    //FC_ASSERT( o.nh_asset(d).nh_asset_owner == o.fee_paying_account , "You’re not the item’s owner，so you can’t delete it." );
-    //校验交易人是否为道具所有人
-    FC_ASSERT(nht.nh_asset_owner == o.from, "You’re not the item’s owner，so you can’t transfer it.");
-    FC_ASSERT(nht.nh_asset_owner==nht.nh_asset_active&&nht.nh_asset_owner==nht.dealership);
+    const auto &nft = o.nh_asset(d);
+
+    nft::transfer_assert(o.from, o.to, nft);
     return void_result();
 }
 
