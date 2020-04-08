@@ -114,7 +114,7 @@ void_result transfer_nh_asset_evaluator::do_evaluate(const transfer_nh_asset_ope
     // 校验交易人是否为道具所有人
     FC_ASSERT(nht.nh_asset_owner == o.from, "You’re not the item’s owner，so you can’t transfer it.");
     // 校验交易发起人是否拥有资产的代理权
-    FC_ASSERT(nht.nh_asset_owner == nht.dealership, "You don't have the NFT asset's dealership");
+    FC_ASSERT(nht.is_dealership(nht.nh_asset_owner), "You don't have the NFT asset's dealership");
     // 校验交易发起人是否拥有资产的使用权
     FC_ASSERT(nht.nh_asset_owner == nht.nh_asset_active, "You don't have the NFT asset's active use rights");
 
@@ -129,8 +129,8 @@ void_result transfer_nh_asset_evaluator::do_apply(const transfer_nh_asset_operat
         //修改游戏道具对象的属性--道具所有人
         d.modify(o.nh_asset(d), [&](nh_asset_object &g) {
             g.nh_asset_owner = o.to;
-			g.nh_asset_active = o.to;
-			g.dealership = o.to;
+            g.nh_asset_active = o.to;
+            g.set_dealership(o.to);
         });
         return void_result();
     }

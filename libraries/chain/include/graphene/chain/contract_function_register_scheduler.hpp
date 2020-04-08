@@ -46,12 +46,12 @@ struct register_scheduler
     static std::pair<bool, lua_types *>  find_luaContext( lua_map* context, vector<lua_types> keys,int start=0,bool is_clean=false);
     string create_nh_asset(string owner_id_or_name,string symbol,string world_view,string base_describe,bool enable_logger);
 
-    /// This function create NFT asset by the contract owner. It will take the contract owner as the generated NFT asset's dealership
+    /// This function create NFT asset by the contract owner. It will make the contract as the generated NFT asset's dealership
     /// if delegated flag is set to true, otherwise the will-be owner.
     /// @return The NFT asset id.
     string create_nft_asset( string owner_id_or_name, string world_view, string base_describe, bool delegated, bool enable_logger );
     /// This function grant the contract owner modification authority for the NFT asset. The permission is flexibly set by bitwise operation.
-    /// @note Contract owner must be the dealership for the NFT asset, or this function will fail.
+    /// @note This contract must be the dealership for the NFT asset, or this function will fail.
     void grant_nft_delegate_authority( string nht_hash_or_id, uint8_t auth_flag, bool enable_logger );
 
     void fllush_context(const lua_map& keys, lua_map &data_table,vector<lua_types>&stacks, string tablename);
@@ -75,8 +75,8 @@ struct register_scheduler
     void transfer_nht_ownership(account_id_type from, account_id_type account_to,const nh_asset_object &token, bool enable_logger=false);
 	// transfer of non homogeneous asset's authority
 	void transfer_nht_dealership(account_id_type from, account_id_type account_to,const nh_asset_object &token, bool enable_logger=false);
-    /// This function let the contract owner to do the delegate transfer operation for the asset owner.
-    /// @note Contract owner must be the dealership for the NFT asset and granted the ownership modification authority, or this function will fail.
+    /// This function let the contract to do the delegate transfer operation for the asset owner.
+    /// @note This contract must be the dealership for the NFT asset and granted the ownership modification authority, otherwise this function will fail.
     void delegate_transfer_nft( string to, string nht_hash_or_id, bool enable_logger );
 	// set non homogeneous asset's limit list
 	void set_nht_limit_list(account_id_type nht_owner,const nh_asset_object &token, const string& contract_name_or_ids, bool limit_type, bool enable_logger=false);
