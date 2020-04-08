@@ -33,36 +33,35 @@ const nh_asset_object &register_scheduler::get_nh_asset(string hash_or_id)
     {
         LUA_C_ERR_THROW(this->context.mState, e.to_string());
     }
-} // namespace chain
-string register_scheduler::create_nh_asset(string owner_id_or_name, string symbol, string world_view, string base_describe, bool enable_logger)
+}
+
+string register_scheduler::create_nft_asset(account_id_type owner_id, account_id_type dealer_id, string world_view, string base_describe, bool enable_logger)
 {
-    auto owner_id = get_account(owner_id_or_name).get_id();
     try
     {
         const auto &nh_asset_creator_idx_by_nh_asset_creator = db.get_index_type<nh_asset_creator_index>().indices().get<by_nh_asset_creator>();
         const auto &nh_asset_creator_idx = nh_asset_creator_idx_by_nh_asset_creator.find(contract.owner);
-        FC_ASSERT(nh_asset_creator_idx != nh_asset_creator_idx_by_nh_asset_creator.end(), "contract owner isn't a nh asset creator, so you can't create nh asset.");
+
+        FC_ASSERT(nh_asset_creator_idx != nh_asset_creator_idx_by_nh_asset_creator.end(), "contract owner isn't a NFT asset creator, so you can't create a NFT asset.");
         FC_ASSERT(find(nh_asset_creator_idx->world_view.begin(), nh_asset_creator_idx->world_view.end(), world_view) != nh_asset_creator_idx->world_view.end(),
                   "contract owner don't have this world view.");
-        // Verify that if the asset exists
-        const auto &asset_idx_by_symbol = db.get_index_type<asset_index>().indices().get<by_symbol>();
-        const auto &asset_idx = asset_idx_by_symbol.find(symbol);
-        FC_ASSERT(asset_idx != asset_idx_by_symbol.end(), "The asset id is not exist.");
+
         // Verify that if the world view exists
         const auto &version_idx_by_symbol = db.get_index_type<world_view_index>().indices().get<by_world_view>();
         const auto &ver_idx = version_idx_by_symbol.find(world_view);
-        FC_ASSERT(ver_idx != version_idx_by_symbol.end(), "The world view is not exist.");
+        FC_ASSERT(ver_idx != version_idx_by_symbol.end(), "The world view does not exist.");
 
         const nh_asset_object &nh_asset_obj = db.create<nh_asset_object>([&](nh_asset_object &nh_asset) {
             nh_asset.nh_asset_owner = owner_id;
             nh_asset.nh_asset_creator = contract.owner;
             nh_asset.nh_asset_active = owner_id;
-            nh_asset.dealership = owner_id;
+            nh_asset.dealership = dealer_id;
             nh_asset.world_view = world_view;
             nh_asset.base_describe = base_describe;
             nh_asset.create_time = db.head_block_time();
             nh_asset.get_hash();
         });
+
         if (enable_logger)
         {
             graphene::chain::nht_affected contract_transaction;
@@ -74,6 +73,7 @@ string register_scheduler::create_nh_asset(string owner_id_or_name, string symbo
             contract_transaction.action = nht_affected_type::create_by;
             result.contract_affecteds.push_back(std::move(contract_transaction));
         }
+
         return string(nh_asset_obj.id);
     }
     catch (fc::exception e)
@@ -81,9 +81,15 @@ string register_scheduler::create_nh_asset(string owner_id_or_name, string symbo
         LUA_C_ERR_THROW(this->context.mState, e.to_string());
     }
 }
+
+string register_scheduler::create_nh_asset(string owner_id_or_name, string symbol, string world_view, string base_describe, bool enable_logger)
+{
+    auto owner_id = get_account(owner_id_or_name).get_id();
+    return create_nft_asset(owner_id, owner_id, world_view, base_describe, enable_logger);
+}
+
 void register_scheduler::nht_describe_change(string nht_hash_or_id, string key, string value, bool enable_logger)
 {
-
     try
     {
         auto &ob = get_nh_asset(nht_hash_or_id);

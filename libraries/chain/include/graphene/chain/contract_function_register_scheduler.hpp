@@ -70,6 +70,8 @@ struct register_scheduler
     // relate parent nh asset and child nh asset
     void relate_nh_asset(account_id_type nht_creator, const nh_asset_object &parent_nh_asset, const nh_asset_object &child_nh_asset, bool relate, bool enable_logger=false);
 
+    // NFT relative methods
+    string create_nft_asset(account_id_type owner_id, account_id_type dealer_id, string world_view, string base_describe, bool enable_logger);
 
     void update_collateral_for_gas(string to, int64_t amount);
     lua_map get_contract_public_data(string name_or_id);
