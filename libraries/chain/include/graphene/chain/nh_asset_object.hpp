@@ -41,7 +41,7 @@ enum class nh_asset_lease_limit_type
 namespace nft
 {
 
-// NFT asset's delegate( dealership ) authority type enum
+// Delegate authority type enum for NFT asset's dealership
 enum class delegate_auth_type
 {
     ownership_mod_auth_flag = 1 << 0,  // 0b0001 - Ownership modification permission
@@ -58,12 +58,14 @@ inline constexpr uint8_t operator|( delegate_auth_type a, uint8_t b ) {
 	return static_cast<uint8_t>( a ) | b;
 }
 
+typedef fc::static_variant<account_id_type, contract_id_type> dealership_type;
+
 } // namespace nft
 
 class nh_asset_object : public graphene::db::abstract_object<nh_asset_object>
 {
 
-  public:
+public:
 	nh_asset_object() : delegate_auth_flag(0) {}
 
 	static const uint8_t space_id = nh_asset_protocol_ids;
@@ -73,7 +75,9 @@ class nh_asset_object : public graphene::db::abstract_object<nh_asset_object>
 	account_id_type nh_asset_creator;
 	account_id_type nh_asset_owner;
 	account_id_type nh_asset_active; // the account who has the usage rights of the NFT asset
-	account_id_type dealership; // this account can be authorized to modify the NFT asset's ownership/active/dealership by contract api
+
+	// this account can be authorized to modify the NFT asset's ownership/active/dealership by contract api
+	nft::dealership_type dealership;
 	uint8_t delegate_auth_flag; // this flag indicates the approved authority for the NFT asset's dealership, which can be set by contract api
 
 	string asset_qualifier;
@@ -85,6 +89,23 @@ class nh_asset_object : public graphene::db::abstract_object<nh_asset_object>
 	time_point_sec create_time;
 	vector<contract_id_type> limit_list;
 	nh_asset_lease_limit_type limit_type = nh_asset_lease_limit_type::black_list;
+
+	bool check_dealership_auth(nft::delegate_auth_type auth) const {
+		return (auth & delegate_auth_flag) != 0;
+	}
+
+	void set_dealership_auth(uint8_t auth_flag) {
+		delegate_auth_flag &= auth_flag;
+	}
+
+	void set_dealership(nft::dealership_type new_dealer) {
+		dealership = new_dealer;
+		delegate_auth_flag = 0; // reset delegate auth flag after transfer
+	}
+
+	bool is_dealership(const nft::dealership_type& dealer) const {
+		return dealer == dealership;
+	}
 
     nh_hash_type get_base_describe_hash() const
     {

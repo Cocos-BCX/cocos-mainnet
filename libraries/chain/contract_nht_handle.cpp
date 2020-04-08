@@ -11,7 +11,7 @@ namespace chain
 {
 
 // helper function
-string _create_nft_asset( register_scheduler& rs, account_id_type owner, account_id_type dealer, string world_view, string base_describe, bool enable_logger );
+string _create_nft_asset( register_scheduler& rs, account_id_type owner, nft::dealership_type dealer, string world_view, string base_describe, bool enable_logger );
 
 const nh_asset_object &register_scheduler::get_nh_asset(string hash_or_id)
 {
@@ -38,15 +38,17 @@ const nh_asset_object &register_scheduler::get_nh_asset(string hash_or_id)
     }
 } // namespace chain
 
-string register_scheduler::create_nft_asset( string owner_id_or_name, string world_view, string base_describe, bool delegated,bool enable_logger )
+string register_scheduler::create_nft_asset( string owner_id_or_name, string world_view, string base_describe, bool delegated, bool enable_logger )
 {
     try
     {
         auto owner = get_account( owner_id_or_name ).get_id();
-        auto dealer = delegated ? contract.owner : owner;
-
-        return _create_nft_asset( *this, owner, dealer, world_view, base_describe, enable_logger );
-    } 
+        if ( delegated ) {
+            return _create_nft_asset( *this, owner, contract.get_id(), world_view, base_describe, enable_logger );
+        } else {
+            return _create_nft_asset( *this, owner, owner, world_view, base_describe, enable_logger );
+        }
+    }
     catch ( fc::exception e ) {
         LUA_C_ERR_THROW(this->context.mState, e.to_string());
     }
@@ -66,7 +68,6 @@ string register_scheduler::create_nh_asset( string owner_id_or_name, string symb
 
 void register_scheduler::nht_describe_change(string nht_hash_or_id, string key, string value, bool enable_logger)
 {
-
     try
     {
         auto &ob = get_nh_asset(nht_hash_or_id);
@@ -143,14 +144,13 @@ void register_scheduler::transfer_nht(account_id_type from, account_id_type acco
     {
         FC_ASSERT(token.nh_asset_owner == from, "You'e not the nh asset's owner, so you can't transfer it,nh asset:${token}.", ("token", token)); //校验交易人是否为道具所有人
         FC_ASSERT(token.nh_asset_active == from, "You don`t have the nh asset's active, so you can't transfer it,nh asset:${token}.", ("token", token));
-        FC_ASSERT(token.dealership == from, "You don`t have the nh asset's dealership, so you can't transfer it,nh asset:${token}.", ("token", token));
+        FC_ASSERT(token.is_dealership(from), "You don`t have the nh asset's dealership, so you can't transfer it,nh asset:${token}.", ("token", token));
         FC_ASSERT(account_to != from, "You can't transfer it to yourslef,nh asset:${token}.", ("token", token));
 
         db.modify(token, [&](nh_asset_object &g) {
             g.nh_asset_owner = account_to;
             g.nh_asset_active = account_to;
-            g.dealership = account_to;
-            g.delegate_auth_flag = 0; // reset delegate auth flag after transfer
+            g.set_dealership(account_to);
         });
 
         if (enable_logger)
@@ -177,7 +177,7 @@ void register_scheduler::transfer_nht_active(account_id_type from, account_id_ty
 {
     try
     {
-        if (token.dealership != from) // if the trader is not the authority account, carry out the following checks
+        if ( !token.is_dealership(from) ) // if the trader is not the authority account, carry out the following checks
         {
             FC_ASSERT(token.nh_asset_active == from, "You're not the nh asset's active, so you can't transfer it'suse rights, nh asset:${token}.", ("token", token));
         }
@@ -245,12 +245,12 @@ void register_scheduler::delegate_transfer_nft(string to, string nht_hash_or_id,
         auto& token = get_nh_asset(nht_hash_or_id);
         auto &account_to_id = get_account(to).id;
 
-        // Verity the contract owner is the active for the NFT asset
+        // Verity the asset owner is also the active for the NFT asset
         FC_ASSERT(token.nh_asset_owner == token.nh_asset_active, "This NFT asset is still be in used by someone else other than the asset owner.");
         // Verity the contract owner is the dealership for the NFT asset
-        FC_ASSERT(token.dealership == contract.owner, "The contract owner isn't the dealership for this NFT asset, so it can't be delegated to transfer this asset.");
+        FC_ASSERT(token.is_dealership(contract.get_id()), "The contract isn't the dealership for this NFT asset, so it can't be delegated to transfer this asset.");
         // Verify the contract owner is authorized to transfer the NFT asset
-        FC_ASSERT((nft::delegate_auth_type::ownership_mod_auth_flag & token.delegate_auth_flag ) != 0, "The contract owner is not authorized to transfer this asset.");
+        FC_ASSERT(token.check_dealership_auth(nft::delegate_auth_type::ownership_mod_auth_flag), "The contract is not authorized to transfer this asset.");
         // Verify the transfer target is not the NFT asset owner
         FC_ASSERT(token.nh_asset_owner != account_to_id, "It's meaningless to delegate transfer this NFT asset to the owner.");
 
@@ -292,13 +292,12 @@ void register_scheduler::transfer_nht_dealership(account_id_type from, account_i
     try
     {
         // Verify that the trader is the authority account of nh asset
-        FC_ASSERT(token.dealership == from, "You're not the nh asset's authority account, so you can't transfer it's authority, nh asset:${token}.", ("token", token));
+        FC_ASSERT(token.is_dealership(from), "You're not the nh asset's authority account, so you can't transfer it's authority, nh asset:${token}.", ("token", token));
         // Verify if transfer the dealership to yourself
         FC_ASSERT(account_to != from, "You can't transfer it to yourslef, nh asset:${token}.", ("token", token));
 
         db.modify(token, [&](nh_asset_object &g) {
-            g.dealership = account_to;
-            g.delegate_auth_flag = 0; // reset delegate auth flag after transfer
+            g.set_dealership(account_to);
         });
 
         if (enable_logger)
@@ -328,11 +327,11 @@ void register_scheduler::grant_nft_delegate_authority( string nht_hash_or_id, ui
 
         // Verify that the caller is the ownner of the NFT asset and the contract owner is the dealership of the NFT asset
         FC_ASSERT( token.nh_asset_owner == caller, "You're not the NFT asset's ownner, so you can't grant it's delegate authority, NFT asset:${token}.", ("token", token));
-        FC_ASSERT( token.dealership == contract.owner, "The contract owner isn't the dealership for this NFT asset, so you can't grant the NFT asset's delegate authority");
+        FC_ASSERT( token.is_dealership(contract.get_id()), "The contract isn't the dealership for this NFT asset, so you can't grant the NFT asset's delegate authority");
 
         // Modify the delegate auth flag for the dealership
         db.modify(token, [&](nh_asset_object &g) {
-            g.delegate_auth_flag = auth_flag;
+            g.set_dealership_auth(auth_flag);
         });
 
         if (enable_logger)
@@ -465,7 +464,7 @@ void register_scheduler::relate_nh_asset(account_id_type nht_creator, const nh_a
     }
 }
 
-string _create_nft_asset( register_scheduler& rs, account_id_type owner, account_id_type dealer, string world_view, string base_describe, bool enable_logger )
+string _create_nft_asset( register_scheduler& rs, account_id_type owner, nft::dealership_type dealer, string world_view, string base_describe, bool enable_logger )
 {
     database &db = rs.db;
     contract_object &contract = rs.contract;

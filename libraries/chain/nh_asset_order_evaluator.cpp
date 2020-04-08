@@ -49,7 +49,7 @@ void_result create_nh_asset_order_evaluator::do_evaluate(const create_nh_asset_o
    // Verify if the seller has the active use rights
    FC_ASSERT( o.nh_asset(d).nh_asset_active == o.seller, "You don't have the NFT asset's active use rights, so you can't sell it");
    // Verify if the seller has the dealership
-   FC_ASSERT( o.nh_asset(d).dealership == o.seller, "You don't have the NFT asset's dealership, so you can't sell it");
+   FC_ASSERT( o.nh_asset(d).is_dealership(o.seller), "You don't have the NFT asset's dealership, so you can't sell it");
    // Verify if the order has expired or beyond the maximum expiration duration
    FC_ASSERT( o.expiration >= d.head_block_time(), "Order has already expired on creation" );
    FC_ASSERT( o.expiration <= d.head_block_time() + d.get_global_properties().parameters.maximum_nh_asset_order_expiration,
@@ -100,29 +100,29 @@ object_id_result create_nh_asset_order_evaluator::do_apply(const create_nh_asset
 { 
    try 
    {
-	   database& d = db();
-	   const nh_asset_object& nh_asset_obj = o.nh_asset(d);
-	   const nh_asset_order_object& nh_asset_order_obj = d.create<nh_asset_order_object>([&](nh_asset_order_object& nh_asset_order) {
-		       nh_asset_order.seller = o.seller;
-			   nh_asset_order.otcaccount = o.otcaccount;
-			   nh_asset_order.nh_asset_id = o.nh_asset;
-			   nh_asset_order.world_view = nh_asset_obj.world_view;
-			   nh_asset_order.base_describe = nh_asset_obj.base_describe;
-			   nh_asset_order.nh_hash = nh_asset_obj.nh_hash;
-			   nh_asset_order.price = o.price;
-			   nh_asset_order.memo = o.memo;
-			   nh_asset_order.expiration = o.expiration;
-	       }) ;
-	   d.modify(nh_asset_obj, [&](nh_asset_object& g){
-	   	   g.nh_asset_owner = GRAPHENE_NULL_ACCOUNT;//nico chang::道具暂时归属到托管账户
-	   	   g.nh_asset_active = GRAPHENE_NULL_ACCOUNT;
-		   g.dealership = GRAPHENE_NULL_ACCOUNT;
-		   });
+      database& d = db();
+      const nh_asset_object& nh_asset_obj = o.nh_asset(d);
+      const nh_asset_order_object& nh_asset_order_obj = d.create<nh_asset_order_object>([&](nh_asset_order_object& nh_asset_order) {
+         nh_asset_order.seller = o.seller;
+         nh_asset_order.otcaccount = o.otcaccount;
+         nh_asset_order.nh_asset_id = o.nh_asset;
+         nh_asset_order.world_view = nh_asset_obj.world_view;
+         nh_asset_order.base_describe = nh_asset_obj.base_describe;
+         nh_asset_order.nh_hash = nh_asset_obj.nh_hash;
+         nh_asset_order.price = o.price;
+         nh_asset_order.memo = o.memo;
+         nh_asset_order.expiration = o.expiration;
+      });
+      d.modify(nh_asset_obj, [&](nh_asset_object& g){
+         g.nh_asset_owner = GRAPHENE_NULL_ACCOUNT;//nico chang::道具暂时归属到托管账户
+         g.nh_asset_active = GRAPHENE_NULL_ACCOUNT;
+         g.set_dealership(GRAPHENE_NULL_ACCOUNT);
+      });
 
-	   db().adjust_balance( o.seller, -o.pending_orders_fee );
-       db().adjust_balance( o.otcaccount, o.pending_orders_fee );
-		   
-	   return nh_asset_order_obj.id;
+      db().adjust_balance( o.seller, -o.pending_orders_fee );
+      db().adjust_balance( o.otcaccount, o.pending_orders_fee );
+
+      return nh_asset_order_obj.id;
    } 
    FC_CAPTURE_AND_RETHROW( (o) ) 
 }
@@ -143,19 +143,19 @@ object_id_result cancel_nh_asset_order_evaluator::do_apply(const cancel_nh_asset
    try 
    {
 	   database& d = db();
-	   const nh_asset_order_object& order_obj = o.order(d);
-       const auto& nh_asset_idx_by_id = d.get_index_type<nh_asset_index>().indices().get<by_nh_asset_hash_id>();
-       const auto& nh_asset_idx = nh_asset_idx_by_id.find( order_obj.nh_hash );
-	   
-	   d.modify(*nh_asset_idx, [&](nh_asset_object& g){
-	   	   g.nh_asset_owner = order_obj.seller;
-		   g.nh_asset_active = order_obj.seller;
-		   g.dealership = order_obj.seller;
-		   });
+      const nh_asset_order_object& order_obj = o.order(d);
+      const auto& nh_asset_idx_by_id = d.get_index_type<nh_asset_index>().indices().get<by_nh_asset_hash_id>();
+      const auto& nh_asset_idx = nh_asset_idx_by_id.find( order_obj.nh_hash );
 
-	   d.remove(order_obj);
+      d.modify(*nh_asset_idx, [&](nh_asset_object& g){
+         g.nh_asset_owner = order_obj.seller;
+         g.nh_asset_active = order_obj.seller;
+         g.set_dealership(order_obj.seller);
+      });
+
+      d.remove(order_obj);
 		   
-	   return nh_asset_idx->id;
+      return nh_asset_idx->id;
    } 
    FC_CAPTURE_AND_RETHROW( (o) ) 
 }
@@ -213,22 +213,22 @@ object_id_result fill_nh_asset_order_evaluator::do_apply(const fill_nh_asset_ord
 { 
    try 
    {
-	   database& d = db();
-	   const nh_asset_order_object& order_obj = o.order(d);
-       const auto& nh_asset_idx_by_id = d.get_index_type<nh_asset_index>().indices().get<by_nh_asset_hash_id>();
-       const auto& nh_asset_idx = nh_asset_idx_by_id.find( order_obj.nh_hash );
+      database& d = db();
+      const nh_asset_order_object& order_obj = o.order(d);
+      const auto& nh_asset_idx_by_id = d.get_index_type<nh_asset_index>().indices().get<by_nh_asset_hash_id>();
+      const auto& nh_asset_idx = nh_asset_idx_by_id.find( order_obj.nh_hash );
 	   
-	   d.modify(*nh_asset_idx, [&](nh_asset_object& g){
-	   	   g.nh_asset_owner = o.fee_paying_account;
-		   g.nh_asset_active = o.fee_paying_account;
-		   g.dealership = o.fee_paying_account;
-		   });
-       db().adjust_balance( o.fee_paying_account, -order_obj.price );
-       db().adjust_balance( o.seller, order_obj.price );
+      d.modify(*nh_asset_idx, [&](nh_asset_object& g){
+         g.nh_asset_owner = o.fee_paying_account;
+         g.nh_asset_active = o.fee_paying_account;
+         g.set_dealership(o.fee_paying_account);
+      });
+      db().adjust_balance( o.fee_paying_account, -order_obj.price );
+      db().adjust_balance( o.seller, order_obj.price );
 	   
-	   d.remove(order_obj);
-		   
-	   return nh_asset_idx->id;
+      d.remove(order_obj);
+
+      return nh_asset_idx->id;
    } 
    FC_CAPTURE_AND_RETHROW( (o) ) 
 }
