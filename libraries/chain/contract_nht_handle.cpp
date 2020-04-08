@@ -164,15 +164,23 @@ void register_scheduler::transfer_nht(account_id_type from, account_id_type acco
 {
     try
     {
-        FC_ASSERT(token.nh_asset_owner == from, "You'e not the nh asset's owner, so you can't transfer it,nh asset:${token}.", ("token", token)); //校验交易人是否为道具所有人
-        FC_ASSERT(token.nh_asset_active == from, "You don`t have the nh asset's active, so you can't transfer it,nh asset:${token}.", ("token", token));
-        FC_ASSERT(token.dealership == from, "You don`t have the nh asset's dealership, so you can't transfer it,nh asset:${token}.", ("token", token));
-        FC_ASSERT(account_to != from, "You can't transfer it to yourslef,nh asset:${token}.", ("token", token));
+        // 验证转账方是否为资产所有人
+        FC_ASSERT(token.nh_asset_owner == from, "You'e not the NFT asset's owner, so you can't transfer it, NFT asset:${token}.", ("token", token));
+        // Verify beneficiary
+        FC_ASSERT(token.nh_asset_owner != account_to, "The beneficiary is already the asset's owner, NFT asset:${token}.", ("token", token));
+        // Verify dealership rights
+        bool dealership_transfer_ok = (token.nh_asset_owner == token.dealership) || (token.dealership == account_to);
+        FC_ASSERT(dealership_transfer_ok, "Neither the NFT asset's owner nor the beneficiary have the dealership rights, NFT asset:${token}", ("token", token));
+        // Verify active rights
+        bool active_transfer_ok = (token.nh_asset_owner == token.nh_asset_active) || (token.nh_asset_active == account_to);
+        FC_ASSERT(active_transfer_ok, "Neither the NFT asset's owner nor the beneficiary have the active rights, NFT asset:${token}", ("token", token));
+
         db.modify(token, [&](nh_asset_object &g) {
             g.nh_asset_owner = account_to;
             g.nh_asset_active = account_to;
             g.dealership = account_to;
         });
+
         if (enable_logger)
         {
             graphene::chain::nht_affected contract_transaction;
@@ -211,6 +219,7 @@ void register_scheduler::transfer_nht_active(account_id_type from, account_id_ty
             contract_transaction.affected_item = token.id;
             contract_transaction.action = nht_affected_type::transfer_active_from;
             result.contract_affecteds.push_back(std::move(contract_transaction));
+
             contract_transaction.affected_account = account_to;
             contract_transaction.affected_item = token.id;
             contract_transaction.action = nht_affected_type::transfer_active_to;
@@ -222,6 +231,36 @@ void register_scheduler::transfer_nht_active(account_id_type from, account_id_ty
         LUA_C_ERR_THROW(this->context.mState, e.to_string());
     }
 }
+
+void register_scheduler::transfer_nft_ownership(account_id_type from, account_id_type account_to, const nh_asset_object &token, bool enable_logger)
+{
+    try
+    {
+        // Verify that the trader is the owner of nh asset
+        FC_ASSERT(token.nh_asset_owner == from, "You're not the NFT asset's owner, so you can't transfer its ownership, NFT asset:${token}.", ("token", token));
+        FC_ASSERT(account_to != token.nh_asset_owner, "You can't transfer it to yourslef, nh asset:${token}.", ("token", token));
+
+        db.modify(token, [&](nh_asset_object &g) { g.nh_asset_owner = account_to; });
+        if (enable_logger)
+        {
+            graphene::chain::nht_affected contract_transaction;
+            contract_transaction.affected_account = from;
+            contract_transaction.affected_item = token.id;
+            contract_transaction.action = nht_affected_type::transfer_owner_from;
+            result.contract_affecteds.push_back(std::move(contract_transaction));
+
+            contract_transaction.affected_account = account_to;
+            contract_transaction.affected_item = token.id;
+            contract_transaction.action = nht_affected_type::transfer_owner_to;
+            result.contract_affecteds.push_back(std::move(contract_transaction));
+        }
+    }
+    catch (fc::exception e)
+    {
+        LUA_C_ERR_THROW(this->context.mState, e.to_string());
+    }
+}
+
 /*
 // transfer of non homogeneous asset's ownership
 void register_scheduler::transfer_nht_ownership(account_id_type from, account_id_type account_to, const nh_asset_object &token, bool enable_logger)

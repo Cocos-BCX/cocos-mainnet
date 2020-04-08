@@ -73,6 +73,7 @@ struct register_scheduler
     // NFT relative methods
     string create_nft_asset(account_id_type owner_id, account_id_type dealer_id, string world_view, string base_describe, bool enable_logger);
     void adjust_lock_nft_asset(const nh_asset_object &token, bool lock_or_unlock=true);
+    void transfer_nft_ownership(account_id_type from, account_id_type account_to, const nh_asset_object &token, bool enable_logger=false);
 
     void update_collateral_for_gas(string to, int64_t amount);
     lua_map get_contract_public_data(string name_or_id);
