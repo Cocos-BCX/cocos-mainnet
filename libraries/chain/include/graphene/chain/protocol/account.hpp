@@ -50,6 +50,7 @@ struct account_options
   //flat_set<std::string>   extensions;
   void validate() const;
 };
+
 struct asset_locked_object
 {
   map<asset_id_type,share_type> locked_total;
@@ -58,7 +59,11 @@ struct asset_locked_object
   optional<asset> witness_freeze;
   optional<asset> vote_for_committee;
   optional<asset> vote_for_witness;
-  };
+
+  // for NFT asset lock
+  map<contract_id_type,vector<nh_asset_id_type>> contract_nft_lock_details;
+};
+
 /**
     *  @ingroup operations
     */

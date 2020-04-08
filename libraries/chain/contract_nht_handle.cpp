@@ -392,5 +392,40 @@ void register_scheduler::relate_nh_asset(account_id_type nht_creator, const nh_a
         LUA_C_ERR_THROW(this->context.mState, e.to_string());
     }
 }
+
+void register_scheduler::adjust_lock_nft_asset(const nh_asset_object &token, bool lock_or_unlock)
+{
+    try
+    {
+        auto contract_owner = contract.owner(db);
+        auto contract_id = contract.get_id();
+        auto nft_asset_id = token.get_id();
+
+        // Verify if the contract owner owns the NFT asset
+        FC_ASSERT( token.nh_asset_owner == contract_owner.get_id(), "The contract owner doesn't own the NFT token, token:${token}", ("token", token));
+
+        vector<nh_asset_id_type> nft_locked_assets = contract_owner.asset_locked.contract_nft_lock_details[contract_id];
+        vector<nh_asset_id_type>::iterator find_pos = std::find(nft_locked_assets.begin(), nft_locked_assets.end(), nft_asset_id);
+        bool is_already_locked = (find_pos != nft_locked_assets.end());
+
+        if (lock_or_unlock) { // lock?
+            FC_ASSERT( !is_already_locked, "The NFT token has already been locked, token:${token}", ("token", token));
+            nft_locked_assets.push_back(nft_asset_id);
+        } else { // unlock?
+            FC_ASSERT( is_already_locked, "The NFT token has not be locked yet, token:${token}", ("token", token));
+            nft_locked_assets.erase(find_pos);
+        }
+        contract_owner.asset_locked.contract_nft_lock_details[contract_id] = nft_locked_assets;
+
+        db.modify(contract.owner(db), [&](account_object &ac) {
+            ac.asset_locked = contract_owner.asset_locked;
+        });
+    }
+    catch (fc::exception e)
+    {
+        LUA_C_ERR_THROW(this->context.mState, e.to_string());
+    }
+}
+
 } // namespace chain
 } // namespace graphene

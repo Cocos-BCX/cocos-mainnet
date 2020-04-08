@@ -60,6 +60,8 @@ class nh_asset_object : public graphene::db::abstract_object<nh_asset_object>
 	vector<contract_id_type> limit_list;
 	nh_asset_lease_limit_type limit_type = nh_asset_lease_limit_type::black_list;
 
+	nh_asset_id_type get_id() const { return id; }
+
     nh_hash_type get_base_describe_hash() const
     {
         nh_hash_type result(nh_hash);
