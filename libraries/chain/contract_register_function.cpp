@@ -143,6 +143,14 @@ lua_Number register_scheduler::nummin()
 {
     return std::numeric_limits<lua_Number>::min();
 }
+int64_t register_scheduler::integermax()
+{
+    return LUA_MAXINTEGER;
+}
+int64_t register_scheduler::integermin()
+{
+    return LUA_MININTEGER;
+}
 uint32_t register_scheduler::head_block_time()
 {
     return db.head_block_time().sec_since_epoch();
@@ -393,6 +401,8 @@ void lua_scheduler::chain_function_bind()
     registerFunction("log", &register_scheduler::log);
     registerFunction("number_max", &register_scheduler::nummax);
     registerFunction("number_min", &register_scheduler::nummin);
+    registerFunction("integer_max", &register_scheduler::integermax);
+    registerFunction("integer_min", &register_scheduler::integermin);
     registerFunction("real_time", &register_scheduler::real_time);
     registerFunction("time", &register_scheduler::head_block_time);
     registerFunction("hash256", &register_scheduler::hash256);

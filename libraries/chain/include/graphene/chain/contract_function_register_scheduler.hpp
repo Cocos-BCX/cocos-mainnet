@@ -36,6 +36,8 @@ struct register_scheduler
     void fllush_cache();
     lua_Number nummin();
     lua_Number nummax();
+    int64_t integermax();
+    int64_t integermin();
     const nh_asset_object& get_nh_asset(string hash_or_id);
     string hash256(string source);
     string hash512(string source);
