@@ -46,7 +46,8 @@ void_result create_nh_asset_order_evaluator::do_evaluate(const create_nh_asset_o
    FC_ASSERT( d.find_object(o.nh_asset) , "Could not find nh asset matching ${nh_asset}", ("nh_asset", o.nh_asset));
    FC_ASSERT( o.nh_asset(d).nh_asset_owner == o.seller , "You’re not the item's owner." );
 
-   nft::transfer_assert(o.seller, account_id_type(), nft);
+   // Assert asset transfer
+   nft::assert_asset_transfer(o.seller, account_id_type(), nft);
 
    FC_ASSERT( o.expiration >= d.head_block_time(), "Order has already expired on creation" );
    FC_ASSERT( o.expiration <= d.head_block_time() + d.get_global_properties().parameters.maximum_nh_asset_order_expiration, "the expiration must less than the maximun expiration." );
@@ -54,6 +55,9 @@ void_result create_nh_asset_order_evaluator::do_evaluate(const create_nh_asset_o
    const account_object& from_account    = o.seller(d);
    const account_object& to_account      = o.otcaccount(d);
    const asset_object&   asset_type      = o.pending_orders_fee.asset_id(d);
+
+   // Assert asset unlocked
+   nft::assert_asset_unlocked(from_account, nft);
 
    try {
 

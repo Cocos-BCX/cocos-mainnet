@@ -39,7 +39,8 @@ enum class nh_asset_lease_limit_type
 };
 
 namespace nft {
-    void transfer_assert( const account_id_type& from, const account_id_type& to, const nh_asset_object& token);
+    void assert_asset_transfer( const account_id_type& from, const account_id_type& to, const nh_asset_object& token);
+    void assert_asset_unlocked( const account_object& owner, const nh_asset_object& token );
 } // namespace nft
 
 class nh_asset_object : public graphene::db::abstract_object<nh_asset_object>

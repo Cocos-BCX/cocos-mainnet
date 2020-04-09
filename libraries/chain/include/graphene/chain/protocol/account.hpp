@@ -62,6 +62,7 @@ struct asset_locked_object
 
   // for NFT asset lock
   map<contract_id_type,vector<nh_asset_id_type>> contract_nft_lock_details;
+  vector<nh_asset_id_type> nft_locked;
 };
 
 /**

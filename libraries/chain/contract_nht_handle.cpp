@@ -164,7 +164,10 @@ void register_scheduler::transfer_nht(account_id_type from, account_id_type acco
 {
     try
     {
-        nft::transfer_assert(from, account_to, token);
+        // Verify asset transfer
+        nft::assert_asset_transfer(from, account_to, token);
+        // Verify asset unlocked
+        nft::assert_asset_unlocked(from(db), token);
 
         db.modify(token, [&](nh_asset_object &g) {
             g.nh_asset_owner = account_to;
@@ -231,6 +234,9 @@ void register_scheduler::transfer_nft_ownership(account_id_type from, account_id
         FC_ASSERT(token.nh_asset_owner == from, "You're not the NFT asset's owner, so you can't transfer its ownership, NFT asset:${token}.", ("token", token));
         FC_ASSERT(account_to != token.nh_asset_owner, "You can't transfer it to yourslef, nh asset:${token}.", ("token", token));
 
+        // Verify asset unlocked
+        nft::assert_asset_unlocked(from(db), token);
+
         db.modify(token, [&](nh_asset_object &g) { g.nh_asset_owner = account_to; });
         if (enable_logger)
         {
@@ -293,8 +299,8 @@ void register_scheduler::transfer_nht_dealership(account_id_type from, account_i
     {
         // Verify that the trader is the authority account of nh asset
         FC_ASSERT(token.dealership == from, "You're not the nh asset's authority account, so you can't transfer it's authority, nh asset:${token}.", ("token", token));
-
         FC_ASSERT(account_to != from, "You can't transfer it to yourslef, nh asset:${token}.", ("token", token));
+
         db.modify(token, [&](nh_asset_object &g) { g.dealership = account_to; });
         if (enable_logger)
         {
@@ -322,6 +328,7 @@ void register_scheduler::set_nht_limit_list(account_id_type nht_owner, const nh_
     {
         // Verify that the trader is the owner of nh asset and the nht must not be leasing.
         FC_ASSERT(token.nh_asset_owner == nht_owner && token.nh_asset_owner == token.nh_asset_active, "You must be the nh asset's owner, and the nht must not be leasing, nh asset:${token}.", ("token", token));
+
         auto temp_object = token;
         limit_type ? temp_object.limit_type = nh_asset_lease_limit_type::white_list : temp_object.limit_type = nh_asset_lease_limit_type::black_list;
         if (temp_object.limit_type != token.limit_type)
@@ -434,19 +441,34 @@ void register_scheduler::adjust_lock_nft_asset(const nh_asset_object &token, boo
         // Verify if the contract owner owns the NFT asset
         FC_ASSERT( token.nh_asset_owner == contract_owner.get_id(), "The contract owner doesn't own the NFT token, token:${token}", ("token", token));
 
-        vector<nh_asset_id_type> nft_locked_assets = contract_owner.asset_locked.contract_nft_lock_details[contract_id];
-        vector<nh_asset_id_type>::iterator find_pos = std::find(nft_locked_assets.begin(), nft_locked_assets.end(), nft_asset_id);
-        bool is_already_locked = (find_pos != nft_locked_assets.end());
+        vector<nh_asset_id_type> nft_locked = contract_owner.asset_locked.nft_locked;
+        vector<nh_asset_id_type>::iterator find_pos = std::find(nft_locked.begin(), nft_locked.end(), nft_asset_id);
+        bool is_already_locked = (find_pos != nft_locked.end());
 
-        if (lock_or_unlock) { // lock?
-            FC_ASSERT( !is_already_locked, "The NFT token has already been locked, token:${token}", ("token", token));
-            nft_locked_assets.push_back(nft_asset_id);
-        } else { // unlock?
-            FC_ASSERT( is_already_locked, "The NFT token has not be locked yet, token:${token}", ("token", token));
-            nft_locked_assets.erase(find_pos);
+        vector<nh_asset_id_type> contract_nft_lock_details = contract_owner.asset_locked.contract_nft_lock_details[contract_id];
+        if (lock_or_unlock)
+        {
+            // to lock
+            FC_ASSERT( !is_already_locked, "The NFT token has already been locked somewhere, token:${token}", ("token", token));
+
+            nft_locked.push_back(nft_asset_id);
+            contract_nft_lock_details.push_back(nft_asset_id);
         }
-        contract_owner.asset_locked.contract_nft_lock_details[contract_id] = nft_locked_assets;
+        else
+        {
+            // to unlock
+            FC_ASSERT( is_already_locked, "The NFT token has not be locked anywhere, token:${token}", ("token", token));
 
+            vector<nh_asset_id_type>::iterator contract_find_pos = std::find(contract_nft_lock_details.begin(), contract_nft_lock_details.end(), nft_asset_id);
+            FC_ASSERT( contract_find_pos != contract_nft_lock_details.end(), "The NFT token has already been locked by some other contract, token:${token}", ("token", token));
+
+            nft_locked.erase(find_pos);
+            contract_nft_lock_details.erase(contract_find_pos);
+        }
+
+        // update locked asset
+        contract_owner.asset_locked.nft_locked = nft_locked;
+        contract_owner.asset_locked.contract_nft_lock_details[contract_id] = contract_nft_lock_details;
         db.modify(contract.owner(db), [&](account_object &ac) {
             ac.asset_locked = contract_owner.asset_locked;
         });

@@ -41,7 +41,7 @@ namespace chain
 
 namespace nft
 {
-    void transfer_assert( const account_id_type& from, const account_id_type& to, const nh_asset_object& token)
+    void assert_asset_transfer( const account_id_type& from, const account_id_type& to, const nh_asset_object& token)
     {
         // Verify transfer
         FC_ASSERT(token.nh_asset_owner == from, "The transfer account doesn't own the NFT asset:${token}.", ("token", token));
@@ -54,6 +54,22 @@ namespace nft
         bool active_transfer_ok = (token.nh_asset_owner == token.nh_asset_active) || (token.nh_asset_active == to);
         FC_ASSERT(active_transfer_ok, "Neither the NFT asset's owner nor the beneficiary account have the active rights for the NFT asset:${token}", ("token", token));
     }
+
+    void assert_asset_unlocked(const account_object& owner, const nh_asset_object& token)
+    {
+        // Verify ownership
+        FC_ASSERT(token.nh_asset_owner == owner.get_id(), "The principal doesn't own the NFT asset:${token}.", ("token", token));
+
+        vector<nh_asset_id_type> nft_locked = owner.asset_locked.nft_locked;
+        if (nft_locked.size() > 0) {
+            vector<nh_asset_id_type>::iterator find_pos = std::find(nft_locked.begin(), nft_locked.end(), token.get_id());
+            bool is_already_locked = (find_pos != nft_locked.end());
+
+            // Verify NFT unlocked
+            FC_ASSERT(!is_already_locked, "The principal is locked by some contract on the NFT asset:${token}.", ("token", token));
+        }
+    }
+
 } // namespace nft
 
 void_result create_nh_asset_evaluator::do_evaluate(const create_nh_asset_operation &o)
@@ -103,9 +119,14 @@ object_id_result create_nh_asset_evaluator::do_apply(const create_nh_asset_opera
 void_result delete_nh_asset_evaluator::do_evaluate(const delete_nh_asset_operation &o)
 {
     database &d = db();
+
     //校验游戏道具是否存在
     FC_ASSERT(d.find_object(o.nh_asset), "Could not find nh asset matching ${nh_asset}", ("nh_asset", o.nh_asset));
     FC_ASSERT(o.nh_asset(d).nh_asset_owner == o.fee_paying_account, "You’re not the item’s owner，so you can’t delete it.");
+
+    // Verify unlocked
+    nft::assert_asset_unlocked(o.fee_paying_account(d), o.nh_asset(d));
+
     return void_result();
 }
 
@@ -128,7 +149,11 @@ void_result transfer_nh_asset_evaluator::do_evaluate(const transfer_nh_asset_ope
     //校验游戏道具是否存在
     const auto &nft = o.nh_asset(d);
 
-    nft::transfer_assert(o.from, o.to, nft);
+    // Verity asset transfer
+    nft::assert_asset_transfer(o.from, o.to, nft);
+    // Verify asset unlocked
+    nft::assert_asset_unlocked(o.from(d), nft);
+
     return void_result();
 }
 
@@ -158,8 +183,10 @@ void_result relate_nh_asset_evaluator::do_evaluate(const operation_type &o)
 
     FC_ASSERT(d.find_object(o.parent), "Could not find nh asset matching ${nh_asset}", ("nh_asset", o.parent));
     FC_ASSERT(d.find_object(o.child), "Could not find nh asset matching ${nh_asset}", ("nh_asset", o.child));
+
     //校验合约是否存在
     FC_ASSERT(d.find_object(o.contract), "Could not find contract matching ${contract}", ("contract", o.contract));
+
     //校验操作者是否为道具创建者
     FC_ASSERT(o.parent(d).nh_asset_creator == o.nh_asset_creator, "You’re not the parent item’s creater, so you can’t relate it.");
     FC_ASSERT(o.child(d).nh_asset_creator == o.nh_asset_creator, "You’re not the child item’s creater, so you can’t relate it.");
