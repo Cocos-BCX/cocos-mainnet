@@ -41,8 +41,12 @@ namespace graphene { namespace chain {
 void_result create_nh_asset_order_evaluator::do_evaluate(const create_nh_asset_order_operation& o)
 {
    database& d = db();
+   auto& nft = o.nh_asset(d);
+
    FC_ASSERT( d.find_object(o.nh_asset) , "Could not find nh asset matching ${nh_asset}", ("nh_asset", o.nh_asset));
    FC_ASSERT( o.nh_asset(d).nh_asset_owner == o.seller , "You’re not the item's owner." );
+
+   nft::transfer_assert(o.seller, account_id_type(), nft);
 
    FC_ASSERT( o.expiration >= d.head_block_time(), "Order has already expired on creation" );
    FC_ASSERT( o.expiration <= d.head_block_time() + d.get_global_properties().parameters.maximum_nh_asset_order_expiration, "the expiration must less than the maximun expiration." );
