@@ -65,6 +65,9 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
     //optional<account_contract_data> call_contract_function(account_id_type account_id,contract_id_type contract_id,string function_name, vector<lua_types> value_list);
     optional<contract_object> get_contract(string contract_id_or_name) const;
     optional<contract_object> get_contract(contract_id_type contract_id) const;
+    uint32_t get_contract_public_data_size(const contract_id_type& contract_id) const;
+    uint32_t get_contract_private_data_size(const account_id_type& account_id, const contract_id_type& contract_id) const;
+    map<string, uint32_t> get_contract_data_size(const contract_id_type& contract_id) const;
     lua_map get_contract_public_data(string contract_id_or_name, lua_map filter) const;
     optional<processed_transaction> get_transaction_by_id(const string &id) const;
     vector<optional<world_view_object>> lookup_world_view(const vector<string> &world_view_name_or_ids) const;
@@ -1006,6 +1009,34 @@ optional<contract_object> database_api_impl::get_contract(contract_id_type contr
     FC_ASSERT(contract_itr != con_index.end(), "The contract (${contract_id}) does not exist", ("contract_id", contract_id));
     return *contract_itr;
 }
+
+uint32_t database_api_impl::get_contract_public_data_size(const contract_id_type& contract_id) const
+{
+    optional<contract_object> contract = get_contract(contract_id);
+    return contract->data_size();
+}
+
+uint32_t database_api_impl::get_contract_private_data_size(const account_id_type& account_id, const contract_id_type& contract_id) const
+{
+    uint32_t data_size = 0;
+    auto &contract_udata_index = _db.get_index_type<account_contract_data_index>().indices().get<by_account_contract>();
+    auto account_contract_data_itr = contract_udata_index.find(boost::make_tuple(account_id, contract_id));
+    if (account_contract_data_itr != contract_udata_index.end())
+    {
+        data_size = account_contract_data_itr->data_size();
+    }
+    return data_size;
+}
+
+map<string, uint32_t> database_api_impl::get_contract_data_size(const contract_id_type& contract_id) const
+{
+    map<string, uint32_t> result;
+    optional<contract_object> contract = get_contract(contract_id);
+    result["public_data_size"] = contract->data_size();
+    result["private_data_size"] = get_contract_private_data_size(contract->owner, contract->id);
+    return result;
+}
+
 lua_map database_api_impl::get_contract_public_data(string contract_id_or_name, lua_map filter) const
 {
     auto contract = get_contract(contract_id_or_name);
@@ -1032,6 +1063,21 @@ lua_map database_api::get_contract_public_data(string contract_id_or_name, lua_m
 optional<contract_object> database_api::get_contract(string contract_name_or_id)
 {
     return my->get_contract(contract_name_or_id);
+}
+
+uint32_t database_api::get_contract_public_data_size(const contract_id_type& contract_name_or_id) const
+{
+    return my->get_contract_public_data_size(contract_name_or_id);
+}
+
+uint32_t database_api::get_contract_private_data_size(const account_id_type& account_id, const contract_id_type& contract_id) const
+{
+    return my->get_contract_private_data_size(account_id, contract_id);
+}
+
+map<string, uint32_t> database_api::get_contract_data_size(const contract_id_type& contract_id) const
+{
+    return my->get_contract_data_size(contract_id);
 }
 
 vector<asset> database_api::get_named_account_balances(const std::string &name, const flat_set<asset_id_type> &assets) const
