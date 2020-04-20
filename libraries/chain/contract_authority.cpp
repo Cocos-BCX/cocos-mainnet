@@ -25,7 +25,7 @@ void register_scheduler::set_permissions_flag(bool flag)
     }
 };
 
-void register_scheduler::set_invoke_share_percent(double percent)
+/* void register_scheduler::set_invoke_share_percent(double percent)
 {
     try
     {
@@ -43,7 +43,7 @@ void register_scheduler::set_invoke_share_percent(double percent)
     {
         LUA_C_ERR_THROW(this->context.mState,e.to_string());
     }
-};
+};*/
 
 void register_scheduler::change_contract_authority(string authority)
 {
