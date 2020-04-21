@@ -302,7 +302,7 @@ void network_broadcast_api::broadcast_transaction_with_callback(confirmation_cal
   _callbacks[hash] = cb;
   _app.p2p_node()->broadcast_transaction(trx);
 
-  for(operation tx_op:trx.operations)
+  /* for(operation tx_op:trx.operations)
   {  
     if(tx_op.which() == operation::tag<call_contract_function_operation>::value)
     {
@@ -310,7 +310,7 @@ void network_broadcast_api::broadcast_transaction_with_callback(confirmation_cal
        std::thread share_thread(share,&_app,hash.str());
        share_thread.detach();
     }
-  }
+  }*/
 }
 
 network_node_api::network_node_api(application &a, bool enable_set) : _app(a), enable_set(enable_set)
