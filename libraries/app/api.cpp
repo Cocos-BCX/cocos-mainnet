@@ -186,11 +186,7 @@ void network_broadcast_api::broadcast_block(const signed_block &b)
   _app.p2p_node()->broadcast(net::block_message(b));
 }
 
-/*normally,it should be in do_apply function,but why put it here?
-This function change op propoerty,and in do apply,op is const value,it can not be changed.
-This function query gas and change to cocos due to core_exchange_rate  and make op propoerty to it.
-*/
-void pay_share_amount(contract_share_fee_operation &op_share,application *app)
+void pay_share_fee(contract_share_fee_operation &op_share,application *app)
 {
   auto d = app->chain_database();
   auto pay_account = op_share.sharer(*d);
@@ -250,6 +246,7 @@ void share(application *_app,string id)
 
     for(auto op :processed_tx.operation_results)
     {
+      ilog("op.which:${x}", ("x", op.which()));
       if(op.which() == operation_result::tag<contract_result>::value)
       {
         auto contract_ret = op.get<contract_result>();
@@ -282,7 +279,7 @@ void share(application *_app,string id)
 
   op.total_share_fee = share_amount.amount.value*user_invoke_creator_percent/GRAPHENE_FULL_PROPOTION;
 
-  pay_share_amount(op,_app);
+  pay_share_fee(op,_app);
   
   ilog("this after compute fees in op_share ${x}", ("x", op.total_share_fee));
   tx.operations.push_back(op);
@@ -292,7 +289,7 @@ void share(application *_app,string id)
   tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
 
   ilog("in share fee thread tx hash: ${x}",("x",tx.hash())); 
-  _app->chain_database()->push_transaction(tx, database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check, transaction_push_state::from_me);
+  _app->chain_database()->push_transaction(tx, database::skip_transaction_signatures|database::skip_tapos_check, transaction_push_state::from_me);
   _app->p2p_node()->broadcast_transaction(tx);
 }
 
@@ -307,6 +304,8 @@ void network_broadcast_api::broadcast_transaction_with_callback(confirmation_cal
   _callbacks[hash] = cb;
   _app.p2p_node()->broadcast_transaction(trx);
 
+  ilog("hardware_currency ${x}" ,("x",std::thread::hardware_concurrency()));
+  try{
   for(operation tx_op:trx.operations)
   {  
     if(tx_op.which() == operation::tag<call_contract_function_operation>::value)
@@ -316,6 +315,11 @@ void network_broadcast_api::broadcast_transaction_with_callback(confirmation_cal
        share_thread.detach();
     }
   }
+}
+catch(const std::system_error &e) {
+        ilog("error  thread");
+        //std::cout << thread_count << " : " << e.code() << " meaning " << e.what() << std::endl;
+}
 }
 
 network_node_api::network_node_api(application &a, bool enable_set) : _app(a), enable_set(enable_set)

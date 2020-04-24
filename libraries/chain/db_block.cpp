@@ -290,9 +290,7 @@ processed_transaction database::_push_transaction(const signed_transaction &trx,
     if (push_state == transaction_push_state::from_me)
     {
       //get_message_send_cache_size();
-      // Casting std::vector.size() return type to uint64_t is needed for macos compiling,
-      // check here (https://stackoverflow.com/questions/36814040) for more info.
-      _pending_size=std::max(_pending_size,(uint64_t)_pending_tx.size());
+      _pending_size=std::max(_pending_size,_pending_tx.size());
       if (_message_cache_size_limit)
         FC_ASSERT(_pending_size <= _message_cache_size_limit, "The number of messages cached by the current node has exceeded the maximum limit,size:${size}", ("size", _pending_size));
       mode = transaction_apply_mode::push_mode;
@@ -307,9 +305,9 @@ processed_transaction database::_push_transaction(const signed_transaction &trx,
   else
   {
     uint32_t skip = get_node_properties().skip_flags;
-    auto share_flag = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
-    if((trx.operations[0].which() == operation::tag<contract_share_operation>::value|trx.operations[0].which() == operation::tag<contract_share_operation>::value|trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)&&(skip!=share_flag))
-      skip = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
+    auto share_flag = database::skip_transaction_signatures|database::skip_tapos_check;
+    if((trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)&&(skip!=share_flag))
+      skip = database::skip_transaction_signatures|database::skip_tapos_check;
 
     const chain_parameters &chain_parameters = get_global_properties().parameters;
     if (BOOST_LIKELY(head_block_num() > 0))
@@ -334,6 +332,10 @@ processed_transaction database::_push_transaction(const signed_transaction &trx,
   // The transaction applied successfully. Merge its changes into the pending block session.
   if (push_state == transaction_push_state::re_push || mode == transaction_apply_mode::invoke_mode) //nico chang:: 引入新的过程共识，所以在invoke_mode委托模式下完成验证后，不合并数据库
   {
+     if(trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)
+        {
+           ilog("+++yes create  transaction_object in _push_transaction");
+        }
     temp_session.undo();
     this->create<transaction_object>([&](transaction_object &transaction) {
          transaction.trx_hash=processed_trx.hash();
@@ -462,8 +464,8 @@ signed_block database::_generate_block(
         //if (tx.operation_results.size() > 0)
         //{
           
-        if((trx.operations[0].which() == operation::tag<contract_share_operation>::value|tx.operations[0].which() == operation::tag<contract_share_fee_operation>::value))
-          skip = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
+        if((tx.operations[0].which() == operation::tag<contract_share_fee_operation>::value))
+          skip = database::skip_transaction_signatures|database::skip_tapos_check;
 
         if (BOOST_LIKELY(head_block_num() > 0)&& !tx.agreed_task)
         {
@@ -686,10 +688,10 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
   { 
     uint32_t skip = get_node_properties().skip_flags;
 
-    auto share_flag = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
-    if((trx.operations[0].which() == operation::tag<contract_share_operation>::value|trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)&&(skip!=share_flag))
+    auto share_flag = database::skip_transaction_signatures|database::skip_tapos_check;
+    if((trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)&&(skip!=share_flag))
     {
-      skip = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
+      skip = database::skip_transaction_signatures|database::skip_tapos_check;
     }
     auto &chain_parameters = get_global_properties().parameters;
 
@@ -711,12 +713,23 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
     fc::time_point_sec now = head_block_time();
     auto trx_hash = trx.hash();
     auto trx_id = trx.id(trx_hash);
-    FC_ASSERT((skip & skip_transaction_dupe_check) || trx_idx.indices().get<by_trx_id>().find(trx_id) == trx_idx.indices().get<by_trx_id>().end());
+    ilog("before skip in  _apply_transaction");
+    auto tmp1 = skip & skip_transaction_dupe_check;
+    auto tmp2 = trx_idx.indices().get<by_trx_id>().find(trx_id) == trx_idx.indices().get<by_trx_id>().end();
+    ilog("tmp1: ${x}",("x",tmp1));
+    ilog("tmp2: ${x}",("x",tmp2));
+    if(trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)
+    {
+        ilog("assert nothing in  _apply_transaction");   
+    }
+    else 
+      FC_ASSERT((skip & skip_transaction_dupe_check) || trx_idx.indices().get<by_trx_id>().find(trx_id) == trx_idx.indices().get<by_trx_id>().end());
+    ilog("after skip in  _apply_transaction");
     transaction_evaluation_state eval_state(this);
     eval_state._trx = &trx;
     eval_state.run_mode = run_mode;
     eval_state.skip=skip;
-    const crontab_object *temp_crontab = nullptr;
+    const crontab_object *temp_crontab = nullptr; 
     if (!(skip & (skip_transaction_signatures | skip_authority_check)) || trx.agreed_task)
     {
       if (trx.agreed_task)
@@ -784,13 +797,24 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
         info.trx_in_block = _current_trx_in_block;
       });
     }
-    if (!(skip & skip_transaction_dupe_check))
+    if (!(skip & skip_transaction_dupe_check)||trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)
     {
-      this->create<transaction_object>([&](transaction_object &transaction) {
+       //if(trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)
+       // {
+  ilog("+++yes create  transaction_object in apply_transaction ${x}",("x",trx_hash));
+       // }
+       try{
+             this->create<transaction_object>([&](transaction_object &transaction) {
          transaction.trx_hash=trx_hash;
          transaction.trx_id = trx_id;
          transaction.trx = trx; });
+       }catch(...)
+       {
+         ilog("+++error in apply_transactionwhen create tx_object"); 
+       }
+  
     }
+    ilog("after create<transaction_object> in  _apply_transaction");
     processed_transaction ptrx(trx);
     if (only_try_permissions)
     {
@@ -802,9 +826,6 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
     uint64_t real_run_time = 0;
     auto get_runtime = operation_result_visitor_get_runtime();
     bool result_contains_error = false;
-    
-    // add auto gas
-    account_id_type last_from = account_id_type();
     for (const auto &op : ptrx.operations)
     {
       auto op_result = apply_operation(eval_state, op, eval_state.is_agreed_task);
@@ -820,23 +841,6 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
       if (op_result.which() == operation_result::tag<error_result>::value)
       {
         result_contains_error = true;
-      }
-
-      auto call_contract_condition = (op.which() == operation::tag<call_contract_function_operation>::value && op_result.which() == operation_result::tag<contract_result>::value);
-      auto transfer_condition = (op.which() == operation::tag<transfer_operation>::value && op_result.which() == operation_result::tag<void_result>::value);
-      if ( call_contract_condition || transfer_condition )
-      {
-        account_id_type op_from;
-        if( call_contract_condition ){
-          op_from = op.get<call_contract_function_operation>().caller;
-        }
-        if( transfer_condition ){
-          op_from = op.get<transfer_operation>().from;
-        }
-        if(last_from != op_from){
-          result_contains_error = auto_gas(eval_state, op_from);
-          last_from = op_from;
-        }
       }
     }
 
@@ -865,39 +869,6 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
     return ptrx;
   }
   FC_CAPTURE_AND_RETHROW((trx))
-}
-
-bool database::auto_gas(transaction_evaluation_state &eval_state, account_id_type from){
-    vector<vesting_balance_object> vbos;
-    bool result_contains_error = false;
-    auto vesting_range = get_index_type<vesting_balance_index>().indices().get<by_account>().equal_range(from);
-    std::for_each(vesting_range.first, vesting_range.second,
-                  [&vbos](const vesting_balance_object &balance) {
-                      vbos.emplace_back(balance);
-                  });
-
-     vesting_balance_withdraw_operation vesting_balance_withdraw_op;
-    fc::optional<vesting_balance_id_type> vbid = maybe_id<vesting_balance_id_type>(string(vbos.begin()->id));
-
-     if(vbid)
-    {                        
-          auto now = head_block_time();
-          auto vbo1_tmp = find_object(*vbid);
-          const vesting_balance_object *vbo1 = static_cast<const vesting_balance_object*>(vbo1_tmp);
-          vesting_balance_withdraw_op.vesting_balance = *vbid;
-          vesting_balance_withdraw_op.owner = vbo1->owner;
-          vesting_balance_withdraw_op.amount = vbo1->get_allowed_withdraw(now);
-          if( vesting_balance_withdraw_op.amount > asset(100000, asset_id_type(1)) )
-          {
-            auto op_result = apply_operation(eval_state, vesting_balance_withdraw_op);
-            if (op_result.which() == operation_result::tag<error_result>::value)
-            {
-              result_contains_error = true;
-            }
-            eval_state.operation_results.emplace_back(op_result);
-          }
-    }
-    return result_contains_error;
 }
 
 operation_result database::apply_operation(transaction_evaluation_state &eval_state, const operation &op, bool is_agreed_task)
