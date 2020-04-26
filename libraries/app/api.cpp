@@ -194,11 +194,12 @@ void pay_share_fee(contract_share_fee_operation &op_share,application *app)
   FC_ASSERT(d->GAS->options.core_exchange_rate,"GAS->options.core_exchange_rate is null");
   if (op_share.total_share_fee > 0)
   {
+    auto tmp = *d->GAS;
     const auto &total_gas = d->get_balance(pay_account, *d->GAS);
     asset require_gas(op_share.total_share_fee * d->GAS->options.core_exchange_rate->to_real(), d->GAS->id);
     if (total_gas >= require_gas)
     {
-      app->chain_database()->adjust_balance(pay_account.id, -require_gas);
+      //app->chain_database()->adjust_balance(pay_account.id, -require_gas);
       op_share.amounts.push_back(require_gas);
     }
     else
@@ -206,7 +207,7 @@ void pay_share_fee(contract_share_fee_operation &op_share,application *app)
       asset require_core = asset();
       if (total_gas.amount.value > 0)
       {
-        app->chain_database()->adjust_balance(pay_account.id, -total_gas);
+        //app->chain_database()->adjust_balance(pay_account.id, -total_gas);
         op_share.amounts.push_back(total_gas);
  
         require_core = (require_gas - total_gas) * (*d->GAS->options.core_exchange_rate);
@@ -215,9 +216,8 @@ void pay_share_fee(contract_share_fee_operation &op_share,application *app)
       {
         require_core.amount = op_share.total_share_fee;
       }
-      app->chain_database()->adjust_balance(pay_account.id, -require_core);
-      op_share.amounts.push_back(require_core);
-      ilog("in op_share.amounts had push: ${x}",("x",op_share.amounts)); 
+      //app->chain_database()->adjust_balance(pay_account.id, -require_core);
+      op_share.amounts.push_back(require_core); 
     }
   }
 }
@@ -246,7 +246,6 @@ void share(application *_app,string id)
 
     for(auto op :processed_tx.operation_results)
     {
-      ilog("op.which:${x}", ("x", op.which()));
       if(op.which() == operation_result::tag<contract_result>::value)
       {
         auto contract_ret = op.get<contract_result>();
@@ -265,7 +264,6 @@ void share(application *_app,string id)
   signed_transaction tx;
   contract_share_fee_operation  op;
   op.sharer = contract.owner; 
-  ilog("in thread op.sharer ${x}", ("x", op.sharer));
 
   //for old block which had set wrong percent
   auto user_invoke_share_percent = contract.user_invoke_share_percent;
@@ -304,7 +302,6 @@ void network_broadcast_api::broadcast_transaction_with_callback(confirmation_cal
   _callbacks[hash] = cb;
   _app.p2p_node()->broadcast_transaction(trx);
 
-  ilog("hardware_currency ${x}" ,("x",std::thread::hardware_concurrency()));
   try{
   for(operation tx_op:trx.operations)
   {  

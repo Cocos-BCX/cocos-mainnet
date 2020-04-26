@@ -332,10 +332,6 @@ processed_transaction database::_push_transaction(const signed_transaction &trx,
   // The transaction applied successfully. Merge its changes into the pending block session.
   if (push_state == transaction_push_state::re_push || mode == transaction_apply_mode::invoke_mode) //nico chang:: 引入新的过程共识，所以在invoke_mode委托模式下完成验证后，不合并数据库
   {
-     if(trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)
-        {
-           ilog("+++yes create  transaction_object in _push_transaction");
-        }
     temp_session.undo();
     this->create<transaction_object>([&](transaction_object &transaction) {
          transaction.trx_hash=processed_trx.hash();
@@ -713,18 +709,12 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
     fc::time_point_sec now = head_block_time();
     auto trx_hash = trx.hash();
     auto trx_id = trx.id(trx_hash);
-    ilog("before skip in  _apply_transaction");
-    auto tmp1 = skip & skip_transaction_dupe_check;
-    auto tmp2 = trx_idx.indices().get<by_trx_id>().find(trx_id) == trx_idx.indices().get<by_trx_id>().end();
-    ilog("tmp1: ${x}",("x",tmp1));
-    ilog("tmp2: ${x}",("x",tmp2));
     if(trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)
     {
         ilog("assert nothing in  _apply_transaction");   
     }
     else 
       FC_ASSERT((skip & skip_transaction_dupe_check) || trx_idx.indices().get<by_trx_id>().find(trx_id) == trx_idx.indices().get<by_trx_id>().end());
-    ilog("after skip in  _apply_transaction");
     transaction_evaluation_state eval_state(this);
     eval_state._trx = &trx;
     eval_state.run_mode = run_mode;
@@ -799,10 +789,6 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
     }
     if (!(skip & skip_transaction_dupe_check)||trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)
     {
-       //if(trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)
-       // {
-  ilog("+++yes create  transaction_object in apply_transaction ${x}",("x",trx_hash));
-       // }
        try{
              this->create<transaction_object>([&](transaction_object &transaction) {
          transaction.trx_hash=trx_hash;
@@ -814,7 +800,6 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
        }
   
     }
-    ilog("after create<transaction_object> in  _apply_transaction");
     processed_transaction ptrx(trx);
     if (only_try_permissions)
     {

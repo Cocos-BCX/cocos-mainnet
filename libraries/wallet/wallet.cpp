@@ -1955,7 +1955,6 @@ public:
                   signed_transaction tx;
                   
                   tx.operations.push_back(xfer_op);
-                  tx.operations.push_back(vesting_balance_withdraw_op);
                   tx.validate();
 
                   return sign_transaction(tx, broadcast);

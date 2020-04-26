@@ -279,6 +279,6 @@ FC_REFLECT_DERIVED(graphene::chain::asset_result,(graphene::chain::base_result),
 FC_REFLECT(graphene::chain::nht_affected, (affected_account)(affected_item)(action)(modified))
 FC_REFLECT(graphene::chain::contract_memo_message, (affected_account)(memo))
 FC_REFLECT(graphene::chain::contract_logger, (affected_account)(message))
-FC_REFLECT_DERIVED(graphene::chain::contract_result,(graphene::chain::base_result), (contract_id)(contract_affecteds)(real_running_time)(existed_pv)(process_value)(relevant_datasize))
+FC_REFLECT_DERIVED(graphene::chain::contract_result,(graphene::chain::base_result), (contract_id)(contract_affecteds)(real_running_time)(existed_pv)(process_value)(relevant_datasize)(sharer)(total_fees))
 FC_REFLECT_DERIVED(graphene::chain::logger_result,(graphene::chain::base_result), (message)(real_running_time))
 FC_REFLECT_DERIVED(graphene::chain::error_result,(graphene::chain::base_result), (error_code)(message)(real_running_time))
