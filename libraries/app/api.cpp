@@ -223,24 +223,28 @@ void pay_share_fee(contract_share_fee_operation &op_share,application *app)
 }
 
 
-void share(application *_app,string id,operation call_op)
+void share(application *_app,string id,operation call_operation)
 {  
   auto sleep_seconds = _app->chain_database()->get_global_properties().parameters.block_interval;
   sleep(sleep_seconds); //first sleep block inteval ,wait tx had  pushed in block
   int ret = -1;
-  auto info = _app->chain_database()->get_transaction_in_block_info(id,ret);
-  
+
+  auto d = _app->chain_database();
+  auto info = d->get_transaction_in_block_info(id,ret);
+
   while(ret == 0)
   {
     sleep(sleep_seconds); //wait another block inteval,for  not query success
-    info = _app->chain_database()->get_transaction_in_block_info(id,ret);
+    info = d->get_transaction_in_block_info(id,ret);
   }
-  ilog("++++=tx in info.block_num ${x}", ("x", info.block_num));
-  auto block = _app->chain_database()->fetch_block_by_number(info.block_num);
+  auto block =d->fetch_block_by_number(info.block_num);
   contract_id_type contract_id;
   asset share_amount;
 
   share_type core_fee_paid;
+  
+  core_fee_paid = d->current_fee_schedule().calculate_fee(call_operation).amount;
+
   for(auto block_tx : block->transactions)
   {
     auto processed_tx = block_tx.second;
@@ -252,23 +256,21 @@ void share(application *_app,string id,operation call_op)
         auto contract_ret = op.get<contract_result>();
         contract_id = contract_ret.contract_id;
         share_amount.amount = contract_ret.total_fees.amount;
+        ilog("++++=got total_fees in op_results ${x}", ("x", contract_ret.total_fees.amount)); 
         //calcute fee 
-        auto &fee_schedule_ob = _app->chain_database()->current_fee_schedule();
-        auto call_op1 = call_op.get<call_contract_function_operation>(); 
-        auto temp = call_op1.calculate_data_fee(contract_ret.relevant_datasize,10 * GRAPHENE_BLOCKCHAIN_PRECISION);
-        temp += call_op1.calculate_run_time_fee(*contract_ret.real_running_time, 10 * GRAPHENE_BLOCKCHAIN_PRECISION);
+        auto &fee_schedule_ob = d->current_fee_schedule();
+        auto call_op = call_operation.get<call_contract_function_operation>(); 
+        auto temp = call_op.calculate_data_fee(contract_ret.relevant_datasize,10 * GRAPHENE_BLOCKCHAIN_PRECISION);
+        temp += call_op.calculate_run_time_fee(*contract_ret.real_running_time, 10 * GRAPHENE_BLOCKCHAIN_PRECISION);
         auto additional_cost = fc::uint128(temp) * fee_schedule_ob.scale / GRAPHENE_100_PERCENT;
         core_fee_paid += share_type(fc::to_int64(additional_cost));
-
+        ilog("++++=calcute fees  ${x}", ("x", core_fee_paid));
         share_amount.amount = core_fee_paid;
-        //end
-        ilog("++++=got relevant_datasize in op_results ${x}", ("x", contract_ret.relevant_datasize)); 
-        ilog("++++=got total_fees in op_results ${x}", ("x", contract_ret.total_fees.amount)); 
       }
     }
   }
 
-  auto &con_index = _app->chain_database()->get_index_type<contract_index>().indices().get<by_id>();
+  auto &con_index = d->get_index_type<contract_index>().indices().get<by_id>();
   auto contract_itr = con_index.find(contract_id);
 
   contract_object contract = *contract_itr;
@@ -291,15 +293,14 @@ void share(application *_app,string id,operation call_op)
 
   pay_share_fee(op,_app);
   
-  ilog("this after compute fees in op_share ${x}", ("x", op.total_share_fee));
   tx.operations.push_back(op);
 
-  auto dyn_props = _app->chain_database()->get_dynamic_global_properties();
+  auto dyn_props = d->get_dynamic_global_properties();
   uint32_t expiration_time_offset = GRAPHENE_EXPIRATION_TIME_OFFSET;
   tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
 
   ilog("in share fee thread tx hash: ${x}",("x",tx.hash())); 
-  _app->chain_database()->push_transaction(tx, database::skip_transaction_signatures|database::skip_tapos_check, transaction_push_state::from_me);
+  d->push_transaction(tx, database::skip_transaction_signatures|database::skip_tapos_check, transaction_push_state::from_me);
   _app->p2p_node()->broadcast_transaction(tx);
 }
 
