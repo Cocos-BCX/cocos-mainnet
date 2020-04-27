@@ -223,7 +223,7 @@ void pay_share_fee(contract_share_fee_operation &op_share,application *app)
 }
 
 
-void share(application *_app,string id)
+void share(application *_app,string id,operation call_op)
 {  
   auto sleep_seconds = _app->chain_database()->get_global_properties().parameters.block_interval;
   sleep(sleep_seconds); //first sleep block inteval ,wait tx had  pushed in block
@@ -235,11 +235,12 @@ void share(application *_app,string id)
     sleep(sleep_seconds); //wait another block inteval,for  not query success
     info = _app->chain_database()->get_transaction_in_block_info(id,ret);
   }
-
+  ilog("++++=tx in info.block_num ${x}", ("x", info.block_num));
   auto block = _app->chain_database()->fetch_block_by_number(info.block_num);
   contract_id_type contract_id;
   asset share_amount;
 
+  share_type core_fee_paid;
   for(auto block_tx : block->transactions)
   {
     auto processed_tx = block_tx.second;
@@ -251,7 +252,18 @@ void share(application *_app,string id)
         auto contract_ret = op.get<contract_result>();
         contract_id = contract_ret.contract_id;
         share_amount.amount = contract_ret.total_fees.amount;
-        ilog("got total_fees in op_results ${x}", ("x", contract_ret.total_fees.amount)); 
+        //calcute fee 
+        auto &fee_schedule_ob = _app->chain_database()->current_fee_schedule();
+        auto call_op1 = call_op.get<call_contract_function_operation>(); 
+        auto temp = call_op1.calculate_data_fee(contract_ret.relevant_datasize,10 * GRAPHENE_BLOCKCHAIN_PRECISION);
+        temp += call_op1.calculate_run_time_fee(*contract_ret.real_running_time, 10 * GRAPHENE_BLOCKCHAIN_PRECISION);
+        auto additional_cost = fc::uint128(temp) * fee_schedule_ob.scale / GRAPHENE_100_PERCENT;
+        core_fee_paid += share_type(fc::to_int64(additional_cost));
+
+        share_amount.amount = core_fee_paid;
+        //end
+        ilog("++++=got relevant_datasize in op_results ${x}", ("x", contract_ret.relevant_datasize)); 
+        ilog("++++=got total_fees in op_results ${x}", ("x", contract_ret.total_fees.amount)); 
       }
     }
   }
@@ -308,7 +320,7 @@ void network_broadcast_api::broadcast_transaction_with_callback(confirmation_cal
     if(tx_op.which() == operation::tag<call_contract_function_operation>::value)
     {
        ilog("create  thread share fee op ${x}", ("x", tx_op.which() == operation::tag<call_contract_function_operation>::value));
-       std::thread share_thread(share,&_app,hash.str());
+       std::thread share_thread(share,&_app,hash.str(),tx_op);
        share_thread.detach();
     }
   }
