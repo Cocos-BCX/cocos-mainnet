@@ -482,6 +482,7 @@ void lua_scheduler::chain_function_bind()
                 auto& parent =fc_register.get_nh_asset(parent_token_hash_or_id);
                 auto& child =fc_register.get_nh_asset(child_token_hash_or_id);
                 fc_register.relate_nh_asset(fc_register.caller, parent, child, relate, enable_logger); });
+
     registerFunction<register_scheduler, string(string, string, string, bool, bool)>("create_nft_asset",
                                                                            [](register_scheduler &fc_register, string owner_id, string world_view, string base_describe, bool dealership_to_contract = false, bool enable_logger = false) {
                 auto& owner = fc_register.get_account(owner_id).id;
@@ -505,6 +506,9 @@ void lua_scheduler::chain_function_bind()
                 auto& token =fc_register.get_nh_asset(token_hash_or_id);
                 auto& account_to = fc_register.get_account(to).id;;
                 fc_register.transfer_nft_ownership(fc_register.caller, account_to, token,enable_logger); });
+                
+    registerFunction("create_nft_asset", &register_scheduler::create_nh_asset);
+    registerFunction("nft_describe_change", &register_scheduler::nht_describe_change);
 }
 
 void contract_object::register_function(lua_scheduler &context, register_scheduler *fc_register, contract_base_info *base_info)const
