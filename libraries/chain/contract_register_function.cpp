@@ -423,14 +423,14 @@ void lua_scheduler::chain_function_bind()
                                                                                  fc_register.transfer_from(fc_register.caller, to, amount, symbol, enable_logger);
                                                                              });
 
-    void(string, string, bool) transfer_nht_from_owner_func = [](register_scheduler &fc_register, string to, string token_hash_or_id, bool enable_logger = false) {
+    void(*transfer_nht_from_owner_func)(string, string, bool) = [](register_scheduler &fc_register, string to, string token_hash_or_id, bool enable_logger = false) {
                                                                          auto &token = fc_register.get_nh_asset(token_hash_or_id);
                                                                          auto &account_to = fc_register.get_account(to).id;
                                                                          fc_register.transfer_nht(fc_register.contract.owner, account_to, token, enable_logger);
                                                                      };
     registerFunction<register_scheduler, void(string, string, bool)>("transfer_nht_from_owner", transfer_nht_from_owner_func);
 
-    void(string, string, bool) transfer_nht_from_caller_func = [](register_scheduler &fc_register, string to, string token_hash_or_id, bool enable_logger = false) {
+    void(*transfer_nht_from_caller_func)(string, string, bool) = [](register_scheduler &fc_register, string to, string token_hash_or_id, bool enable_logger = false) {
                                                                          auto &token = fc_register.get_nh_asset(token_hash_or_id);
                                                                          auto &account_to = fc_register.get_account(to).id;
                                                                          fc_register.transfer_nht(fc_register.caller, account_to, token, enable_logger);
@@ -445,13 +445,13 @@ void lua_scheduler::chain_function_bind()
                                                                       return fc_register.get_account_balance(account_ob.id, asset.id);
                                                                   });
 
-    void(string, string, bool)  change_nht_active_by_owner_func = [](register_scheduler &fc_register, string beneficiary_account, string token_hash_or_id, bool enable_logger = false) {
+    void(*change_nht_active_by_owner_func)(string, string, bool)  = [](register_scheduler &fc_register, string beneficiary_account, string token_hash_or_id, bool enable_logger = false) {
                 auto& token = fc_register.get_nh_asset(token_hash_or_id);
                 auto& account_to = fc_register.get_account(beneficiary_account).id;
                 fc_register.transfer_nht_active(fc_register.contract.owner, account_to, token,enable_logger); };                                                             
     registerFunction<register_scheduler, void(string, string, bool)>("change_nht_active_by_owner", change_nht_active_by_owner_func);
 
-    void(string, string, bool) transfer_nht_active_from_caller_func = [](register_scheduler &fc_register, string to, string token_hash_or_id, bool enable_logger = false) {
+    void(*transfer_nht_active_from_caller_func)(string, string, bool) = [](register_scheduler &fc_register, string to, string token_hash_or_id, bool enable_logger = false) {
                 auto& token = fc_register.get_nh_asset(token_hash_or_id);
                 auto& account_to = fc_register.get_account(to).id;
                 fc_register.transfer_nht_active(fc_register.caller, account_to, token,enable_logger); };
@@ -469,24 +469,24 @@ void lua_scheduler::chain_function_bind()
                 fc_register.transfer_nht_ownership(fc_register.caller, account_to, token,enable_logger); });
     */
 
-    void(string, string, bool) transfer_nht_dealership_from_owner_func = [](register_scheduler &fc_register, string to, string token_hash_or_id, bool enable_logger = false) {
+    void(*transfer_nht_dealership_from_owner_func)(string, string, bool) = [](register_scheduler &fc_register, string to, string token_hash_or_id, bool enable_logger = false) {
                 auto& token =fc_register.get_nh_asset(token_hash_or_id);
                 auto& account_to = fc_register.get_account(to).id;
                 fc_register.transfer_nht_dealership(fc_register.contract.owner, account_to, token,enable_logger); };
     registerFunction<register_scheduler, void(string, string, bool)>("transfer_nht_dealership_from_owner", transfer_nht_dealership_from_owner_func);
 
-    void(string, string, bool) transfer_nht_dealership_from_caller_func = [](register_scheduler &fc_register, string to, string token_hash_or_id, bool enable_logger = false) {
+    void(*transfer_nht_dealership_from_caller_func)(string, string, bool) = [](register_scheduler &fc_register, string to, string token_hash_or_id, bool enable_logger = false) {
                 auto& token =fc_register.get_nh_asset(token_hash_or_id);
                 auto& account_to = fc_register.get_account(to).id;
                 fc_register.transfer_nht_dealership(fc_register.caller, account_to, token,enable_logger); };
     registerFunction<register_scheduler, void(string, string, bool)>("transfer_nht_dealership_from_caller", transfer_nht_dealership_from_caller_func);
 
-    void(string, string, bool, bool) set_nht_limit_list_func = [](register_scheduler &fc_register, string token_hash_or_id, string contract_name_or_ids, bool limit_type, bool enable_logger = false) {
+    void(*set_nht_limit_list_func)(string, string, bool, bool) = [](register_scheduler &fc_register, string token_hash_or_id, string contract_name_or_ids, bool limit_type, bool enable_logger = false) {
                 auto& token =fc_register.get_nh_asset(token_hash_or_id);
                 fc_register.set_nht_limit_list(fc_register.caller, token, contract_name_or_ids, limit_type, enable_logger); };
     registerFunction<register_scheduler, void(string, string, bool, bool)>("set_nht_limit_list", set_nht_limit_list_func);
 
-    void(string, string, bool, bool) relate_nh_asset_func = [](register_scheduler &fc_register, string parent_token_hash_or_id, string child_token_hash_or_id, bool relate, bool enable_logger = false) {
+    void(*relate_nh_asset_func)(string, string, bool, bool) = [](register_scheduler &fc_register, string parent_token_hash_or_id, string child_token_hash_or_id, bool relate, bool enable_logger = false) {
                 auto& parent =fc_register.get_nh_asset(parent_token_hash_or_id);
                 auto& child =fc_register.get_nh_asset(child_token_hash_or_id);
                 fc_register.relate_nh_asset(fc_register.caller, parent, child, relate, enable_logger); };
