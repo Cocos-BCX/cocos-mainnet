@@ -185,25 +185,15 @@ void register_scheduler::make_release()
 }
 
 
-void register_scheduler::update_collateral_for_gas(string from, string to, int64_t amount)
+void register_scheduler::update_collateral_for_gas(string to, int64_t amount)
 {
     try
     {
         FC_ASSERT(amount >= 0);
         share_type collateral = amount;
-        account_id_type mortgager;
-        if (from.empty()) {
-            mortgager = contract.owner;
-        } else {
-            mortgager = get_account(from).id;
-            FC_ASSERT(mortgager == contract.owner);
-        }
-        account_id_type beneficiary = mortgager;
-        if(from != to) {
-            beneficiary = get_account(to).id;
-        }
-
-        const collateral_for_gas_object *collateral_for_gas=nullptr;
+        account_id_type mortgager = caller;
+        account_id_type beneficiary = get_account(to).id;
+        const collateral_for_gas_object *collateral_for_gas = nullptr;
         auto &index = db.get_index_type<collateral_for_gas_index>().indices().get<by_mortgager_and_beneficiary>();
         auto itr = index.find(boost::make_tuple(mortgager, beneficiary));
         if (itr != index.end()) {
@@ -256,6 +246,19 @@ void register_scheduler::update_collateral_for_gas(string from, string to, int64
         });
     }
     catch (fc::exception e)
+    {
+        LUA_C_ERR_THROW(this->context.mState, e.to_string());
+    }
+}
+
+lua_map register_scheduler::get_contract_public_data(string name_or_id)
+{
+    try 
+    {
+        optional<contract_object> contract = get_contract(name_or_id);
+        return contract->contract_data;
+    } 
+    catch (fc::exception e) 
     {
         LUA_C_ERR_THROW(this->context.mState, e.to_string());
     }
@@ -404,11 +407,11 @@ void lua_scheduler::chain_function_bind()
     registerFunction("adjust_lock_asset", &register_scheduler::adjust_lock_asset);
     registerFunction("nht_describe_change", &register_scheduler::nht_describe_change);
     registerFunction("set_permissions_flag", &register_scheduler::set_permissions_flag);
-    registerFunction("set_invoke_percent", &register_scheduler::set_invoke_percent);
     registerFunction("set_invoke_share_percent", &register_scheduler::set_invoke_share_percent);
     registerFunction("invoke_contract_function", &register_scheduler::invoke_contract_function);
     registerFunction("change_contract_authority", &register_scheduler::change_contract_authority);
     registerFunction("update_collateral_for_gas", &register_scheduler::update_collateral_for_gas);
+    registerFunction("get_contract_public_data", &register_scheduler::get_contract_public_data);
     lua_register(mState, "import_contract", &import_contract);
     lua_register(mState, "get_account_contract_data", &get_account_contract_data);
     lua_register(mState, "format_vector_with_table", &format_vector_with_table);

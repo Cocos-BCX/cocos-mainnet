@@ -21,3 +21,11 @@
 #ifndef UNSUCCESSFUL_CANDIDATE_DIFFPOINT
 #define UNSUCCESSFUL_CANDIDATE_DIFFPOINT 1765771
 #endif
+// AUTO GAS
+#ifndef AUTO_GAS_TIMEPOINT
+#define AUTO_GAS_TIMEPOINT (fc::time_point_sec( 1585826672 ))
+#endif 
+// withdraw gas fee
+#ifndef WITHDRAW_GAS_TIMEPOINT
+#define WITHDRAW_GAS_TIMEPOINT (fc::time_point_sec( 1585211357 ))
+#endif

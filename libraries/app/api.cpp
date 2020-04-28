@@ -281,11 +281,6 @@ void share(application *_app,string id,operation call_operation)
 
   //for old block which had set wrong percent
   auto user_invoke_share_percent = contract.user_invoke_share_percent;
- 
-  if(contract.user_invoke_share_percent<0)
-    user_invoke_share_percent = 0;
-  else if(contract.user_invoke_share_percent>100)
-    user_invoke_share_percent = 100;
 
   auto user_invoke_creator_percent = GRAPHENE_FULL_PROPOTION-user_invoke_share_percent;
 

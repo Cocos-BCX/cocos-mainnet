@@ -43,15 +43,6 @@ object_id_result contract_create_evaluator::do_apply(const operation_type &o)
     FC_CAPTURE_AND_RETHROW((o))
 }
 
-void_result contract_share_evaluator::do_evaluate(const operation_type &o)
-{
-    return void_result(); //TODO: add verification in future
-}
-void_result contract_share_evaluator::do_apply(const operation_type &o)
-{
-   return void_result(); 
-}
-
 void_result contract_share_fee_evaluator::do_evaluate(const operation_type &o)
 {
     return void_result(); //TODO: add verification in future
@@ -198,6 +189,7 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
     core_fee_paid = user_invoke_share_fee;
 }
+
 
 contract_result call_contract_function_evaluator::do_apply_function(account_id_type caller, string function_name,vector<lua_types> value_list,
                                                                     optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys,contract_id_type  contract_id)
