@@ -177,7 +177,6 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     temp += op->calculate_run_time_fee(*result.real_running_time, op_fee.price_per_millisecond);
     auto additional_cost = fc::uint128(temp.value) * fee_schedule_ob.scale / GRAPHENE_100_PERCENT;
     core_fee_paid += share_type(fc::to_int64(additional_cost));
-    ilog("+++++should pay total fees  ${x}", ("x", core_fee_paid));
     contract_id_type db_index = result.contract_id;
     database &_db = db();
     const contract_object &contract_obj = db_index(_db); 

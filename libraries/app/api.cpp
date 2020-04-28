@@ -259,7 +259,6 @@ void share(application *_app,string id,operation call_operation)
         temp += call_op.calculate_run_time_fee(*contract_ret.real_running_time, 10 * GRAPHENE_BLOCKCHAIN_PRECISION);
         auto additional_cost = fc::uint128(temp) * fee_schedule_ob.scale / GRAPHENE_100_PERCENT;
         core_fee_paid += share_type(fc::to_int64(additional_cost));
-        ilog("+++++calcute fees in thread  ${x}", ("x", core_fee_paid));
         share_amount.amount = core_fee_paid;
       }
     }
