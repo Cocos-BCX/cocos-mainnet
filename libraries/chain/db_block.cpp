@@ -700,7 +700,7 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
       if(percent>=0 && percent<=100) //if percent out of range,just do nothing
         op_maxsize_proportion_percent = percent;
     }
-    int size = chain_parameters.maximum_block_size*op_maxsize_proportion_percent/100;
+    int size = chain_parameters.maximum_block_size*op_maxsize_proportion_percent/GRAPHENE_FULL_PROPOTION;
     FC_ASSERT(fc::raw::pack_size(trx) < size);//交易尺寸验证，单笔交易最大尺寸不能超过区块最大尺寸的百分比
     if (!(skip & skip_validate))                                                    /* issue #505 explains why this skip_flag is disabled */
       trx.validate();
@@ -811,6 +811,9 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
     uint64_t real_run_time = 0;
     auto get_runtime = operation_result_visitor_get_runtime();
     bool result_contains_error = false;
+    
+    // add auto gas
+    account_id_type last_from = account_id_type();
     for (const auto &op : ptrx.operations)
     {
       auto op_result = apply_operation(eval_state, op, eval_state.is_agreed_task);

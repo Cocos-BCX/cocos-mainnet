@@ -199,7 +199,6 @@ void pay_share_fee(contract_share_fee_operation &op_share,application *app)
     asset require_gas(op_share.total_share_fee * d->GAS->options.core_exchange_rate->to_real(), d->GAS->id);
     if (total_gas >= require_gas)
     {
-      //app->chain_database()->adjust_balance(pay_account.id, -require_gas);
       op_share.amounts.push_back(require_gas);
     }
     else
@@ -207,7 +206,6 @@ void pay_share_fee(contract_share_fee_operation &op_share,application *app)
       asset require_core = asset();
       if (total_gas.amount.value > 0)
       {
-        //app->chain_database()->adjust_balance(pay_account.id, -total_gas);
         op_share.amounts.push_back(total_gas);
  
         require_core = (require_gas - total_gas) * (*d->GAS->options.core_exchange_rate);
@@ -216,7 +214,6 @@ void pay_share_fee(contract_share_fee_operation &op_share,application *app)
       {
         require_core.amount = op_share.total_share_fee;
       }
-      //app->chain_database()->adjust_balance(pay_account.id, -require_core);
       op_share.amounts.push_back(require_core); 
     }
   }
@@ -255,8 +252,6 @@ void share(application *_app,string id,operation call_operation)
       {
         auto contract_ret = op.get<contract_result>();
         contract_id = contract_ret.contract_id;
-        share_amount.amount = contract_ret.total_fees.amount;
-        ilog("++++=got total_fees in op_results ${x}", ("x", contract_ret.total_fees.amount)); 
         //calcute fee-you cannot get total_fees from block though it not in reflect(in reflect,you can encounter compatible  problem)
         auto &fee_schedule_ob = d->current_fee_schedule();
         auto call_op = call_operation.get<call_contract_function_operation>(); 
@@ -264,7 +259,7 @@ void share(application *_app,string id,operation call_operation)
         temp += call_op.calculate_run_time_fee(*contract_ret.real_running_time, 10 * GRAPHENE_BLOCKCHAIN_PRECISION);
         auto additional_cost = fc::uint128(temp) * fee_schedule_ob.scale / GRAPHENE_100_PERCENT;
         core_fee_paid += share_type(fc::to_int64(additional_cost));
-        ilog("++++=calcute fees  ${x}", ("x", core_fee_paid));
+        ilog("+++++calcute fees in thread  ${x}", ("x", core_fee_paid));
         share_amount.amount = core_fee_paid;
       }
     }
@@ -285,9 +280,9 @@ void share(application *_app,string id,operation call_operation)
   auto user_invoke_creator_percent = GRAPHENE_FULL_PROPOTION-user_invoke_share_percent;
 
   op.total_share_fee = share_amount.amount.value*user_invoke_creator_percent/GRAPHENE_FULL_PROPOTION;
-
+ 
   pay_share_fee(op,_app);
-  
+
   tx.operations.push_back(op);
 
   auto dyn_props = d->get_dynamic_global_properties();
@@ -311,20 +306,19 @@ void network_broadcast_api::broadcast_transaction_with_callback(confirmation_cal
   _app.p2p_node()->broadcast_transaction(trx);
 
   try{
-  for(operation tx_op:trx.operations)
-  {  
-    if(tx_op.which() == operation::tag<call_contract_function_operation>::value)
-    {
-       ilog("create  thread share fee op ${x}", ("x", tx_op.which() == operation::tag<call_contract_function_operation>::value));
-       std::thread share_thread(share,&_app,hash.str(),tx_op);
-       share_thread.detach();
+    for(operation tx_op:trx.operations)
+    {  
+      if(tx_op.which() == operation::tag<call_contract_function_operation>::value)
+      {
+        ilog("create  thread share fee op ${x}", ("x", tx_op.which() == operation::tag<call_contract_function_operation>::value));
+        std::thread share_thread(share,&_app,hash.str(),tx_op);
+        share_thread.detach();
+      }
     }
   }
-}
-catch(const std::system_error &e) {
-        ilog("error  thread");
-        //std::cout << thread_count << " : " << e.code() << " meaning " << e.what() << std::endl;
-}
+  catch(const std::system_error &e) {
+    ilog("thread error code");
+  }
 }
 
 network_node_api::network_node_api(application &a, bool enable_set) : _app(a), enable_set(enable_set)
