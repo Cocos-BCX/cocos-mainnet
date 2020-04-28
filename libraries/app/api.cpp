@@ -257,7 +257,7 @@ void share(application *_app,string id,operation call_operation)
         contract_id = contract_ret.contract_id;
         share_amount.amount = contract_ret.total_fees.amount;
         ilog("++++=got total_fees in op_results ${x}", ("x", contract_ret.total_fees.amount)); 
-        //calcute fee 
+        //calcute fee-you cannot get total_fees from block though it not in reflect(in reflect,you can encounter compatible  problem)
         auto &fee_schedule_ob = d->current_fee_schedule();
         auto call_op = call_operation.get<call_contract_function_operation>(); 
         auto temp = call_op.calculate_data_fee(contract_ret.relevant_datasize,10 * GRAPHENE_BLOCKCHAIN_PRECISION);
