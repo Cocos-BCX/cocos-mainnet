@@ -486,7 +486,7 @@ void lua_scheduler::chain_function_bind()
                 fc_register.set_nht_limit_list(fc_register.caller, token, contract_name_or_ids, limit_type, enable_logger); };
     registerFunction<register_scheduler, void(string, string, bool, bool)>("set_nht_limit_list", set_nht_limit_list_func);
 
-    auot relate_nh_asset_func = [](register_scheduler &fc_register, string parent_token_hash_or_id, string child_token_hash_or_id, bool relate, bool enable_logger = false) {
+    auto relate_nh_asset_func = [](register_scheduler &fc_register, string parent_token_hash_or_id, string child_token_hash_or_id, bool relate, bool enable_logger = false) {
                 auto& parent =fc_register.get_nh_asset(parent_token_hash_or_id);
                 auto& child =fc_register.get_nh_asset(child_token_hash_or_id);
                 fc_register.relate_nh_asset(fc_register.caller, parent, child, relate, enable_logger); };
