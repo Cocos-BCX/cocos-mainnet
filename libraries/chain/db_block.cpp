@@ -290,7 +290,7 @@ processed_transaction database::_push_transaction(const signed_transaction &trx,
     if (push_state == transaction_push_state::from_me)
     {
       //get_message_send_cache_size();
-      _pending_size=std::max(_pending_size,_pending_tx.size());
+      _pending_size=std::max(_pending_size,(uint64_t)_pending_tx.size());
       if (_message_cache_size_limit)
         FC_ASSERT(_pending_size <= _message_cache_size_limit, "The number of messages cached by the current node has exceeded the maximum limit,size:${size}", ("size", _pending_size));
       mode = transaction_apply_mode::push_mode;
