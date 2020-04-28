@@ -709,11 +709,7 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
     fc::time_point_sec now = head_block_time();
     auto trx_hash = trx.hash();
     auto trx_id = trx.id(trx_hash);
-    if(trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)
-    {
-        ilog("assert nothing in  _apply_transaction");   
-    }
-    else 
+    if(trx.operations[0].which() != operation::tag<contract_share_fee_operation>::value)
       FC_ASSERT((skip & skip_transaction_dupe_check) || trx_idx.indices().get<by_trx_id>().find(trx_id) == trx_idx.indices().get<by_trx_id>().end());
     transaction_evaluation_state eval_state(this);
     eval_state._trx = &trx;
