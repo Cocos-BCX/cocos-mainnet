@@ -33,36 +33,35 @@ const nh_asset_object &register_scheduler::get_nh_asset(string hash_or_id)
     {
         LUA_C_ERR_THROW(this->context.mState, e.to_string());
     }
-} // namespace chain
-string register_scheduler::create_nh_asset(string owner_id_or_name, string symbol, string world_view, string base_describe, bool enable_logger)
+}
+
+string register_scheduler::create_nft_asset(account_id_type owner_id, account_id_type dealer_id, string world_view, string base_describe, bool enable_logger)
 {
-    auto owner_id = get_account(owner_id_or_name).get_id();
     try
     {
         const auto &nh_asset_creator_idx_by_nh_asset_creator = db.get_index_type<nh_asset_creator_index>().indices().get<by_nh_asset_creator>();
         const auto &nh_asset_creator_idx = nh_asset_creator_idx_by_nh_asset_creator.find(contract.owner);
-        FC_ASSERT(nh_asset_creator_idx != nh_asset_creator_idx_by_nh_asset_creator.end(), "contract owner isn't a nh asset creator, so you can't create nh asset.");
+
+        FC_ASSERT(nh_asset_creator_idx != nh_asset_creator_idx_by_nh_asset_creator.end(), "contract owner isn't a NFT asset creator, so you can't create a NFT asset.");
         FC_ASSERT(find(nh_asset_creator_idx->world_view.begin(), nh_asset_creator_idx->world_view.end(), world_view) != nh_asset_creator_idx->world_view.end(),
                   "contract owner don't have this world view.");
-        // Verify that if the asset exists
-        const auto &asset_idx_by_symbol = db.get_index_type<asset_index>().indices().get<by_symbol>();
-        const auto &asset_idx = asset_idx_by_symbol.find(symbol);
-        FC_ASSERT(asset_idx != asset_idx_by_symbol.end(), "The asset id is not exist.");
+
         // Verify that if the world view exists
         const auto &version_idx_by_symbol = db.get_index_type<world_view_index>().indices().get<by_world_view>();
         const auto &ver_idx = version_idx_by_symbol.find(world_view);
-        FC_ASSERT(ver_idx != version_idx_by_symbol.end(), "The world view is not exist.");
+        FC_ASSERT(ver_idx != version_idx_by_symbol.end(), "The world view does not exist.");
 
         const nh_asset_object &nh_asset_obj = db.create<nh_asset_object>([&](nh_asset_object &nh_asset) {
             nh_asset.nh_asset_owner = owner_id;
             nh_asset.nh_asset_creator = contract.owner;
             nh_asset.nh_asset_active = owner_id;
-            nh_asset.dealership = owner_id;
+            nh_asset.dealership = dealer_id;
             nh_asset.world_view = world_view;
             nh_asset.base_describe = base_describe;
             nh_asset.create_time = db.head_block_time();
             nh_asset.get_hash();
         });
+
         if (enable_logger)
         {
             graphene::chain::nht_affected contract_transaction;
@@ -74,6 +73,7 @@ string register_scheduler::create_nh_asset(string owner_id_or_name, string symbo
             contract_transaction.action = nht_affected_type::create_by;
             result.contract_affecteds.push_back(std::move(contract_transaction));
         }
+
         return string(nh_asset_obj.id);
     }
     catch (fc::exception e)
@@ -81,9 +81,15 @@ string register_scheduler::create_nh_asset(string owner_id_or_name, string symbo
         LUA_C_ERR_THROW(this->context.mState, e.to_string());
     }
 }
+
+string register_scheduler::create_nh_asset(string owner_id_or_name, string symbol, string world_view, string base_describe, bool enable_logger)
+{
+    auto owner_id = get_account(owner_id_or_name).get_id();
+    return create_nft_asset(owner_id, owner_id, world_view, base_describe, enable_logger);
+}
+
 void register_scheduler::nht_describe_change(string nht_hash_or_id, string key, string value, bool enable_logger)
 {
-
     try
     {
         auto &ob = get_nh_asset(nht_hash_or_id);
@@ -158,15 +164,17 @@ void register_scheduler::transfer_nht(account_id_type from, account_id_type acco
 {
     try
     {
-        FC_ASSERT(token.nh_asset_owner == from, "You'e not the nh asset's owner, so you can't transfer it,nh asset:${token}.", ("token", token)); //校验交易人是否为道具所有人
-        FC_ASSERT(token.nh_asset_active == from, "You don`t have the nh asset's active, so you can't transfer it,nh asset:${token}.", ("token", token));
-        FC_ASSERT(token.dealership == from, "You don`t have the nh asset's dealership, so you can't transfer it,nh asset:${token}.", ("token", token));
-        FC_ASSERT(account_to != from, "You can't transfer it to yourslef,nh asset:${token}.", ("token", token));
+        // Verify asset transfer
+        nft::assert_asset_transfer(from, account_to, token);
+        // Verify asset unlocked
+        nft::assert_asset_unlocked(from(db), token);
+
         db.modify(token, [&](nh_asset_object &g) {
             g.nh_asset_owner = account_to;
             g.nh_asset_active = account_to;
             g.dealership = account_to;
         });
+
         if (enable_logger)
         {
             graphene::chain::nht_affected contract_transaction;
@@ -205,6 +213,7 @@ void register_scheduler::transfer_nht_active(account_id_type from, account_id_ty
             contract_transaction.affected_item = token.id;
             contract_transaction.action = nht_affected_type::transfer_active_from;
             result.contract_affecteds.push_back(std::move(contract_transaction));
+
             contract_transaction.affected_account = account_to;
             contract_transaction.affected_item = token.id;
             contract_transaction.action = nht_affected_type::transfer_active_to;
@@ -216,6 +225,39 @@ void register_scheduler::transfer_nht_active(account_id_type from, account_id_ty
         LUA_C_ERR_THROW(this->context.mState, e.to_string());
     }
 }
+
+void register_scheduler::transfer_nft_ownership(account_id_type from, account_id_type account_to, const nh_asset_object &token, bool enable_logger)
+{
+    try
+    {
+        // Verify that the trader is the owner of nh asset
+        FC_ASSERT(token.nh_asset_owner == from, "You're not the NFT asset's owner, so you can't transfer its ownership, NFT asset:${token}.", ("token", token));
+        FC_ASSERT(account_to != token.nh_asset_owner, "You can't transfer it to yourslef, nh asset:${token}.", ("token", token));
+
+        // Verify asset unlocked
+        nft::assert_asset_unlocked(from(db), token);
+
+        db.modify(token, [&](nh_asset_object &g) { g.nh_asset_owner = account_to; });
+        if (enable_logger)
+        {
+            graphene::chain::nht_affected contract_transaction;
+            contract_transaction.affected_account = from;
+            contract_transaction.affected_item = token.id;
+            contract_transaction.action = nht_affected_type::transfer_owner_from;
+            result.contract_affecteds.push_back(std::move(contract_transaction));
+
+            contract_transaction.affected_account = account_to;
+            contract_transaction.affected_item = token.id;
+            contract_transaction.action = nht_affected_type::transfer_owner_to;
+            result.contract_affecteds.push_back(std::move(contract_transaction));
+        }
+    }
+    catch (fc::exception e)
+    {
+        LUA_C_ERR_THROW(this->context.mState, e.to_string());
+    }
+}
+
 /*
 // transfer of non homogeneous asset's ownership
 void register_scheduler::transfer_nht_ownership(account_id_type from, account_id_type account_to, const nh_asset_object &token, bool enable_logger)
@@ -257,8 +299,8 @@ void register_scheduler::transfer_nht_dealership(account_id_type from, account_i
     {
         // Verify that the trader is the authority account of nh asset
         FC_ASSERT(token.dealership == from, "You're not the nh asset's authority account, so you can't transfer it's authority, nh asset:${token}.", ("token", token));
-
         FC_ASSERT(account_to != from, "You can't transfer it to yourslef, nh asset:${token}.", ("token", token));
+
         db.modify(token, [&](nh_asset_object &g) { g.dealership = account_to; });
         if (enable_logger)
         {
@@ -286,6 +328,7 @@ void register_scheduler::set_nht_limit_list(account_id_type nht_owner, const nh_
     {
         // Verify that the trader is the owner of nh asset and the nht must not be leasing.
         FC_ASSERT(token.nh_asset_owner == nht_owner && token.nh_asset_owner == token.nh_asset_active, "You must be the nh asset's owner, and the nht must not be leasing, nh asset:${token}.", ("token", token));
+
         auto temp_object = token;
         limit_type ? temp_object.limit_type = nh_asset_lease_limit_type::white_list : temp_object.limit_type = nh_asset_lease_limit_type::black_list;
         if (temp_object.limit_type != token.limit_type)
@@ -386,5 +429,55 @@ void register_scheduler::relate_nh_asset(account_id_type nht_creator, const nh_a
         LUA_C_ERR_THROW(this->context.mState, e.to_string());
     }
 }
+
+void register_scheduler::adjust_lock_nft_asset(const nh_asset_object &token, bool lock_or_unlock)
+{
+    try
+    {
+        auto contract_owner = contract.owner(db);
+        auto contract_id = contract.get_id();
+        auto nft_asset_id = token.get_id();
+
+        // Verify if the contract owner owns the NFT asset
+        FC_ASSERT( token.nh_asset_owner == contract_owner.get_id(), "The contract owner doesn't own the NFT token, token:${token}", ("token", token));
+
+        vector<nh_asset_id_type> nft_locked = contract_owner.asset_locked.nft_locked;
+        vector<nh_asset_id_type>::iterator find_pos = std::find(nft_locked.begin(), nft_locked.end(), nft_asset_id);
+        bool is_already_locked = (find_pos != nft_locked.end());
+
+        vector<nh_asset_id_type> contract_nft_lock_details = contract_owner.asset_locked.contract_nft_lock_details[contract_id];
+        if (lock_or_unlock)
+        {
+            // to lock
+            FC_ASSERT( !is_already_locked, "The NFT token has already been locked somewhere, token:${token}", ("token", token));
+
+            nft_locked.push_back(nft_asset_id);
+            contract_nft_lock_details.push_back(nft_asset_id);
+        }
+        else
+        {
+            // to unlock
+            FC_ASSERT( is_already_locked, "The NFT token has not be locked anywhere, token:${token}", ("token", token));
+
+            vector<nh_asset_id_type>::iterator contract_find_pos = std::find(contract_nft_lock_details.begin(), contract_nft_lock_details.end(), nft_asset_id);
+            FC_ASSERT( contract_find_pos != contract_nft_lock_details.end(), "The NFT token has already been locked by some other contract, token:${token}", ("token", token));
+
+            nft_locked.erase(find_pos);
+            contract_nft_lock_details.erase(contract_find_pos);
+        }
+
+        // update locked asset
+        contract_owner.asset_locked.nft_locked = nft_locked;
+        contract_owner.asset_locked.contract_nft_lock_details[contract_id] = contract_nft_lock_details;
+        db.modify(contract.owner(db), [&](account_object &ac) {
+            ac.asset_locked = contract_owner.asset_locked;
+        });
+    }
+    catch (fc::exception e)
+    {
+        LUA_C_ERR_THROW(this->context.mState, e.to_string());
+    }
+}
+
 } // namespace chain
 } // namespace graphene
