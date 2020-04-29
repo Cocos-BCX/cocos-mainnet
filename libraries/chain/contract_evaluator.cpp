@@ -49,6 +49,38 @@ void_result contract_share_fee_evaluator::do_evaluate(const operation_type &o)
 }
 void_result contract_share_fee_evaluator::do_apply(const operation_type &o)
 {
+  database &d = db();
+  auto pay_account = o.sharer(d);
+
+  FC_ASSERT(d.GAS->options.core_exchange_rate,"GAS->options.core_exchange_rate is null");
+  if (o.total_share_fee > 0)
+  {
+    const auto &total_gas = d.get_balance(pay_account, *d.GAS);
+    asset require_gas(o.total_share_fee * d.GAS->options.core_exchange_rate->to_real(), d.GAS->id);
+    //const asset total_gas = require_gas;
+    if (total_gas >= require_gas)
+    {
+      d.adjust_balance(o.sharer,-require_gas);
+      //o.amounts.push_back(require_gas);
+    }
+    else
+    {
+      asset require_core = asset();
+      if (total_gas.amount.value > 0)
+      {
+        d.adjust_balance(o.sharer, -total_gas);
+        //o.amounts.push_back(total_gas);
+ 
+        require_core = (require_gas - total_gas) * (*d.GAS->options.core_exchange_rate);
+      }
+      else
+      {
+        require_core.amount = o.total_share_fee;
+      }
+      d.adjust_balance(o.sharer, -require_core);
+      //o.amounts.push_back(require_core);
+    }
+  }
    return void_result(); 
 }
 
@@ -145,18 +177,11 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     temp += op->calculate_run_time_fee(*result.real_running_time, op_fee.price_per_millisecond);
     auto additional_cost = fc::uint128(temp.value) * fee_schedule_ob.scale / GRAPHENE_100_PERCENT;
     core_fee_paid += share_type(fc::to_int64(additional_cost));
-
     contract_id_type db_index = result.contract_id;
     database &_db = db();
     const contract_object &contract_obj = db_index(_db); 
-    result.sharer = contract_obj.owner; 
-    result.total_fees.amount = core_fee_paid;
 
-    auto invoke_percent = 0;
-
-    invoke_percent = contract_obj.user_invoke_share_percent;
-      
-    auto user_invoke_share_fee =  core_fee_paid*invoke_percent/100;
+    auto user_invoke_share_fee =  core_fee_paid*contract_obj.user_invoke_share_percent/GRAPHENE_FULL_PROPOTION;
     user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
     core_fee_paid = user_invoke_share_fee;
 }
