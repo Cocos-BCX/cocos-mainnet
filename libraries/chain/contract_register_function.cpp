@@ -486,13 +486,11 @@ void lua_scheduler::chain_function_bind()
                 fc_register.set_nht_limit_list(fc_register.caller, token, contract_name_or_ids, limit_type, enable_logger); };
     registerFunction<register_scheduler, void(string, string, bool, bool)>("set_nht_limit_list", set_nht_limit_list_func);
 
-    auto relate_nh_asset_func = [](register_scheduler &fc_register, string parent_token_hash_or_id, string child_token_hash_or_id, bool relate, bool enable_logger = false) {
+    auot relate_nh_asset_func = [](register_scheduler &fc_register, string parent_token_hash_or_id, string child_token_hash_or_id, bool relate, bool enable_logger = false) {
                 auto& parent =fc_register.get_nh_asset(parent_token_hash_or_id);
                 auto& child =fc_register.get_nh_asset(child_token_hash_or_id);
                 fc_register.relate_nh_asset(fc_register.caller, parent, child, relate, enable_logger); };
     registerFunction<register_scheduler, void(string, string, bool, bool)>("relate_nh_asset", relate_nh_asset_func);
-
-<<<<<<< HEAD
 
     registerFunction<register_scheduler, string(string, string, string, bool, bool)>("create_nft_asset",
                                                                            [](register_scheduler &fc_register, string owner_id, string world_view, string base_describe, bool dealership_to_contract = false, bool enable_logger = false) {
@@ -518,9 +516,6 @@ void lua_scheduler::chain_function_bind()
                 auto& account_to = fc_register.get_account(to).id;;
                 fc_register.transfer_nft_ownership(fc_register.caller, account_to, token,enable_logger); });
                 
-=======
->>>>>>> fix type
-    registerFunction("create_nft_asset", &register_scheduler::create_nh_asset);
     registerFunction("nft_describe_change", &register_scheduler::nht_describe_change);
 
     registerFunction<register_scheduler, void(string, string, bool)> ("transfer_nft_from_owner", transfer_nht_from_owner_func);
