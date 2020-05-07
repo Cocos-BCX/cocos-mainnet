@@ -181,7 +181,8 @@ void database::reindex(fc::path data_dir,int roll_back_at_height)
             _undo_db.disable();
         int progrees0=0;
         double progrees1;
-        for (uint32_t i = head_block_num() + 1; i <= last_block_num; ++i)
+
+        for (uint32_t i = head_block_num() + 1; i <= last_block->block_num(); ++i)
         {
             if (i % 10000 == 0)
             {   
@@ -195,7 +196,7 @@ void database::reindex(fc::path data_dir,int roll_back_at_height)
                 }
             }
             fc::optional<signed_block> block = _block_id_to_block.fetch_by_number(i);
-            if (!block.valid())
+            if (!block.valid()||(i>last_block_num&&roll_back_at_height))
             {
                 wlog("Reindexing terminated due to gap:  Block ${i} does not exist!", ("i", i));
                 uint32_t dropped_count = 0;
