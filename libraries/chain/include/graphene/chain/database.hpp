@@ -496,6 +496,7 @@ class database : public db::object_database
     processed_transaction apply_transaction(const signed_transaction &trx, uint32_t skip = skip_nothing, transaction_apply_mode run_mode = transaction_apply_mode::apply_block_mode);
     operation_result apply_operation(transaction_evaluation_state &eval_state, const operation &op, bool is_agreed_task = false);
     void auto_gas(transaction_evaluation_state &eval_state, account_id_type from);
+    void set_op_percent(const boost::program_options::variables_map& options);
 
   private:
     void _apply_block(const signed_block &next_block);
@@ -578,6 +579,7 @@ class database : public db::object_database
      const asset_object *core=nullptr;
      const asset_object *GAS=nullptr;
      const boost::program_options::variables_map *_options = nullptr;
+     int op_percent;
 };
 
 namespace detail

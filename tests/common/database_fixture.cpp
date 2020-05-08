@@ -115,6 +115,8 @@ database_fixture::database_fixture()
          db->open(data_dir->path(), [this]{return genesis_state;}, "test");
       }
 
+      db->set_op_percent(options); 
+
       ahplugin->plugin_set_app(&app);
       ahplugin->plugin_initialize(options);
 
