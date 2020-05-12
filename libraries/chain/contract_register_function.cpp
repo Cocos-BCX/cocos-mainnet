@@ -518,7 +518,7 @@ void lua_scheduler::chain_function_bind()
 
     registerFunction<register_scheduler, string(string)>("get_nft_asset",
                                                                      [](register_scheduler &fc_register, string hash_or_id) {
-                auto& token =fc_register.get_nh_asset(token_hash_or_id);
+                auto& token =fc_register.get_nh_asset(hash_or_id);
                 try{
                     return  fc::json::to_string(token);
                 }
