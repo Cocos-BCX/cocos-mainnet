@@ -524,7 +524,7 @@ void lua_scheduler::chain_function_bind()
                 }
                 catch (fc::exception e)
                 {
-                    LUA_C_ERR_THROW(this->context.mState, e.to_string());
+                    LUA_C_ERR_THROW(fc_register.context.mState, e.to_string());
                 }
                 return ""; });                
 }
