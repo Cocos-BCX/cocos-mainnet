@@ -515,8 +515,7 @@ void lua_scheduler::chain_function_bind()
                 catch (fc::exception e)
                 {
                     LUA_C_ERR_THROW(fc_register.context.mState, e.to_string());
-                }
-                return ""; });                
+                }});                
 }
 
 void contract_object::register_function(lua_scheduler &context, register_scheduler *fc_register, contract_base_info *base_info)const
