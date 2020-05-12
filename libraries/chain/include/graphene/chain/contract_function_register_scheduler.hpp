@@ -37,6 +37,7 @@ struct register_scheduler
     lua_Number nummin();
     lua_Number nummax();
     const nh_asset_object& get_nh_asset(string hash_or_id);
+    string get_nh_asset_str(string hash_or_id);
     string hash256(string source);
     string hash512(string source);
     uint32_t head_block_time();
