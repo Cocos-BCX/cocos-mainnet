@@ -188,5 +188,38 @@ void_result committee_member_update_global_parameters_evaluator::do_apply(const 
    FC_CAPTURE_AND_RETHROW((o))
 }
 
+
+void_result update_global_property_extensions_evaluator::do_evaluate(const update_global_property_extensions_operation &o)
+{
+   try
+   {
+      FC_ASSERT(trx_state->is_agreed_task);
+
+      return void_result();
+   }
+   FC_CAPTURE_AND_RETHROW((o))
+}
+
+void_result update_global_property_extensions_evaluator::do_apply(const update_global_property_extensions_operation &o)
+{
+   try
+   {
+      auto &_db=db();
+      auto&cp=_db.get_chain_properties();
+      FC_ASSERT(o.new_parameters.witness_number_of_vote > 0 &&
+                o.new_parameters.witness_number_of_vote <= _db.get_index_type<witness_index>().indices().size());
+      FC_ASSERT(o.new_parameters.committee_number_of_vote > 0&&
+                o.new_parameters.committee_number_of_vote <= _db.get_index_type<committee_member_index>().indices().size());
+
+      auto &gpe =_db.get_global_property_extensions();
+      _db.modify(gpe, [&o](global_property_extensions_object &p) {
+         p = o.new_parameters;
+      });
+
+      return void_result();
+   }
+   FC_CAPTURE_AND_RETHROW((o))
+}
+
 } // namespace chain
 } // namespace graphene
