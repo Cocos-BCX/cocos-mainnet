@@ -24,6 +24,7 @@
 #pragma once
 #include <graphene/chain/protocol/base.hpp>
 #include <graphene/chain/protocol/chain_parameters.hpp>
+// #include <graphene/chain/global_property_object.hpp>
 
 namespace graphene { namespace chain { 
 
@@ -87,14 +88,33 @@ namespace graphene { namespace chain {
 
    /// TODO: committee_member_resign_operation : public base_operation
 
+   struct update_global_property_extensions_operation : public base_operation
+   {
+      struct fee_parameters_type { uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION; };
+
+      uint16_t witness_max_votes        = GRAPHENE_DEFAULT_WITNESSE_NUMBER;
+      uint16_t committee_max_votes      = GRAPHENE_DEFAULT_COMMITTEE_NUMBER;
+      uint64_t contract_private_data_size    = 3L * 1024;
+      uint64_t contract_total_data_size      = 10L * 1024 * 1024;
+      uint64_t contract_max_data_size        = 2L * 1024 * 1024 * 1024;
+      optional<m_extensions_type>  extensions;
+
+      account_id_type fee_payer()const { return account_id_type(); }
+      void            validate()const { }
+   };
+
 } } // graphene::chain
 FC_REFLECT( graphene::chain::committee_member_create_operation::fee_parameters_type, (fee) )
 FC_REFLECT( graphene::chain::committee_member_update_operation::fee_parameters_type, (fee) )
 FC_REFLECT( graphene::chain::committee_member_update_global_parameters_operation::fee_parameters_type, (fee) )
+FC_REFLECT( graphene::chain::update_global_property_extensions_operation::fee_parameters_type, (fee) )
 
 
 FC_REFLECT( graphene::chain::committee_member_create_operation,
             (committee_member_account)(url) )
 FC_REFLECT( graphene::chain::committee_member_update_operation,
             (committee_member)(committee_member_account)(new_url)(work_status))
-FC_REFLECT( graphene::chain::committee_member_update_global_parameters_operation, (new_parameters) );
+FC_REFLECT( graphene::chain::committee_member_update_global_parameters_operation, (new_parameters) )
+FC_REFLECT( graphene::chain::update_global_property_extensions_operation, 
+            (witness_max_votes)(committee_max_votes)(contract_private_data_size)
+            (contract_total_data_size)(contract_max_data_size)(extensions) )

@@ -312,6 +312,9 @@ class wallet_api
        */
     global_property_object get_global_properties() const;
 
+
+    global_property_extensions_object get_global_extensions_properties() const;
+
     /** Returns the block chain's rapidly-changing properties.
        * The returned object contains information that changes every block interval
        * such as the head block number, the next witness, etc.
@@ -1280,6 +1283,12 @@ class wallet_api
         fc::optional<proposal_id_type>proposal_base,
         bool broadcast = false);
 
+    pair<tx_hash_type, signed_transaction> propose_extensions_parameter_change(
+        const string &proposing_account,
+        fc::time_point_sec expiration_time,
+        const variant_object &changed_values,
+        bool broadcast = false);
+
     /** Approve or disapprove a proposal.
        *
        * @param fee_paying_account The account paying the fee for the op.
@@ -1497,7 +1506,7 @@ FC_API(graphene::wallet::wallet_api,
        (register_nh_asset_creator)(create_world_view)(propose_relate_world_view)(create_nh_asset)(list_nh_asset_by_creator)(list_account_nh_asset)(transfer_nh_asset)(get_nh_creator)(delete_nh_asset)(create_nh_asset_order)(list_nh_asset_order)(cancel_nh_asset_order)(fill_nh_asset_order)(list_account_nh_asset_order)
        //(relate_nh_asset)
        //file
-       (create_file)(add_file_relate_account)(file_signature)(propose_relate_parent_file)(list_account_created_file)(lookup_file)
+       (create_file)(add_file_relate_account)(file_signature)(propose_relate_parent_file)(list_account_created_file)(lookup_file)(propose_extensions_parameter_change)
        // crontab
        (create_crontab)(cancel_crontab)(list_account_crontab)(crontab_builder_transaction)(recover_crontab)(set_node_message_send_cache_size)(set_node_deduce_in_verification_mode)
        //gas
@@ -1505,6 +1514,6 @@ FC_API(graphene::wallet::wallet_api,
        /*nico end*/
        (list_assets)(list_asset_restricted_objects)(asset_update_restricted_list)(import_key)(import_balance)(suggest_brain_key)(suggest_brain_address_key)(derive_owner_keys_from_brain_key)(register_account)(upgrade_account)(create_account_with_brain_key)(sell_asset)(sell)(buy)(borrow_asset)(cancel_order)(transfer)(transfer2)(get_transaction_id)(create_asset)(update_asset)(update_bitasset)(update_asset_feed_producers)(publish_asset_feed)(issue_asset)(get_asset)(get_bitasset_data)(reserve_asset)(global_settle_asset)(settle_asset)(bid_collateral)
        //(whitelist_account)
-       (create_committee_member)(update_committee_member)(get_witness)(get_committee_member)(list_witnesses)(list_committee_members)(create_witness)(update_witness)(get_vesting_balances)(withdraw_vesting)(vote_for_committee_member)(vote_for_witness)(get_account)(get_account_id)(get_block)(get_block_by_id)(get_account_count)(get_account_history)(get_relative_account_history)(get_collateral_bids)(is_public_key_registered)(get_market_history)(get_global_properties)(get_dynamic_global_properties)(get_object)(get_private_key)
+       (create_committee_member)(update_committee_member)(get_witness)(get_committee_member)(list_witnesses)(list_committee_members)(create_witness)(update_witness)(get_vesting_balances)(withdraw_vesting)(vote_for_committee_member)(vote_for_witness)(get_account)(get_account_id)(get_block)(get_block_by_id)(get_account_count)(get_account_history)(get_relative_account_history)(get_collateral_bids)(is_public_key_registered)(get_market_history)(get_global_properties)(get_global_extensions_properties)(get_dynamic_global_properties)(get_object)(get_private_key)
        //
        (load_wallet_file)(quit)(normalize_brain_key)(get_limit_orders)(get_call_orders)(get_settle_orders)(save_wallet_file)(serialize_transaction)(sign_transaction)(get_prototype_operation_by_name)(get_prototype_operation_by_idx)(propose_parameter_change)(propose_fee_change)(approve_proposal)(dbg_push_blocks)(dbg_generate_blocks)(dbg_stream_json_objects)(dbg_update_object)(network_add_nodes)(network_get_connected_peers)(sign_memo)(read_memo)(set_key_label)(get_key_label)(get_public_key)(get_order_book))
