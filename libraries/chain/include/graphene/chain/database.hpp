@@ -45,7 +45,7 @@
 #include <lua_extern.hpp>
 #include <graphene/chain/protocol/lua_scheduler.hpp>
 #include <boost/program_options.hpp>
-#include <graphene/chain/protocol/block.hpp>
+// #include <graphene/chain/protocol/block.hpp>
 
 using namespace boost::program_options;
 

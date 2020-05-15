@@ -202,7 +202,7 @@ void database::initialize_evaluators()
     register_evaluator<crontab_recover_evaluator>();
     register_evaluator<update_collateral_for_gas_evaluator>();
 
-    register_evaluator<update_global_property_extensions_evaluator>();
+    // register_evaluator<update_global_property_extensions_evaluator>();
 }
 
 void database::initialize_indexes()
@@ -707,11 +707,7 @@ void database::initialize_luaVM()
 void database::init_global_property_extensions()
 {
     // Create global extensions properties
-    std::map<std::string, std::string> params;
-    params["witness_max_votes"] = "11";
-    params["committee_max_votes"] = "11";
     create<global_property_extensions_object>([&](global_property_extensions_object &p) {
-        // p.parameters = params;
         p.witness_number_of_vote = GRAPHENE_DEFAULT_WITNESSE_NUMBER;
         p.committee_number_of_vote = GRAPHENE_DEFAULT_COMMITTEE_NUMBER;
     });

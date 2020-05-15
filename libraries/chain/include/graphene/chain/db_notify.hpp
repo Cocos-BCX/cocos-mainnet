@@ -243,7 +243,7 @@ struct get_impacted_account_visitor
              _impacted.insert(op.beneficiary);
       }
       void operator()(const account_authentication_operation&op){}
-      void operator()(const update_global_property_extensions_operation& op){}
+      // void operator()(const update_global_property_extensions_operation& op){}
 };
 
 } // namespace chain
