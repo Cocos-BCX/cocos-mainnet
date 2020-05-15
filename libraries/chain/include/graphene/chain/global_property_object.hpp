@@ -144,9 +144,7 @@ namespace graphene { namespace chain {
          uint64_t contract_private_data_size    = 3 * 1024;
          uint64_t contract_total_data_size      = 10 * 1024 * 1024;
          uint64_t contract_max_data_size        = 2 * 1024 * 1024 * 1024;
-         optional<m_extensions_type>  m_extensions;
-         optional<extensions_type>    extensions;
-
+         optional<std::map<std::string, std::string>>  extensions;
    };
 }}
 
@@ -182,6 +180,5 @@ FC_REFLECT_DERIVED( graphene::chain::global_property_extensions_object, (graphen
                   (contract_private_data_size)
                   (contract_total_data_size)
                   (contract_max_data_size)
-                  (m_extensions)
                   (extensions)
                   )

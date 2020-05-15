@@ -109,8 +109,8 @@ namespace graphene { namespace chain {
             crontab_recover_operation,                               //53
             update_collateral_for_gas_operation,                     //54
             account_authentication_operation,                        //55
-            contract_share_fee_operation                            //56
-            // update_global_property_extensions_operation              //57
+            contract_share_fee_operation,                            //56
+            update_global_property_extensions_operation              //57
          > operation;
 
    /// @} // operations group

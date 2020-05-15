@@ -201,8 +201,7 @@ void database::initialize_evaluators()
     register_evaluator<crontab_cancel_evaluator>();
     register_evaluator<crontab_recover_evaluator>();
     register_evaluator<update_collateral_for_gas_evaluator>();
-
-    // register_evaluator<update_global_property_extensions_evaluator>();
+    register_evaluator<update_global_property_extensions_evaluator>();
 }
 
 void database::initialize_indexes()

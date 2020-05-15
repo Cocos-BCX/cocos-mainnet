@@ -24,7 +24,7 @@
 #pragma once
 #include <graphene/chain/protocol/base.hpp>
 #include <graphene/chain/protocol/chain_parameters.hpp>
-// #include <graphene/chain/global_property_object.hpp>
+#include <graphene/chain/global_property_object.hpp>
 
 namespace graphene { namespace chain { 
 
@@ -88,20 +88,27 @@ namespace graphene { namespace chain {
 
    /// TODO: committee_member_resign_operation : public base_operation
 
-   // struct update_global_property_extensions_operation : public base_operation
-   // {
-   //    struct fee_parameters_type { uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION; };
-   //    global_property_extensions_object  new_parameters;
+   struct update_global_property_extensions_operation : public base_operation
+   {
+      struct fee_parameters_type { uint64_t fee = GRAPHENE_BLOCKCHAIN_PRECISION; };
+      global_property_extensions_object  new_parameters;
+      // uint16_t witness_votes;
+      // uint16_t committee_votes;
+      // uint64_t contract_private_data_size;
+      // uint64_t contract_total_data_size;
+      // uint64_t contract_max_data_size;
 
-   //    account_id_type fee_payer()const { return account_id_type(); }
-   //    void            validate()const;
-   // };
+      // optional<std::map<std::string, std::string>>  extensions;
+
+      account_id_type fee_payer()const { return account_id_type(); }
+      void            validate()const;
+   };
 
 } } // graphene::chain
 FC_REFLECT( graphene::chain::committee_member_create_operation::fee_parameters_type, (fee) )
 FC_REFLECT( graphene::chain::committee_member_update_operation::fee_parameters_type, (fee) )
 FC_REFLECT( graphene::chain::committee_member_update_global_parameters_operation::fee_parameters_type, (fee) )
-// FC_REFLECT( graphene::chain::update_global_property_extensions_operation::fee_parameters_type, (fee) )
+FC_REFLECT( graphene::chain::update_global_property_extensions_operation::fee_parameters_type, (fee) )
 
 
 FC_REFLECT( graphene::chain::committee_member_create_operation,
@@ -109,4 +116,12 @@ FC_REFLECT( graphene::chain::committee_member_create_operation,
 FC_REFLECT( graphene::chain::committee_member_update_operation,
             (committee_member)(committee_member_account)(new_url)(work_status))
 FC_REFLECT( graphene::chain::committee_member_update_global_parameters_operation, (new_parameters) )
-// FC_REFLECT( graphene::chain::update_global_property_extensions_operation, (new_parameters) )
+FC_REFLECT( graphene::chain::update_global_property_extensions_operation,
+            (new_parameters)
+            // (witness_votes)
+            // (committee_votes)
+            // (contract_private_data_size)
+            // (contract_total_data_size)
+            // (contract_max_data_size)
+            // (extensions)
+         )
