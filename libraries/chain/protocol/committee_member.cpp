@@ -44,10 +44,4 @@ void committee_member_update_global_parameters_operation::validate() const
    new_parameters.validate();
 }
 
-void update_global_property_extensions_operation::validate() const
-{
-
-   // new_parameters.validate();
-}
-
 } } // graphene::chain
