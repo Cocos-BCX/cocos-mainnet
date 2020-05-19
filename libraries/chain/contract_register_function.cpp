@@ -143,6 +143,14 @@ lua_Number register_scheduler::nummin()
 {
     return std::numeric_limits<lua_Number>::min();
 }
+int64_t register_scheduler::integermax()
+{
+    return LUA_MAXINTEGER;
+}
+int64_t register_scheduler::integermin()
+{
+    return LUA_MININTEGER;
+}
 uint32_t register_scheduler::head_block_time()
 {
     return db.head_block_time().sec_since_epoch();
@@ -393,6 +401,8 @@ void lua_scheduler::chain_function_bind()
     registerFunction("log", &register_scheduler::log);
     registerFunction("number_max", &register_scheduler::nummax);
     registerFunction("number_min", &register_scheduler::nummin);
+    registerFunction("integer_max", &register_scheduler::integermax);
+    registerFunction("integer_min", &register_scheduler::integermin);
     registerFunction("real_time", &register_scheduler::real_time);
     registerFunction("time", &register_scheduler::head_block_time);
     registerFunction("hash256", &register_scheduler::hash256);
@@ -526,6 +536,17 @@ void lua_scheduler::chain_function_bind()
     registerFunction<register_scheduler, void(string, string, bool)>("transfer_nft_dealership_from_caller", transfer_nht_dealership_from_caller_func);
     registerFunction<register_scheduler, void(string, string, bool, bool)>("set_nft_limit_list", set_nht_limit_list_func);
     registerFunction<register_scheduler, void(string, string, bool, bool)>("relate_nft_asset", relate_nh_asset_func);              
+
+    registerFunction<register_scheduler, string(string)>("get_nft_asset",
+                                                                     [](register_scheduler &fc_register, string hash_or_id) {
+                auto& token =fc_register.get_nh_asset(hash_or_id);
+                try{
+                    return  fc::json::to_string(token);
+                }
+                catch (fc::exception e)
+                {
+                    LUA_C_ERR_THROW(fc_register.context.mState, e.to_string());
+                }});                
 }
 
 void contract_object::register_function(lua_scheduler &context, register_scheduler *fc_register, contract_base_info *base_info)const
