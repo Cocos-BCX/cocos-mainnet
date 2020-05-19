@@ -505,6 +505,17 @@ void lua_scheduler::chain_function_bind()
                 auto& token =fc_register.get_nh_asset(token_hash_or_id);
                 auto& account_to = fc_register.get_account(to).id;;
                 fc_register.transfer_nft_ownership(fc_register.caller, account_to, token,enable_logger); });
+
+    registerFunction<register_scheduler, string(string)>("get_nft_asset",
+                                                                     [](register_scheduler &fc_register, string hash_or_id) {
+                auto& token =fc_register.get_nh_asset(hash_or_id);
+                try{
+                    return  fc::json::to_string(token);
+                }
+                catch (fc::exception e)
+                {
+                    LUA_C_ERR_THROW(fc_register.context.mState, e.to_string());
+                }});                
 }
 
 void contract_object::register_function(lua_scheduler &context, register_scheduler *fc_register, contract_base_info *base_info)const
