@@ -708,8 +708,8 @@ void database::init_global_property_extensions()
 {
     // Create global extensions properties
     create<global_property_extensions_object>([&](global_property_extensions_object &p) {
-        p.witness_number_of_vote = GRAPHENE_DEFAULT_WITNESSE_NUMBER;
-        p.committee_number_of_vote = GRAPHENE_DEFAULT_COMMITTEE_NUMBER;
+        p.witness_max_votes = GRAPHENE_DEFAULT_WITNESSE_NUMBER;
+        p.committee_max_votes = GRAPHENE_DEFAULT_COMMITTEE_NUMBER;
     });
 }
 

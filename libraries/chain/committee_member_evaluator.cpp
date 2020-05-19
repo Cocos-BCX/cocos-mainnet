@@ -204,17 +204,21 @@ void_result update_global_property_extensions_evaluator::do_apply(const update_g
 {
    try
    {
-      auto &_db=db();
-      auto&cp=_db.get_chain_properties();
-      // FC_ASSERT(o.new_parameters.witness_number_of_vote > 0 &&
-      //           o.new_parameters.witness_number_of_vote <= _db.get_index_type<witness_index>().indices().size());
-      // FC_ASSERT(o.new_parameters.committee_number_of_vote > 0&&
-      //           o.new_parameters.committee_number_of_vote <= _db.get_index_type<committee_member_index>().indices().size());
+      auto&_db = db();
+      auto& cp = _db.get_chain_properties();
+      FC_ASSERT(o.witness_max_votes > 0 &&
+                o.witness_max_votes <= _db.get_index_type<witness_index>().indices().size());
+      FC_ASSERT(o.committee_max_votes > 0&&
+                o.committee_max_votes <= _db.get_index_type<committee_member_index>().indices().size());
 
-      // auto &gpe =_db.get_global_property_extensions();
-      // _db.modify(gpe, [&o](global_property_extensions_object &p) {
-      //    p = o.new_parameters;
-      // });
+      auto &gpe =_db.get_global_property_extensions();
+      _db.modify(gpe, [&o](global_property_extensions_object &p) {
+         p.witness_max_votes = o.witness_max_votes;
+         p.committee_max_votes = o.committee_max_votes;
+         p.contract_max_data_size = o.contract_max_data_size;
+         p.contract_private_data_size = o.contract_private_data_size;
+         p.contract_total_data_size = o.contract_total_data_size;
+      });
 
       return void_result();
    }

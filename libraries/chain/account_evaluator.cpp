@@ -276,8 +276,8 @@ void_result account_update_evaluator::do_evaluate(const account_update_operation
                         uint16_t committee_number_of_vote = GRAPHENE_DEFAULT_COMMITTEE_NUMBER;
                         if (d.find(global_property_extensions_id_type())) {
                               auto property_extensions = d.get_global_property_extensions();
-                              witness_number_of_vote = property_extensions.witness_number_of_vote;
-                              committee_number_of_vote = property_extensions.committee_number_of_vote;
+                              witness_number_of_vote = property_extensions.witness_max_votes;
+                              committee_number_of_vote = property_extensions.committee_max_votes;
                         }
                         FC_ASSERT(num_witness <= witness_number_of_vote, "Voted for more witnesses than currently allowed (${c})",
                               ("c", witness_number_of_vote));

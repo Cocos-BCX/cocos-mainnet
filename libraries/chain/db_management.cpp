@@ -341,9 +341,7 @@ void database::open(
         if (find(global_property_id_type()))
             update_genesis_extensions(genesis_loader());
 
-        wlog("[test][init] global_property_extensions_id_type3: ${id}, ", ("id", "2.15.0"));
         if (!find(global_property_extensions_id_type())) {
-            wlog("[test][init] global_property_extensions_id_type4: ${id}, ", ("id", "2.15.0"));
             init_global_property_extensions();
         }
 
