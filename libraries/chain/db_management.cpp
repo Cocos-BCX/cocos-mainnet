@@ -341,7 +341,9 @@ void database::open(
         if (find(global_property_id_type()))
             update_genesis_extensions(genesis_loader());
 
+        ilog("init global property extensions");
         if (!find(global_property_extensions_id_type())) {
+            ilog("init global property extensions ${id}", ("id", global_property_extensions_id_type()));
             init_global_property_extensions();
         }
 
