@@ -36,6 +36,8 @@ struct register_scheduler
     void fllush_cache();
     lua_Number nummin();
     lua_Number nummax();
+    int64_t integermax();
+    int64_t integermin();
     const nh_asset_object& get_nh_asset(string hash_or_id);
     string hash256(string source);
     string hash512(string source);
@@ -70,7 +72,12 @@ struct register_scheduler
     // relate parent nh asset and child nh asset
     void relate_nh_asset(account_id_type nht_creator, const nh_asset_object &parent_nh_asset, const nh_asset_object &child_nh_asset, bool relate, bool enable_logger=false);
 
-    void update_collateral_for_gas(string to, int64_t amount);
+    // NFT relative methods
+    string create_nft_asset(account_id_type owner_id, account_id_type dealer_id, string world_view, string base_describe, bool enable_logger);
+    void adjust_lock_nft_asset(const nh_asset_object &token, bool lock_or_unlock=true);
+    void transfer_nft_ownership(account_id_type from, account_id_type account_to, const nh_asset_object &token, bool enable_logger=false);
 
+    void update_collateral_for_gas(string to, int64_t amount);
+    lua_map get_contract_public_data(string name_or_id);
 };
 }}

@@ -143,6 +143,14 @@ lua_Number register_scheduler::nummin()
 {
     return std::numeric_limits<lua_Number>::min();
 }
+int64_t register_scheduler::integermax()
+{
+    return LUA_MAXINTEGER;
+}
+int64_t register_scheduler::integermin()
+{
+    return LUA_MININTEGER;
+}
 uint32_t register_scheduler::head_block_time()
 {
     return db.head_block_time().sec_since_epoch();
@@ -246,6 +254,19 @@ void register_scheduler::update_collateral_for_gas(string to, int64_t amount)
         });
     }
     catch (fc::exception e)
+    {
+        LUA_C_ERR_THROW(this->context.mState, e.to_string());
+    }
+}
+
+lua_map register_scheduler::get_contract_public_data(string name_or_id)
+{
+    try 
+    {
+        optional<contract_object> contract = get_contract(name_or_id);
+        return contract->contract_data;
+    } 
+    catch (fc::exception e) 
     {
         LUA_C_ERR_THROW(this->context.mState, e.to_string());
     }
@@ -380,6 +401,8 @@ void lua_scheduler::chain_function_bind()
     registerFunction("log", &register_scheduler::log);
     registerFunction("number_max", &register_scheduler::nummax);
     registerFunction("number_min", &register_scheduler::nummin);
+    registerFunction("integer_max", &register_scheduler::integermax);
+    registerFunction("integer_min", &register_scheduler::integermin);
     registerFunction("real_time", &register_scheduler::real_time);
     registerFunction("time", &register_scheduler::head_block_time);
     registerFunction("hash256", &register_scheduler::hash256);
@@ -398,6 +421,7 @@ void lua_scheduler::chain_function_bind()
     registerFunction("invoke_contract_function", &register_scheduler::invoke_contract_function);
     registerFunction("change_contract_authority", &register_scheduler::change_contract_authority);
     registerFunction("update_collateral_for_gas", &register_scheduler::update_collateral_for_gas);
+    registerFunction("get_contract_public_data", &register_scheduler::get_contract_public_data);
     lua_register(mState, "import_contract", &import_contract);
     lua_register(mState, "get_account_contract_data", &get_account_contract_data);
     lua_register(mState, "format_vector_with_table", &format_vector_with_table);
@@ -468,6 +492,40 @@ void lua_scheduler::chain_function_bind()
                 auto& parent =fc_register.get_nh_asset(parent_token_hash_or_id);
                 auto& child =fc_register.get_nh_asset(child_token_hash_or_id);
                 fc_register.relate_nh_asset(fc_register.caller, parent, child, relate, enable_logger); });
+    registerFunction<register_scheduler, string(string, string, string, bool, bool)>("create_nft_asset",
+                                                                           [](register_scheduler &fc_register, string owner_id, string world_view, string base_describe, bool dealership_to_contract = false, bool enable_logger = false) {
+                auto& owner = fc_register.get_account(owner_id).id;
+
+                if (dealership_to_contract) {
+                    auto& dealer = fc_register.contract.owner;
+                    return fc_register.create_nft_asset(owner, dealer, world_view, base_describe, enable_logger);
+                }
+                return fc_register.create_nft_asset(owner, owner, world_view, base_describe, enable_logger); });
+    registerFunction<register_scheduler, void(string, bool)>("adjust_lock_nft_asset",
+                                                                           [](register_scheduler &fc_register, string token_hash_or_id, bool lock_or_unlock = true) {
+                auto& token = fc_register.get_nh_asset(token_hash_or_id);
+                fc_register.adjust_lock_nft_asset(token, lock_or_unlock); });
+    registerFunction<register_scheduler, void(string, string, bool)>("transfer_nft_ownership_from_owner",
+                                                                     [](register_scheduler &fc_register, string to, string token_hash_or_id, bool enable_logger = false) {
+                auto& token =fc_register.get_nh_asset(token_hash_or_id);
+                auto& account_to = fc_register.get_account(to).id;
+                fc_register.transfer_nft_ownership(fc_register.contract.owner, account_to, token,enable_logger); });
+    registerFunction<register_scheduler, void(string, string, bool)>("transfer_nft_ownership_from_caller",
+                                                                     [](register_scheduler &fc_register, string to, string token_hash_or_id, bool enable_logger = false) {
+                auto& token =fc_register.get_nh_asset(token_hash_or_id);
+                auto& account_to = fc_register.get_account(to).id;;
+                fc_register.transfer_nft_ownership(fc_register.caller, account_to, token,enable_logger); });
+
+    registerFunction<register_scheduler, string(string)>("get_nft_asset",
+                                                                     [](register_scheduler &fc_register, string hash_or_id) {
+                auto& token =fc_register.get_nh_asset(hash_or_id);
+                try{
+                    return  fc::json::to_string(token);
+                }
+                catch (fc::exception e)
+                {
+                    LUA_C_ERR_THROW(fc_register.context.mState, e.to_string());
+                }});                
 }
 
 void contract_object::register_function(lua_scheduler &context, register_scheduler *fc_register, contract_base_info *base_info)const

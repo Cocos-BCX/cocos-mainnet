@@ -290,8 +290,6 @@ processed_transaction database::_push_transaction(const signed_transaction &trx,
     if (push_state == transaction_push_state::from_me)
     {
       //get_message_send_cache_size();
-      // Casting std::vector.size() return type to uint64_t is needed for macos compiling,
-      // check here (https://stackoverflow.com/questions/36814040) for more info.
       _pending_size=std::max(_pending_size,(uint64_t)_pending_tx.size());
       if (_message_cache_size_limit)
         FC_ASSERT(_pending_size <= _message_cache_size_limit, "The number of messages cached by the current node has exceeded the maximum limit,size:${size}", ("size", _pending_size));
@@ -307,9 +305,9 @@ processed_transaction database::_push_transaction(const signed_transaction &trx,
   else
   {
     uint32_t skip = get_node_properties().skip_flags;
-    auto share_flag = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
+    auto share_flag = database::skip_transaction_signatures|database::skip_tapos_check;
     if((trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)&&(skip!=share_flag))
-      skip = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
+      skip = database::skip_transaction_signatures|database::skip_tapos_check;
 
     const chain_parameters &chain_parameters = get_global_properties().parameters;
     if (BOOST_LIKELY(head_block_num() > 0))
@@ -463,7 +461,7 @@ signed_block database::_generate_block(
         //{
           
         if((tx.operations[0].which() == operation::tag<contract_share_fee_operation>::value))
-          skip = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
+          skip = database::skip_transaction_signatures|database::skip_tapos_check;
 
         if (BOOST_LIKELY(head_block_num() > 0)&& !tx.agreed_task)
         {
@@ -686,10 +684,10 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
   { 
     uint32_t skip = get_node_properties().skip_flags;
 
-    auto share_flag = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
+    auto share_flag = database::skip_transaction_signatures|database::skip_tapos_check;
     if((trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)&&(skip!=share_flag))
     {
-      skip = database::skip_transaction_signatures|database::skip_tapos_check|database::skip_transaction_dupe_check;
+      skip = database::skip_transaction_signatures|database::skip_tapos_check;
     }
     auto &chain_parameters = get_global_properties().parameters;
 
@@ -711,8 +709,9 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
       if(op_percent>=0 && op_percent<=100) //if percent out of range,just do nothing
         op_maxsize_proportion_percent = op_percent;
     }
-    
-    int size = chain_parameters.maximum_block_size*op_maxsize_proportion_percent/100;
+
+    int size = chain_parameters.maximum_block_size*op_maxsize_proportion_percent/GRAPHENE_FULL_PROPOTION;
+
     FC_ASSERT(fc::raw::pack_size(trx) < size);//交易尺寸验证，单笔交易最大尺寸不能超过区块最大尺寸的百分比
     if (!(skip & skip_validate))                                                    /* issue #505 explains why this skip_flag is disabled */
       trx.validate();
@@ -721,12 +720,13 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
     fc::time_point_sec now = head_block_time();
     auto trx_hash = trx.hash();
     auto trx_id = trx.id(trx_hash);
-    FC_ASSERT((skip & skip_transaction_dupe_check) || trx_idx.indices().get<by_trx_id>().find(trx_id) == trx_idx.indices().get<by_trx_id>().end());
+    if(trx.operations[0].which() != operation::tag<contract_share_fee_operation>::value)
+      FC_ASSERT((skip & skip_transaction_dupe_check) || trx_idx.indices().get<by_trx_id>().find(trx_id) == trx_idx.indices().get<by_trx_id>().end());
     transaction_evaluation_state eval_state(this);
     eval_state._trx = &trx;
     eval_state.run_mode = run_mode;
     eval_state.skip=skip;
-    const crontab_object *temp_crontab = nullptr;
+    const crontab_object *temp_crontab = nullptr; 
     if (!(skip & (skip_transaction_signatures | skip_authority_check)) || trx.agreed_task)
     {
       if (trx.agreed_task)
@@ -794,12 +794,18 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
         info.trx_in_block = _current_trx_in_block;
       });
     }
-    if (!(skip & skip_transaction_dupe_check))
+    if (!(skip & skip_transaction_dupe_check)||trx.operations[0].which() == operation::tag<contract_share_fee_operation>::value)
     {
-      this->create<transaction_object>([&](transaction_object &transaction) {
+       try{
+             this->create<transaction_object>([&](transaction_object &transaction) {
          transaction.trx_hash=trx_hash;
          transaction.trx_id = trx_id;
          transaction.trx = trx; });
+       }catch(...)
+       {
+         ilog("+++error in apply_transactionwhen create tx_object"); 
+       }
+  
     }
     processed_transaction ptrx(trx);
     if (only_try_permissions)

@@ -411,7 +411,6 @@ BOOST_FIXTURE_TEST_CASE( cli_vote_for_2_witnesses, cli_fixture )
       BOOST_TEST_MESSAGE("Cli Vote Test for 2 Witnesses");
 
       INVOKE(create_new_account);
-
       // get the details for init1
       witness_object init1_obj = con.wallet_api_ptr->get_witness("init1");
       int init1_start_votes = init1_obj.total_votes;

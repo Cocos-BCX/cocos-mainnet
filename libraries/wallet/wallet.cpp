@@ -2010,6 +2010,19 @@ public:
             FC_CAPTURE_AND_RETHROW((owner)(name)(data)(broadcast))
       }
 
+      signed_transaction create_contract_from_file(string owner, string name, public_key_type contract_authority, string filename, bool broadcast = false)
+      {
+            try
+            {
+                  FC_ASSERT(filename != "" && fc::exists(filename));
+                  std::string contract_data;
+                  fc::read_file_contents(filename, contract_data);
+                  boost::algorithm::replace_all( contract_data, "\n", " ");
+                  return create_contract(owner, name, contract_authority, contract_data, broadcast);
+            }
+            FC_CAPTURE_AND_RETHROW((owner)(name)(contract_authority)(filename)(broadcast))
+      }
+
       signed_transaction revise_contract(string reviser, string contract_id_or_name, string data, bool broadcast = false) // wallet 合约 API
       {
             try
@@ -2033,6 +2046,19 @@ public:
                   return sign_transaction(tx, broadcast);
             }
             FC_CAPTURE_AND_RETHROW((reviser)(contract_id_or_name)(data)(broadcast))
+      }
+
+      signed_transaction revise_contract_from_file(string reviser, string contract_id_or_name, string filename, bool broadcast = false) // wallet 合约 API      
+      {
+            try
+            {
+                  FC_ASSERT(filename != "" && fc::exists(filename));
+                  std::string contract_data;
+                  fc::read_file_contents(filename, contract_data);
+                  boost::algorithm::replace_all( contract_data, "\n", " ");
+                  return revise_contract(reviser, contract_id_or_name, contract_data, broadcast);
+            }
+            FC_CAPTURE_AND_RETHROW((reviser)(contract_id_or_name)(filename)(broadcast))
       }
 
       signed_transaction call_contract_function(string account_id_or_name, string contract_id_or_name, string function_name,
@@ -2158,15 +2184,12 @@ public:
             FC_CAPTURE_AND_RETHROW((proposing_account)(expiration_time)(world_view_owner)(world_view))
       }
 
-      signed_transaction create_nh_asset(const string &creator, const string &owner, const string &asset_id, const string &world_view,
+      signed_transaction create_nh_asset(const string &creator, const string &owner, const string &world_view,
                                          const string &base_describe, bool broadcast = false)
       {
             try
             {
                   FC_ASSERT(!is_locked());
-
-                  fc::optional<asset_object> asset_obj = get_asset(asset_id);
-                  FC_ASSERT(asset_obj, "Could not find asset matching ${asset}", ("asset", asset_id));
 
                   fc::optional<world_view_object> ver_obj = _remote_db->lookup_world_view({world_view})[0];
                   FC_ASSERT(ver_obj, "Could not find nh asset matching ${world_view}", ("world_view", world_view));
@@ -2176,7 +2199,6 @@ public:
                   create_nh_asset_operation create_op;
                   create_op.fee_paying_account = get_account(creator).id;
                   create_op.owner = get_account(owner).id;
-                  create_op.asset_id = asset_obj->symbol;
                   create_op.world_view = ver_obj->world_view;
                   create_op.base_describe = base_describe;
 
@@ -2185,7 +2207,7 @@ public:
                   tx.validate();
                   return sign_transaction(tx, broadcast);
             }
-            FC_CAPTURE_AND_RETHROW((creator)(owner)(asset_id)(world_view)(base_describe))
+            FC_CAPTURE_AND_RETHROW((creator)(owner)(world_view)(base_describe))
       }
 
       signed_transaction transfer_nh_asset(const string &from, const string &to, const string &nh_asset, bool broadcast)
@@ -2606,6 +2628,8 @@ public:
                         auto b = _remote_db->get_block_header(i.block_num);
                         FC_ASSERT(b);
                         ss << b->timestamp.to_iso_string() << " ";
+                        ss << "block_num: " << i.block_num << " ";
+                        ss << "op_history_object: " << std::string(i.id) << " ";
                         i.op.visit(operation_printer(ss, *this, i.result));
                         ss << " \n";
                   }
@@ -2622,6 +2646,8 @@ public:
                         auto b = _remote_db->get_block_header(i.block_num);
                         FC_ASSERT(b);
                         ss << b->timestamp.to_iso_string() << " ";
+                        ss << "block_num: " << i.block_num << " ";
+                        ss << "op_history_object: " << std::string(i.id) << " ";
                         i.op.visit(operation_printer(ss, *this, i.result));
                         ss << " \n";
                   }
@@ -3537,9 +3563,22 @@ pair<tx_hash_type, signed_transaction> wallet_api::create_contract(string owner,
       auto tx = my->create_contract(owner, name, contract_authority, data, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
+
+pair<tx_hash_type, signed_transaction> wallet_api::create_contract_from_file(string owner, string name, public_key_type contract_authority, string filename,bool broadcast /* = false */)
+{
+      auto tx = my->create_contract_from_file(owner, name, contract_authority, filename, broadcast);
+      return std::make_pair(tx.hash(), tx);
+}
+
 pair<tx_hash_type, signed_transaction> wallet_api::revise_contract(string reviser, string contract_id_or_name, string data, bool broadcast /*= false*/)
 {
       auto tx = my->revise_contract(reviser, contract_id_or_name, data, broadcast);
+      return std::make_pair(tx.hash(), tx);
+}
+
+pair<tx_hash_type, signed_transaction> wallet_api::revise_contract_from_file(string reviser, string contract_id_or_name, string filename, bool broadcast /*= false*/)
+{
+      auto tx = my->revise_contract_from_file(reviser, contract_id_or_name, filename, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 
@@ -3565,7 +3604,8 @@ lua_map wallet_api::get_contract_public_data(string contract_id_or_name, lua_map
 {
       return my->_remote_db->get_contract_public_data(contract_id_or_name, filter);
 }
-pair<tx_hash_type, signed_transaction> wallet_api::call_contract_function(string account_id_or_name, string contract_id_or_name, string function_name, vector<lua_types> value_list, bool broadcast /* = false */)
+pair<tx_hash_type, signed_transaction> wallet_api::call_contract_function(string account_id_or_name, 
+string contract_id_or_name, string function_name, vector<lua_types> value_list, bool broadcast /* = false */)
 {
       auto tx = my->call_contract_function(account_id_or_name, contract_id_or_name, function_name, value_list, this,broadcast);
       return std::make_pair(tx.hash(), tx);
@@ -3610,12 +3650,11 @@ pair<tx_hash_type, signed_transaction> wallet_api::propose_relate_world_view(
 pair<tx_hash_type, signed_transaction> wallet_api::create_nh_asset(
     const string &creator,
     const string &owner,
-    const string &asset_id,
     const string &world_view,
     const string &base_describe,
     bool broadcast)
 {
-      auto tx = my->create_nh_asset(creator, owner, asset_id, world_view, base_describe, broadcast);
+      auto tx = my->create_nh_asset(creator, owner, world_view, base_describe, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 
