@@ -1,4 +1,4 @@
-/*预计202004170点分配奖励采用transfer交易记录*/
+/*预计202006211836点分配奖励采用transfer交易记录*/
 #ifndef PROCESS_BUDGET_ASSERT_TIMEPOINT
-#define PROCESS_BUDGET_ASSERT_TIMEPOINT (fc::time_point_sec( 1587052800 ))
+#define PROCESS_BUDGET_ASSERT_TIMEPOINT (fc::time_point_sec( 1592735790))
 #endif
