@@ -170,10 +170,10 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
                   transfer_operation committee_op;
                   committee_op.from = GRAPHENE_NULL_ACCOUNT;
                   committee_op.to = active_committee.first;
+                  committee_op.memo = string("allowance to committee from system");
 
                   auto fee = current_fee_schedule().calculate_fee(committee_op);
                   committee_op.amount = asset(proportion)-fee;
-                  committee_op.memo = string("allowance to committee from system");
 
                   signed_transaction committee_tx;
                   
@@ -207,10 +207,11 @@ void database::pay_candidates(share_type &budget, const uint16_t &committee_perc
                   transfer_operation witness_op;
                   witness_op.from = GRAPHENE_NULL_ACCOUNT;
                   witness_op.to = active_witness.first;
+                  witness_op.memo = string("allowance to BP from system");
 
                   auto fee = current_fee_schedule().calculate_fee(witness_op);
                   witness_op.amount = asset(proportion) - fee;
-                  witness_op.memo = string("allowance to BP from system");
+                 
 
                   signed_transaction witness_tx;
                   
