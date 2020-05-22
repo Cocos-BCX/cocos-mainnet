@@ -193,6 +193,7 @@ void_result update_global_property_extensions_evaluator::do_evaluate(const updat
 {
    try
    {
+      ilog("is_agreed_task ${flag}", ("flag", trx_state->is_agreed_task));
       FC_ASSERT(trx_state->is_agreed_task);
 
       return void_result();
@@ -204,14 +205,20 @@ void_result update_global_property_extensions_evaluator::do_apply(const update_g
 {
    try
    {
+      ilog("update_global_property_extensions_evaluator::do_apply: witness votes: ${votes}", ("votes", o.witness_max_votes));
       auto&_db = db();
-      auto& cp = _db.get_chain_properties();
+      // auto& cp = _db.get_chain_properties();
       FC_ASSERT(o.witness_max_votes > 0 &&
                 o.witness_max_votes <= _db.get_index_type<witness_index>().indices().size());
-      FC_ASSERT(o.committee_max_votes > 0&&
+      FC_ASSERT(o.committee_max_votes > 0 &&
                 o.committee_max_votes <= _db.get_index_type<committee_member_index>().indices().size());
 
-      auto &gpe =_db.get_global_property_extensions();
+      ilog("committee votes: ${votes}", ("votes", o.committee_max_votes));
+      auto &gpe1 =_db.get_global_property_extensions();
+      ilog("[before] committee votes1: ${votes}", ("votes", gpe1.committee_max_votes));
+      ilog("[before] witness_max_votes1: ${votes}", ("votes", gpe1.witness_max_votes));
+
+      auto &gpe = _db.get(global_property_extensions_id_type());
       _db.modify(gpe, [&o](global_property_extensions_object &p) {
          p.witness_max_votes = o.witness_max_votes;
          p.committee_max_votes = o.committee_max_votes;
@@ -219,6 +226,13 @@ void_result update_global_property_extensions_evaluator::do_apply(const update_g
          p.contract_private_data_size = o.contract_private_data_size;
          p.contract_total_data_size = o.contract_total_data_size;
       });
+
+      ilog("committee votes2: ${votes}", ("votes", gpe.committee_max_votes));
+      ilog("witness_max_votes2: ${votes}", ("votes", gpe.witness_max_votes));
+
+      auto &gpe2 =_db.get_global_property_extensions();
+      ilog("[after] committee votes2: ${votes}", ("votes", gpe2.committee_max_votes));
+      ilog("[after] witness_max_votes2: ${votes}", ("votes", gpe2.witness_max_votes));
 
       return void_result();
    }
