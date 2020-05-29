@@ -204,13 +204,14 @@ void_result update_global_property_extensions_evaluator::do_apply(const update_g
 {
    try
    {
-      auto& _db = db();
+      auto&_db = db();
+      auto& cp = _db.get_chain_properties();
       FC_ASSERT(o.witness_max_votes > 0 &&
                 o.witness_max_votes <= _db.get_index_type<witness_index>().indices().size());
-      FC_ASSERT(o.committee_max_votes > 0 &&
+      FC_ASSERT(o.committee_max_votes > 0&&
                 o.committee_max_votes <= _db.get_index_type<committee_member_index>().indices().size());
 
-      auto &gpe = _db.get(global_property_extensions_id_type());
+      auto &gpe =_db.get_global_property_extensions();
       _db.modify(gpe, [&o](global_property_extensions_object &p) {
          p.witness_max_votes = o.witness_max_votes;
          p.committee_max_votes = o.committee_max_votes;

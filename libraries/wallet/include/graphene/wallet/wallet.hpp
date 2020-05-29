@@ -1283,12 +1283,6 @@ class wallet_api
         fc::optional<proposal_id_type>proposal_base,
         bool broadcast = false);
 
-    pair<tx_hash_type, signed_transaction> propose_extensions_parameter_change(
-        const string &proposing_account,
-        fc::time_point_sec expiration_time,
-        const variant_object &changed_values,
-        bool broadcast = false);
-
     /** Approve or disapprove a proposal.
        *
        * @param fee_paying_account The account paying the fee for the op.
@@ -1506,7 +1500,7 @@ FC_API(graphene::wallet::wallet_api,
        (register_nh_asset_creator)(create_world_view)(propose_relate_world_view)(create_nh_asset)(list_nh_asset_by_creator)(list_account_nh_asset)(transfer_nh_asset)(get_nh_creator)(delete_nh_asset)(create_nh_asset_order)(list_nh_asset_order)(cancel_nh_asset_order)(fill_nh_asset_order)(list_account_nh_asset_order)
        //(relate_nh_asset)
        //file
-       (create_file)(add_file_relate_account)(file_signature)(propose_relate_parent_file)(list_account_created_file)(lookup_file)(propose_extensions_parameter_change)
+       (create_file)(add_file_relate_account)(file_signature)(propose_relate_parent_file)(list_account_created_file)(lookup_file)
        // crontab
        (create_crontab)(cancel_crontab)(list_account_crontab)(crontab_builder_transaction)(recover_crontab)(set_node_message_send_cache_size)(set_node_deduce_in_verification_mode)
        //gas

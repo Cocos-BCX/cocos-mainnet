@@ -94,9 +94,9 @@ namespace graphene { namespace chain {
 
       uint16_t witness_max_votes        = GRAPHENE_DEFAULT_WITNESSE_NUMBER;
       uint16_t committee_max_votes      = GRAPHENE_DEFAULT_COMMITTEE_NUMBER;
-      uint64_t contract_private_data_size    = 3L * 1024;
-      uint64_t contract_total_data_size      = 10L * 1024 * 1024;
-      uint64_t contract_max_data_size        = 2L * 1024 * 1024 * 1024;
+      uint64_t contract_private_data_size    = 3 * 1024;
+      uint64_t contract_total_data_size      = 10 * 1024 * 1024;
+      uint64_t contract_max_data_size        = 2 * 1024 * 1024 * 1024;
       optional<m_extensions_type>  extensions;
 
       account_id_type fee_payer()const { return account_id_type(); }
