@@ -792,9 +792,8 @@ processed_transaction database::_apply_transaction(const signed_transaction &trx
          transaction.trx = trx; });
        }catch(...)
        {
-         ilog("+++error in apply_transactionwhen create tx_object"); 
+         ilog("can not create tx_object"); 
        }
-  
     }
     processed_transaction ptrx(trx);
     if (only_try_permissions)
