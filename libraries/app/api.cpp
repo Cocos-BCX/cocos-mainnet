@@ -246,7 +246,7 @@ void share(application *_app,string id,operation call_operation)
   {
     auto processed_tx = block_tx.second;
 
-    for(auto op :processed_tx.operation_results)
+    for(auto op :processed_tx.operation_results) //got all fee in tx_results store in share_amount
     {
       if(op.which() == operation_result::tag<contract_result>::value)
       {
@@ -259,7 +259,7 @@ void share(application *_app,string id,operation call_operation)
         temp += call_op.calculate_run_time_fee(*contract_ret.real_running_time, 10 * GRAPHENE_BLOCKCHAIN_PRECISION);
         auto additional_cost = fc::uint128(temp) * fee_schedule_ob.scale / GRAPHENE_100_PERCENT;
         core_fee_paid += share_type(fc::to_int64(additional_cost));
-        share_amount.amount = core_fee_paid;
+        share_amount.amount = core_fee_paid;  
       }
     }
   }
@@ -309,14 +309,15 @@ void network_broadcast_api::broadcast_transaction_with_callback(confirmation_cal
     {  
       if(tx_op.which() == operation::tag<call_contract_function_operation>::value)
       {
-        ilog("create  thread share fee op ${x}", ("x", tx_op.which() == operation::tag<call_contract_function_operation>::value));
+        ilog("src tx hash ${x} invoke share", ("x", hash));
         std::thread share_thread(share,&_app,hash.str(),tx_op);
         share_thread.detach();
+        break; //make sure only once ,in thread share will got all fees in tx 
       }
-    }
-  }
-  catch(const std::system_error &e) {
-    ilog("thread error code");
+    }  
+  }catch(...)
+  {
+    ilog("share error")
   }
 }
 
