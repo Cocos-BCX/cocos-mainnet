@@ -219,6 +219,22 @@ void pay_share_fee(contract_share_fee_operation &op_share,application *app)
   }
 }
 
+//字符转换成整形
+int hex2int(char c)
+{
+	if ((c >= 'A') && (c <= 'Z'))
+	{
+		return c - 'A' + 10;
+	}
+	else if ((c >= 'a') && (c <= 'z'))
+	{
+		return c - 'a' + 10;
+	}
+	else if ((c >= '0') && (c <= '9'))
+	{
+		return c - '0';
+	}
+}
 
 void share(application *_app,string id,operation call_operation)
 {  
@@ -284,9 +300,24 @@ void share(application *_app,string id,operation call_operation)
 
   tx.operations.push_back(op);
 
+  int data[32] = {0};
+  int hash_value = 0;
+  int count = 0 ;
+  for (int i=0; i<id.length(); i+=2)
+	{
+		int high = hex2int(id[i]);   //高四位
+		int low  = hex2int(id[i+1]); //低四位
+		data[count++] = (high<<4) + low;
+	}
+
+  for (int i=0; i<id.length()/2; i++)
+	{
+		hash_value = hash_value + data[i];
+	}
+
   auto dyn_props = d->get_dynamic_global_properties();
   uint32_t expiration_time_offset = GRAPHENE_EXPIRATION_TIME_OFFSET;
-  tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
+  tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset  + hash_value));
 
   ilog("in share fee thread tx hash: ${x}",("x",tx.hash())); 
   d->push_transaction(tx, database::skip_transaction_signatures|database::skip_tapos_check, transaction_push_state::from_me);
@@ -317,7 +348,7 @@ void network_broadcast_api::broadcast_transaction_with_callback(confirmation_cal
     }  
   }catch(...)
   {
-    ilog("share error")
+    ilog("share error");
   }
 }
 
