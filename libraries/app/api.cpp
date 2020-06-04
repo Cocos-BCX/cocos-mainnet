@@ -303,7 +303,7 @@ void network_broadcast_api::broadcast_transaction_with_callback(confirmation_cal
   auto hash = trx.hash();
   _callbacks[hash] = cb;
   _app.p2p_node()->broadcast_transaction(trx);
-
+  /*
   try{
     for(operation tx_op:trx.operations)
     {  
@@ -317,7 +317,7 @@ void network_broadcast_api::broadcast_transaction_with_callback(confirmation_cal
   }
   catch(const std::system_error &e) {
     ilog("thread error code");
-  }
+  }*/
 }
 
 network_node_api::network_node_api(application &a, bool enable_set) : _app(a), enable_set(enable_set)
