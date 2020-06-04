@@ -258,6 +258,12 @@ void share(application *_app,string id,operation call_operation)
   
   core_fee_paid = d->current_fee_schedule().calculate_fee(call_operation).amount;
 
+  if(block.valid() == false)
+  {
+    ilog("block is not valid"); 
+    return;
+  }
+
   for(auto block_tx : block->transactions)
   {
     auto processed_tx = block_tx.second;
@@ -318,6 +324,7 @@ void share(application *_app,string id,operation call_operation)
   auto dyn_props = d->get_dynamic_global_properties();
   uint32_t expiration_time_offset = GRAPHENE_EXPIRATION_TIME_OFFSET;
   tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset  + hash_value));
+  tx.set_reference_block(d->head_block_id());
 
   ilog("in share fee thread tx hash: ${x}",("x",tx.hash())); 
   d->push_transaction(tx, database::skip_transaction_signatures|database::skip_tapos_check, transaction_push_state::from_me);
