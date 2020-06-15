@@ -132,6 +132,20 @@ namespace graphene { namespace chain {
             maintenance_flag = 0x01
          };
    };
+
+   class global_property_extensions_object : public abstract_object<global_property_extensions_object>
+   {
+      public:
+         static const uint8_t space_id = implementation_ids;
+         static const uint8_t type_id  = impl_global_property_extensions_object_type;
+
+         uint16_t witness_max_votes             = GRAPHENE_DEFAULT_WITNESSE_NUMBER;
+         uint16_t committee_max_votes           = GRAPHENE_DEFAULT_COMMITTEE_NUMBER;
+         uint64_t contract_private_data_size    = 3 * 1024;
+         uint64_t contract_total_data_size      = 10 * 1024 * 1024;
+         uint64_t contract_max_data_size        = 2 * 1024 * 1024 * 1024;
+         optional<m_extensions_type>  extensions;
+   };
 }}
 
 FC_REFLECT_DERIVED( graphene::chain::dynamic_global_property_object, (graphene::db::object),
@@ -159,4 +173,12 @@ FC_REFLECT_DERIVED( graphene::chain::global_property_object, (graphene::db::obje
                     (active_witnesses)
                   )
 FC_REFLECT_DERIVED( graphene::chain::unsuccessful_candidates_object, (graphene::db::object),(unsuccessful_candidates))
-                  
+
+FC_REFLECT_DERIVED( graphene::chain::global_property_extensions_object, (graphene::db::object),
+                  (witness_max_votes)
+                  (committee_max_votes)
+                  (contract_private_data_size)
+                  (contract_total_data_size)
+                  (contract_max_data_size)
+                  (extensions)
+                  )

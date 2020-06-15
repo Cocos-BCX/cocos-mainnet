@@ -627,6 +627,10 @@ public:
       {
             return _remote_db->get_global_properties();
       }
+      global_property_extensions_object get_global_extensions_properties() const
+      {
+            return _remote_db->get_global_property_extensions();
+      }
       dynamic_global_property_object get_dynamic_global_properties() const
       {
             return _remote_db->get_dynamic_global_properties();
@@ -4168,6 +4172,11 @@ pair<tx_hash_type, signed_transaction> wallet_api::approve_proposal(
 global_property_object wallet_api::get_global_properties() const
 {
       return my->get_global_properties();
+}
+
+global_property_extensions_object wallet_api::get_global_extensions_properties() const
+{
+      return my->get_global_extensions_properties();
 }
 
 dynamic_global_property_object wallet_api::get_dynamic_global_properties() const
