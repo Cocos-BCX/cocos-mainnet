@@ -45,7 +45,6 @@
 #include <lua_extern.hpp>
 #include <graphene/chain/protocol/lua_scheduler.hpp>
 #include <boost/program_options.hpp>
-// #include <graphene/chain/protocol/block.hpp>
 
 using namespace boost::program_options;
 
@@ -243,7 +242,6 @@ class database : public db::object_database
     graphene::chain::lua_scheduler &get_luaVM() { return luaVM; };
     void initialize_luaVM();
     void initialize_baseENV();
-    void init_global_property_extensions();
     
     /*******************************************************nico end****************************************************/
 
@@ -320,7 +318,6 @@ class database : public db::object_database
     const node_property_object &get_node_properties() const;
     const fee_schedule &current_fee_schedule() const;
     const extensions_type& current_parameters_extensions()const;
-    const global_property_extensions_object &get_global_property_extensions() const;
 
     time_point_sec head_block_time() const;
     uint32_t head_block_num() const;

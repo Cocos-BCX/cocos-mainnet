@@ -138,9 +138,6 @@ const uint8_t witness_object::type_id;
 const uint8_t worker_object::space_id;
 const uint8_t worker_object::type_id;
 
-const uint8_t global_property_extensions_object::space_id;
-const uint8_t global_property_extensions_object::type_id;
-
 void database::initialize_evaluators()
 {
     _operation_evaluators.resize(255);
@@ -201,8 +198,6 @@ void database::initialize_evaluators()
     register_evaluator<crontab_cancel_evaluator>();
     register_evaluator<crontab_recover_evaluator>();
     register_evaluator<update_collateral_for_gas_evaluator>();
-
-    register_evaluator<update_global_property_extensions_evaluator>();
 }
 
 void database::initialize_indexes()
@@ -258,7 +253,6 @@ void database::initialize_indexes()
     add_index<primary_index<special_authority_index>>();
     add_index<primary_index<collateral_bid_index>>();
     add_index<primary_index<simple_index<unsuccessful_candidates_object>>>();
-    add_index<primary_index<simple_index<global_property_extensions_object>>>();
 }
 
 void database::init_genesis(const genesis_state_type &genesis_state)
@@ -702,15 +696,6 @@ void database::initialize_luaVM()
 {
     luaVM = graphene::chain::lua_scheduler(true);
     initialize_baseENV();
-}
-
-void database::init_global_property_extensions()
-{
-    // Create global extensions properties
-    create<global_property_extensions_object>([&](global_property_extensions_object &p) {
-        p.witness_max_votes = GRAPHENE_DEFAULT_WITNESSE_NUMBER;
-        p.committee_max_votes = GRAPHENE_DEFAULT_COMMITTEE_NUMBER;
-    });
 }
 
 void database::update_genesis_extensions(const genesis_state_type &genesis_state)

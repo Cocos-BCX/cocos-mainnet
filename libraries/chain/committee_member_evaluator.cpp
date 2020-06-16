@@ -188,42 +188,5 @@ void_result committee_member_update_global_parameters_evaluator::do_apply(const 
    FC_CAPTURE_AND_RETHROW((o))
 }
 
-
-void_result update_global_property_extensions_evaluator::do_evaluate(const update_global_property_extensions_operation &o)
-{
-   try
-   {
-      FC_ASSERT(trx_state->is_agreed_task);
-
-      return void_result();
-   }
-   FC_CAPTURE_AND_RETHROW((o))
-}
-
-void_result update_global_property_extensions_evaluator::do_apply(const update_global_property_extensions_operation &o)
-{
-   try
-   {
-      auto&_db = db();
-      auto& cp = _db.get_chain_properties();
-      FC_ASSERT(o.witness_max_votes > 0 &&
-                o.witness_max_votes <= _db.get_index_type<witness_index>().indices().size());
-      FC_ASSERT(o.committee_max_votes > 0&&
-                o.committee_max_votes <= _db.get_index_type<committee_member_index>().indices().size());
-
-      auto &gpe =_db.get_global_property_extensions();
-      _db.modify(gpe, [&o](global_property_extensions_object &p) {
-         p.witness_max_votes = o.witness_max_votes;
-         p.committee_max_votes = o.committee_max_votes;
-         p.contract_max_data_size = o.contract_max_data_size;
-         p.contract_private_data_size = o.contract_private_data_size;
-         p.contract_total_data_size = o.contract_total_data_size;
-      });
-
-      return void_result();
-   }
-   FC_CAPTURE_AND_RETHROW((o))
-}
-
 } // namespace chain
 } // namespace graphene

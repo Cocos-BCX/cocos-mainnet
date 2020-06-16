@@ -271,18 +271,9 @@ void_result account_update_evaluator::do_evaluate(const account_update_operation
                               FC_ASSERT(_vote_type == vote_id_type::vote_type::committee);
                         if (num_witness.value)
                               FC_ASSERT(_vote_type == vote_id_type::vote_type::witness);
-
-                        uint16_t witness_number_of_vote = GRAPHENE_DEFAULT_WITNESSE_NUMBER;
-                        uint16_t committee_number_of_vote = GRAPHENE_DEFAULT_COMMITTEE_NUMBER;
-                        if (d.find(global_property_extensions_id_type())) {
-                              auto property_extensions = d.get_global_property_extensions();
-                              witness_number_of_vote = property_extensions.witness_max_votes;
-                              committee_number_of_vote = property_extensions.committee_max_votes;
-                        }
-                        FC_ASSERT(num_witness <= witness_number_of_vote, "Voted for more witnesses than currently allowed (${c})",
-                              ("c", witness_number_of_vote));
-                        FC_ASSERT(num_committee <= committee_number_of_vote, "Voted for more committee members than currently allowed (${c})",
-                              ("c", committee_number_of_vote));
+                        auto chain_params = d.get_global_properties().parameters;
+                        FC_ASSERT(num_witness <= chain_params.witness_number_of_election, "Voted for more witnesses than currently allowed (${c})", ("c", chain_params.witness_number_of_election));
+                        FC_ASSERT(num_committee <= chain_params.committee_number_of_election, "Voted for more committee members than currently allowed (${c})", ("c", chain_params.committee_number_of_election));
                   }
             }
             if (o.extensions.value.owner_special_authority.valid())
