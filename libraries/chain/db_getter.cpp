@@ -52,6 +52,11 @@ const dynamic_global_property_object&database::get_dynamic_global_properties() c
    return get( dynamic_global_property_id_type() );
 }
 
+const global_property_extensions_object& database::get_global_property_extensions() const
+{
+   return get( global_property_extensions_id_type() );
+}
+
 const extensions_type& database::current_parameters_extensions()const
 {
    return get_global_properties().parameters.extensions;

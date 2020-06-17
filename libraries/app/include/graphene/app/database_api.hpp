@@ -246,6 +246,8 @@ class database_api
        */
       dynamic_global_property_object get_dynamic_global_properties() const;
 
+      global_property_extensions_object get_global_property_extensions() const;
+
       //////////
       // Keys //
       //////////
@@ -686,7 +688,7 @@ FC_API(graphene::app::database_api,
        (get_block_header)(get_block_header_batch)(get_block)(get_block_by_id)(get_transaction)(get_recent_transaction_by_id)
 
        // Globals
-       (get_chain_properties)(get_global_properties)(get_config)(get_chain_id)(get_dynamic_global_properties)
+       (get_chain_properties)(get_global_properties)(get_config)(get_chain_id)(get_dynamic_global_properties)(get_global_property_extensions)
 
        // Keys
        (get_key_references)(is_public_key_registered)(get_signature_keys)

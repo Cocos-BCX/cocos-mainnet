@@ -232,7 +232,8 @@ enum impl_object_type
     impl_chain_property_object_type = 11,
     impl_witness_schedule_object_type = 12,
     impl_budget_record_object_type = 13,
-    impl_special_authority_object_type = 14
+    impl_special_authority_object_type = 14,
+    impl_global_property_extensions_object_type = 15
 };
 
 //typedef fc::unsigned_int            object_id_type;
@@ -296,6 +297,7 @@ struct by_greater_id{};
 struct asset_restricted_object;
 class contract_bin_code_object;
 class unsuccessful_candidates_object;
+class global_property_extensions_object;
 
 typedef object_id<implementation_ids, impl_global_property_object_type, global_property_object> global_property_id_type;
 typedef object_id<implementation_ids, impl_dynamic_global_property_object_type, dynamic_global_property_object> dynamic_global_property_id_type;
@@ -305,6 +307,8 @@ typedef object_id<implementation_ids, impl_account_balance_object_type, account_
 typedef object_id<implementation_ids, impl_account_statistics_object_type, account_statistics_object> account_statistics_id_type;
 typedef object_id<implementation_ids, impl_transaction_object_type, transaction_object> transaction_obj_id_type;
 typedef object_id<implementation_ids, impl_block_summary_object_type, block_summary_object> block_summary_id_type;
+typedef object_id<implementation_ids, impl_global_property_extensions_object_type, global_property_extensions_object> global_property_extensions_id_type;
+
 
 typedef  object_id<implementation_ids, impl_contract_bin_code_type, contract_bin_code_object> contract_bin_code_id_type;
 
@@ -426,7 +430,7 @@ FC_REFLECT_ENUM(graphene::chain::object_type,
 FC_REFLECT_ENUM(graphene::chain::impl_object_type,
                 (impl_global_property_object_type)(impl_dynamic_global_property_object_type)(impl_contract_bin_code_type)(impl_asset_dynamic_data_type)(impl_asset_bitasset_data_type)(impl_account_balance_object_type)(impl_account_statistics_object_type)(impl_transaction_object_type)
                 (impl_block_summary_object_type)(impl_account_transaction_history_object_type)(impl_chain_property_object_type)(impl_witness_schedule_object_type)(impl_budget_record_object_type)(impl_special_authority_object_type)
-                (impl_collateral_bid_object_type))
+                (impl_collateral_bid_object_type)(impl_global_property_extensions_object_type))
 FC_REFLECT_ENUM(graphene::chain::extension_type_for_nico,
                 (temporary_authority)(transaction_in_block_info_type)(asset_restricted_object_type)(unsuccessful_candidates_type)(collateral_for_gas_type))
 FC_REFLECT_ENUM(graphene::chain::nh_object_type,
@@ -467,6 +471,7 @@ FC_REFLECT_TYPENAME(graphene::chain::vesting_balance_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::worker_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::balance_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::global_property_id_type)
+FC_REFLECT_TYPENAME(graphene::chain::global_property_extensions_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::dynamic_global_property_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::asset_dynamic_data_id_type)
 FC_REFLECT_TYPENAME(graphene::chain::asset_bitasset_data_id_type)

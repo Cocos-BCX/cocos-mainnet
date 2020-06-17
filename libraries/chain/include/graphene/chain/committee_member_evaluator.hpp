@@ -54,4 +54,13 @@ namespace graphene { namespace chain {
          void_result do_apply( const committee_member_update_global_parameters_operation& o );
    };
 
+
+   class update_global_property_extensions_evaluator : public evaluator<update_global_property_extensions_evaluator>
+   {
+      public:
+         typedef update_global_property_extensions_operation operation_type;
+
+         void_result do_evaluate( const update_global_property_extensions_operation& o );
+         void_result do_apply( const update_global_property_extensions_operation& o );
+   };
 } } // graphene::chain
