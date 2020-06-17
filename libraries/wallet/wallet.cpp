@@ -627,6 +627,10 @@ public:
       {
             return _remote_db->get_global_properties();
       }
+      global_property_extensions_object get_global_extensions_properties() const
+      {
+            return _remote_db->get_global_property_extensions();
+      }
       dynamic_global_property_object get_dynamic_global_properties() const
       {
             return _remote_db->get_dynamic_global_properties();
@@ -2798,6 +2802,57 @@ public:
             return sign_transaction(tx, broadcast);
       }
 
+      signed_transaction propose_extensions_parameter_change(const string &proposing_account, fc::time_point_sec expiration_time,
+                        const variant_object &changed_parameter, bool broadcast = false)
+      {
+            chain_parameters current_params = get_global_properties().parameters;
+            auto property = get_global_extensions_properties();
+
+            update_global_property_extensions_operation update_op;
+            update_op.witness_max_votes = property.witness_max_votes;
+            update_op.committee_max_votes = property.committee_max_votes;
+            update_op.contract_private_data_size = property.contract_private_data_size;
+            update_op.contract_max_data_size = property.contract_max_data_size;
+            update_op.contract_total_data_size = property.contract_total_data_size;
+            update_op.extensions = property.extensions;
+
+            for (const auto &item : changed_parameter)
+            {
+                  const string &key = item.key();
+                  uint64_t value = item.value().as_uint64();
+                  FC_ASSERT(value >= 0);
+                  if (key == "witness_max_votes") {
+                        FC_ASSERT(value <= std::numeric_limits<uint16_t>::max());
+                        update_op.witness_max_votes = value;
+                  } else if (key == "committee_max_votes") {
+                        FC_ASSERT(value <= std::numeric_limits<uint16_t>::max());
+                        update_op.committee_max_votes = value;
+                  } else if (key == "contract_private_data_size") {
+                        FC_ASSERT(value <= std::numeric_limits<uint64_t>::max());
+                        update_op.contract_private_data_size = value;
+                  } else if (key == "contract_total_data_size") {
+                        FC_ASSERT(value <= std::numeric_limits<uint64_t>::max());
+                        update_op.contract_total_data_size = value;
+                  } else if (key == "contract_max_data_size") {
+                        FC_ASSERT(value <= std::numeric_limits<uint64_t>::max());
+                        update_op.contract_max_data_size = value;
+                  } 
+            }
+
+            proposal_create_operation prop_op;
+            prop_op.expiration_time = expiration_time;
+            prop_op.review_period_seconds = current_params.committee_proposal_review_period;
+            prop_op.fee_paying_account = get_account(proposing_account).id;
+
+            prop_op.proposed_ops.emplace_back(update_op);
+
+            signed_transaction tx;
+            tx.operations.push_back(prop_op);
+            tx.validate();
+
+            return sign_transaction(tx, broadcast);
+      }
+
       signed_transaction propose_fee_change(const string &proposing_account, fc::time_point_sec expiration_time,
                                             const variant_object &changed_fees, fc::optional<proposal_id_type> proposal_base, bool broadcast = false)
       {
@@ -4154,6 +4209,16 @@ pair<tx_hash_type, signed_transaction> wallet_api::propose_fee_change(
       return std::make_pair(tx.hash(), tx);
 }
 
+pair<tx_hash_type, signed_transaction> wallet_api::propose_extensions_parameter_change(
+      const string &proposing_account,
+      fc::time_point_sec expiration_time,
+      const variant_object &changed_values,
+      bool broadcast)
+{
+      auto tx = my->propose_extensions_parameter_change(proposing_account, expiration_time, changed_values, broadcast);
+      return std::make_pair(tx.hash(), tx);
+}
+
 pair<tx_hash_type, signed_transaction> wallet_api::approve_proposal(
     const string &fee_paying_account,
     const string &proposal_id,
@@ -4168,6 +4233,11 @@ pair<tx_hash_type, signed_transaction> wallet_api::approve_proposal(
 global_property_object wallet_api::get_global_properties() const
 {
       return my->get_global_properties();
+}
+
+global_property_extensions_object wallet_api::get_global_extensions_properties() const
+{
+      return my->get_global_extensions_properties();
 }
 
 dynamic_global_property_object wallet_api::get_dynamic_global_properties() const

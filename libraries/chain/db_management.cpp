@@ -286,6 +286,12 @@ void database::open(
         if (find(global_property_id_type()))
             update_genesis_extensions(genesis_loader());
 
+        // wlog("[init] global_property_extensions_id_type: ${id}, ", ("id", "1.15.0"));
+        // if (!find(global_property_extensions_id_type())) {
+        //     wlog("global_property_extensions_id_type: ${id}, ", ("id", "1.15.0"));
+        //     init_global_property_extensions();
+        // }
+
         fc::optional<block_id_type> last_block = _block_id_to_block.last_id();
         if (last_block.valid())
         {
@@ -334,7 +340,13 @@ void database::open(
 
         if (find(global_property_id_type()))
             update_genesis_extensions(genesis_loader());
-            
+
+        ilog("init global property extensions");
+        if (!find(global_property_extensions_id_type())) {
+            ilog("init global property extensions ${id}", ("id", global_property_extensions_id_type()));
+            init_global_property_extensions();
+        }
+
         fc::optional<block_id_type> last_block = _block_id_to_block.last_id();
         if (last_block.valid())
         {

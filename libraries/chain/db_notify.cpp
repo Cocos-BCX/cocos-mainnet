@@ -227,7 +227,9 @@ void get_relevant_accounts(const object *obj, flat_set<account_id_type> &account
       assert(aobj != nullptr);
       accounts.insert(aobj->bidder);
       break;
-    }    
+    }
+    case impl_global_property_extensions_object_type:
+      break;
     }
   }
   else if (obj->id.space() == reserved_spaces::extension_id_for_nico)
