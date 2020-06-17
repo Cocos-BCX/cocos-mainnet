@@ -260,7 +260,7 @@ typedef fc::static_variant<void_t> future_extensions;
     */
 // typedef flat_set<future_extensions> extensions_type;
 typedef vector<std::string> extensions_type;
-//typedef flat_map<asset_id_type,std::string> extensions_type;
+typedef flat_map<std::string, std::string> m_extensions_type;
 //typedef vector<optional<GameData>> extensions_type;
 ///@}
 
