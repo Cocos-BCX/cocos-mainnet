@@ -325,7 +325,7 @@ void share(application *_app,string id,operation call_operation)
   uint32_t expiration_time_offset = GRAPHENE_EXPIRATION_TIME_OFFSET;
   tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset  + hash_value));
   tx.set_reference_block(d->head_block_id());
-
+  lock_guard<mutex> lock(_app->mut);
   ilog("in share fee thread tx hash: ${x}",("x",tx.hash())); 
   d->push_transaction(tx, database::skip_transaction_signatures|database::skip_tapos_check, transaction_push_state::from_me);
   _app->p2p_node()->broadcast_transaction(tx);
