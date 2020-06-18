@@ -28,6 +28,7 @@
 #include <graphene/chain/database.hpp>
 
 #include <boost/program_options.hpp>
+#include <mutex>
 
 namespace graphene { namespace app {
    namespace detail { class application_impl; }
@@ -89,6 +90,7 @@ namespace graphene { namespace app {
          bool is_finished_syncing()const;
          /// Emitted when syncing finishes (is_finished_syncing will return true)
          boost::signals2::signal<void()> syncing_finished;
+         std::mutex mut;
 
       private:
          void enable_plugin( const string& name );

@@ -219,6 +219,22 @@ void pay_share_fee(contract_share_fee_operation &op_share,application *app)
   }
 }
 
+//字符转换成整形
+int hex2int(char c)
+{
+	if ((c >= 'A') && (c <= 'Z'))
+	{
+		return c - 'A' + 10;
+	}
+	else if ((c >= 'a') && (c <= 'z'))
+	{
+		return c - 'a' + 10;
+	}
+	else if ((c >= '0') && (c <= '9'))
+	{
+		return c - '0';
+	}
+}
 
 void share(application *_app,string id,operation call_operation)
 {  
@@ -242,11 +258,17 @@ void share(application *_app,string id,operation call_operation)
   
   core_fee_paid = d->current_fee_schedule().calculate_fee(call_operation).amount;
 
+  if(block.valid() == false)
+  {
+    ilog("block is not valid"); 
+    return;
+  }
+
   for(auto block_tx : block->transactions)
   {
     auto processed_tx = block_tx.second;
 
-    for(auto op :processed_tx.operation_results)
+    for(auto op :processed_tx.operation_results) //got all fee in tx_results store in share_amount
     {
       if(op.which() == operation_result::tag<contract_result>::value)
       {
@@ -259,7 +281,7 @@ void share(application *_app,string id,operation call_operation)
         temp += call_op.calculate_run_time_fee(*contract_ret.real_running_time, 10 * GRAPHENE_BLOCKCHAIN_PRECISION);
         auto additional_cost = fc::uint128(temp) * fee_schedule_ob.scale / GRAPHENE_100_PERCENT;
         core_fee_paid += share_type(fc::to_int64(additional_cost));
-        share_amount.amount = core_fee_paid;
+        share_amount.amount = core_fee_paid;  
       }
     }
   }
@@ -284,10 +306,26 @@ void share(application *_app,string id,operation call_operation)
 
   tx.operations.push_back(op);
 
+  int data[32] = {0};
+  int hash_value = 0;
+  int count = 0 ;
+  for (int i=0; i<id.length(); i+=2)
+	{
+		int high = hex2int(id[i]);   //高四位
+		int low  = hex2int(id[i+1]); //低四位
+		data[count++] = (high<<4) + low;
+	}
+
+  for (int i=0; i<id.length()/2; i++)
+	{
+		hash_value = hash_value + data[i];
+	}
+
   auto dyn_props = d->get_dynamic_global_properties();
   uint32_t expiration_time_offset = GRAPHENE_EXPIRATION_TIME_OFFSET;
-  tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset));
-
+  tx.set_expiration(dyn_props.time + fc::seconds(30 + expiration_time_offset  + hash_value));
+  tx.set_reference_block(d->head_block_id());
+  lock_guard<mutex> lock(_app->mut);
   ilog("in share fee thread tx hash: ${x}",("x",tx.hash())); 
   d->push_transaction(tx, database::skip_transaction_signatures|database::skip_tapos_check, transaction_push_state::from_me);
   _app->p2p_node()->broadcast_transaction(tx);
@@ -309,14 +347,15 @@ void network_broadcast_api::broadcast_transaction_with_callback(confirmation_cal
     {  
       if(tx_op.which() == operation::tag<call_contract_function_operation>::value)
       {
-        ilog("create  thread share fee op ${x}", ("x", tx_op.which() == operation::tag<call_contract_function_operation>::value));
+        ilog("src tx hash ${x} invoke share", ("x", hash));
         std::thread share_thread(share,&_app,hash.str(),tx_op);
         share_thread.detach();
+        break; //make sure only once ,in thread share will got all fees in tx 
       }
-    }
-  }
-  catch(const std::system_error &e) {
-    ilog("thread error code");
+    }  
+  }catch(...)
+  {
+    ilog("share error");
   }
 }
 
