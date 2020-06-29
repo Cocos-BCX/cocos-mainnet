@@ -182,14 +182,36 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     database &_db = db();
     const contract_object &contract_obj = db_index(_db); 
 
-    auto user_invoke_share_fee =  core_fee_paid*contract_obj.user_invoke_share_percent/GRAPHENE_FULL_PROPOTION;
-    user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
-    core_fee_paid = user_invoke_share_fee;
+    // remove by gkany
+    // auto user_invoke_share_fee =  core_fee_paid*contract_obj.user_invoke_share_percent/GRAPHENE_FULL_PROPOTION;
+    // user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
+    // core_fee_paid = user_invoke_share_fee;
+
+    {
+        // contract fee share record in block
+        auto owner_percent = contract_obj.user_invoke_share_percent;
+        auto caller_percent = 100 - owner_percent;
+        if (contract_obj.owner == op->caller) {
+            owner_percent = 100;
+            caller_percent = 0;
+        }
+        if (owner_percent > 0) {
+            contract_fee_share_result owner_result(contract_obj.owner);
+            owner_result.message = std::to_string(owner_percent) + "%";
+            result.contract_affecteds.push_back(std::move(owner_result));
+        }
+
+        if (caller_percent > 0) {
+            contract_fee_share_result caller_result(op->caller);
+            caller_result.message = std::to_string(caller_percent)  + "%";
+            result.contract_affecteds.push_back(std::move(caller_result));
+        }
+    }
 }
 
 
 contract_result call_contract_function_evaluator::do_apply_function(account_id_type caller, string function_name,vector<lua_types> value_list,
-                                                                    optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys,contract_id_type  contract_id)
+                          optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys,contract_id_type  contract_id)
 {
     try
     {
