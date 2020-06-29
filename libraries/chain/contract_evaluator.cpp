@@ -189,12 +189,13 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
 
     {
         // contract fee share record in block
-        auto owner_percent = contract_obj.user_invoke_share_percent;
-        auto caller_percent = 100 - owner_percent;
+        auto caller_percent = contract_obj.user_invoke_share_percent;
+        auto owner_percent = 100 - caller_percent;
         if (contract_obj.owner == op->caller) {
             owner_percent = 100;
             caller_percent = 0;
         }
+
         if (owner_percent > 0) {
             contract_fee_share_result owner_result(contract_obj.owner);
             owner_result.message = std::to_string(owner_percent) + "%";
@@ -209,6 +210,77 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     }
 }
 
+void call_contract_function_evaluator::pay_fee()
+{
+    contract_id_type db_index = op->contract_id;
+    database &_db = db();
+    const contract_object &contract_obj = db_index(_db); 
+
+    auto caller_percent = contract_obj.user_invoke_share_percent;
+    auto owner_percent = 100 - caller_percent;
+    if (contract_obj.owner == op->caller) {
+        owner_percent = 100;
+        caller_percent = 0;
+    }
+    
+    if (caller_percent > 0) {
+        auto pay_fee = core_fee_paid*(caller_percent/GRAPHENE_FULL_PROPOTION);
+        account_pay_fee(op->caller, pay_fee);
+    }
+
+    if (owner_percent > 0) {
+        auto pay_fee = core_fee_paid*(owner_percent/GRAPHENE_FULL_PROPOTION);
+        account_pay_fee(contract_obj.owner, pay_fee);
+    }
+
+    fee_visitor.fees.clear();
+    fee_visitor.add_fee(core_fee_paid);
+    result.visit(fee_visitor);
+}
+
+void call_contract_function_evaluator::account_pay_fee(const account_id_type &account_id, share_type account_core_fee_paid)
+{
+  try
+  {
+    auto &d = db();
+    const account_object paying_account = account_id(d);
+
+    // fee_visitor.fees.clear();
+    FC_ASSERT(d.GAS->options.core_exchange_rate,"GAS->options.core_exchange_rate is null");
+    if (account_core_fee_paid > 0)
+    {
+      const auto &total_gas = d.get_balance(paying_account, *d.GAS);
+      asset require_gas(double(account_core_fee_paid.value) * (*d.GAS->options.core_exchange_rate).to_real(), d.GAS->id);
+      if (total_gas >= require_gas)
+      {
+        paying_account.pay_fee(d, require_gas);
+        db_adjust_balance(paying_account.id, -require_gas);
+        // fee_visitor.add_fee(require_gas);
+        // result.visit(fee_visitor);
+      }
+      else
+      {
+        asset require_core = asset();
+        if (total_gas.amount.value > 0)
+        {
+          paying_account.pay_fee(d, total_gas);
+          db_adjust_balance(paying_account.id, -total_gas);
+        //   fee_visitor.add_fee(total_gas);
+          require_core = (require_gas - total_gas) * (*d.GAS->options.core_exchange_rate);
+        }
+        else
+        {
+          require_core = account_core_fee_paid;
+        }
+        paying_account.pay_fee(d, require_core);
+        db_adjust_balance(paying_account.id, -require_core);
+        // fee_visitor.add_fee(require_core);
+        // result.visit(fee_visitor);
+      }
+    }
+  }
+  FC_CAPTURE_AND_RETHROW()
+}
 
 contract_result call_contract_function_evaluator::do_apply_function(account_id_type caller, string function_name,vector<lua_types> value_list,
                           optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys,contract_id_type  contract_id)
