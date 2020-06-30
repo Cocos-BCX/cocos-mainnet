@@ -187,6 +187,7 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     // user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
     // core_fee_paid = user_invoke_share_fee;
 
+    if (core_fee_paid > 0)
     {
         // contract fee share record in block
         auto caller_percent = contract_obj.user_invoke_share_percent;
@@ -195,17 +196,21 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
             owner_percent = 100;
             caller_percent = 0;
         }
-
-        if (owner_percent > 0) {
-            contract_fee_share_result owner_result(contract_obj.owner);
-            owner_result.message = std::to_string(owner_percent) + "%";
-            result.contract_affecteds.push_back(std::move(owner_result));
-        }
-
+        auto owner_pay_fee = core_fee_paid*owner_percent/GRAPHENE_FULL_PROPOTION;
         if (caller_percent > 0) {
+            // auto pay_fee = core_fee_paid*caller_percent/GRAPHENE_FULL_PROPOTION;
             contract_fee_share_result caller_result(op->caller);
+            caller_result.fees = vector<asset>{core_fee_paid - owner_pay_fee};
             caller_result.message = std::to_string(caller_percent)  + "%";
             result.contract_affecteds.push_back(std::move(caller_result));
+        }
+
+        if (owner_percent > 0) {
+            // auto pay_fee = core_fee_paid*owner_percent/GRAPHENE_FULL_PROPOTION;
+            contract_fee_share_result owner_result(contract_obj.owner);
+            owner_result.fees = vector<asset>{owner_pay_fee};
+            owner_result.message = std::to_string(owner_percent) + "%";
+            result.contract_affecteds.push_back(std::move(owner_result));
         }
     }
 }
@@ -223,14 +228,16 @@ void call_contract_function_evaluator::pay_fee()
         caller_percent = 0;
     }
     
+    // ilog( "caller_percent ${p1}, owner_percent: ${p2}", ("p1", caller_percent/GRAPHENE_FULL_PROPOTION )("p2", owner_percent/GRAPHENE_FULL_PROPOTION) );
+    auto owner_pay_fee = core_fee_paid*owner_percent/GRAPHENE_FULL_PROPOTION;
     if (caller_percent > 0) {
-        auto pay_fee = core_fee_paid*(caller_percent/GRAPHENE_FULL_PROPOTION);
-        account_pay_fee(op->caller, pay_fee);
+        // auto pay_fee = core_fee_paid*caller_percent/GRAPHENE_FULL_PROPOTION;
+        account_pay_fee(op->caller, core_fee_paid - owner_pay_fee);
     }
 
     if (owner_percent > 0) {
-        auto pay_fee = core_fee_paid*(owner_percent/GRAPHENE_FULL_PROPOTION);
-        account_pay_fee(contract_obj.owner, pay_fee);
+        // auto pay_fee = core_fee_paid*owner_percent/GRAPHENE_FULL_PROPOTION;
+        account_pay_fee(contract_obj.owner, owner_pay_fee);
     }
 
     fee_visitor.fees.clear();
@@ -242,6 +249,7 @@ void call_contract_function_evaluator::account_pay_fee(const account_id_type &ac
 {
   try
   {
+    ilog( "account ${id}, core_fee_paid: ${fee}", ("id", account_id )("fee", account_core_fee_paid) );
     auto &d = db();
     const account_object paying_account = account_id(d);
 
@@ -251,6 +259,8 @@ void call_contract_function_evaluator::account_pay_fee(const account_id_type &ac
     {
       const auto &total_gas = d.get_balance(paying_account, *d.GAS);
       asset require_gas(double(account_core_fee_paid.value) * (*d.GAS->options.core_exchange_rate).to_real(), d.GAS->id);
+      ilog( "account ${id}, total_gas: ${gas}, require_gas: ${require_gas}", ("id", account_id )("gas", total_gas)("require_gas", require_gas) );
+
       if (total_gas >= require_gas)
       {
         paying_account.pay_fee(d, require_gas);
