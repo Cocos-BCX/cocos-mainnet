@@ -178,9 +178,6 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     temp += op->calculate_run_time_fee(*result.real_running_time, op_fee.price_per_millisecond);
     auto additional_cost = fc::uint128(temp.value) * fee_schedule_ob.scale / GRAPHENE_100_PERCENT;
     core_fee_paid += share_type(fc::to_int64(additional_cost));
-    contract_id_type db_index = result.contract_id;
-    database &_db = db();
-    const contract_object &contract_obj = db_index(_db); 
 
     // remove by gkany
     // auto user_invoke_share_fee =  core_fee_paid*contract_obj.user_invoke_share_percent/GRAPHENE_FULL_PROPOTION;
@@ -189,6 +186,10 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
 
     if (core_fee_paid > 0)
     {
+        database &_db = db();
+        contract_id_type db_index = result.contract_id;
+        const contract_object &contract_obj = db_index(_db); 
+
         // contract fee share record in block
         auto caller_percent = contract_obj.user_invoke_share_percent;
         auto owner_percent = 100 - caller_percent;
@@ -245,7 +246,7 @@ void call_contract_function_evaluator::pay_fee()
     result.visit(fee_visitor);
 }
 
-void call_contract_function_evaluator::account_pay_fee(const account_id_type &account_id, share_type account_core_fee_paid)
+void call_contract_function_evaluator::account_pay_fee(const account_id_type &account_id, const share_type& account_core_fee_paid)
 {
   try
   {
