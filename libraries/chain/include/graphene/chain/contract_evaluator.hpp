@@ -42,6 +42,7 @@ class call_contract_function_evaluator : public evaluator<call_contract_function
     const operation_type* op;
 
 private:
+    void pay_fee_impl() ;
     void account_pay_fee(const account_id_type &account_id, const share_type& account_core_fee_paid);
     
   private:

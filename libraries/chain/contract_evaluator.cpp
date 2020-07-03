@@ -179,44 +179,67 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     auto additional_cost = fc::uint128(temp.value) * fee_schedule_ob.scale / GRAPHENE_100_PERCENT;
     core_fee_paid += share_type(fc::to_int64(additional_cost));
 
-    // remove by gkany
-    // auto user_invoke_share_fee =  core_fee_paid*contract_obj.user_invoke_share_percent/GRAPHENE_FULL_PROPOTION;
-    // user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
-    // core_fee_paid = user_invoke_share_fee;
+    database &_db = db();
+    contract_id_type db_index = result.contract_id;
+    const contract_object &contract_obj = db_index(_db); 
+	if (_db.head_block_time() > CONTRACT_CALL_FEE_SHARE_TIMEPOINT) {
+        ilog("old---------------old");
+		auto user_invoke_share_fee =  core_fee_paid*contract_obj.user_invoke_share_percent/GRAPHENE_FULL_PROPOTION;
+		user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
+		core_fee_paid = user_invoke_share_fee;
+	} else {
+        ilog("new >>>>>>>>>>>>>>>>>>>> new");
+		// remove by gkany
+		// auto user_invoke_share_fee =  core_fee_paid*contract_obj.user_invoke_share_percent/GRAPHENE_FULL_PROPOTION;
+		// user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
+		// core_fee_paid = user_invoke_share_fee;
 
-    if (core_fee_paid > 0)
-    {
-        database &_db = db();
-        contract_id_type db_index = result.contract_id;
-        const contract_object &contract_obj = db_index(_db); 
+	    if (core_fee_paid > 0)
+		{
+			// database &_db = db();
+			// contract_id_type db_index = result.contract_id;
+			// const contract_object &contract_obj = db_index(_db); 
 
-        // contract fee share record in block
-        auto caller_percent = contract_obj.user_invoke_share_percent;
-        auto owner_percent = 100 - caller_percent;
-        if (contract_obj.owner == op->caller) {
-            owner_percent = 100;
-            caller_percent = 0;
-        }
-        auto owner_pay_fee = core_fee_paid*owner_percent/GRAPHENE_FULL_PROPOTION;
-        if (caller_percent > 0) {
-            // auto pay_fee = core_fee_paid*caller_percent/GRAPHENE_FULL_PROPOTION;
-            contract_fee_share_result caller_result(op->caller);
-            caller_result.fees = vector<asset>{core_fee_paid - owner_pay_fee};
-            caller_result.message = std::to_string(caller_percent)  + "%";
-            result.contract_affecteds.push_back(std::move(caller_result));
-        }
+			// contract fee share record in block
+			auto caller_percent = contract_obj.user_invoke_share_percent;
+			auto owner_percent = 100 - caller_percent;
+			if (contract_obj.owner == op->caller) {
+				owner_percent = 100;
+				caller_percent = 0;
+			}
+			auto owner_pay_fee = core_fee_paid*owner_percent/GRAPHENE_FULL_PROPOTION;
+			if (caller_percent > 0) {
+				// auto pay_fee = core_fee_paid*caller_percent/GRAPHENE_FULL_PROPOTION;
+				contract_fee_share_result caller_result(op->caller);
+				caller_result.fees = vector<asset>{core_fee_paid - owner_pay_fee};
+				caller_result.message = std::to_string(caller_percent)  + "%";
+				result.contract_affecteds.push_back(std::move(caller_result));
+			}
 
-        if (owner_percent > 0) {
-            // auto pay_fee = core_fee_paid*owner_percent/GRAPHENE_FULL_PROPOTION;
-            contract_fee_share_result owner_result(contract_obj.owner);
-            owner_result.fees = vector<asset>{owner_pay_fee};
-            owner_result.message = std::to_string(owner_percent) + "%";
-            result.contract_affecteds.push_back(std::move(owner_result));
-        }
-    }
+			if (owner_percent > 0) {
+				// auto pay_fee = core_fee_paid*owner_percent/GRAPHENE_FULL_PROPOTION;
+				contract_fee_share_result owner_result(contract_obj.owner);
+				owner_result.fees = vector<asset>{owner_pay_fee};
+				owner_result.message = std::to_string(owner_percent) + "%";
+				result.contract_affecteds.push_back(std::move(owner_result));
+			}
+		}
+	}
 }
 
 void call_contract_function_evaluator::pay_fee()
+{
+	database& _db = db();
+	if (_db.head_block_time() > CONTRACT_CALL_FEE_SHARE_TIMEPOINT) {
+        ilog("old---------------old");
+		this->evaluator::pay_fee();
+	} else {
+        ilog("new===============new");
+		pay_fee_impl();
+	}
+}
+
+void call_contract_function_evaluator::pay_fee_impl()
 {
     contract_id_type db_index = op->contract_id;
     database &_db = db();

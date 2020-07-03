@@ -21,11 +21,15 @@
 #ifndef UNSUCCESSFUL_CANDIDATE_DIFFPOINT
 #define UNSUCCESSFUL_CANDIDATE_DIFFPOINT 1765771
 #endif
-// AUTO GAS
+/* 于2020-0402 16:45:04领取gas费用分开，在此区块之前的按按原先默认费用*/
+#ifndef WITHDRAW_GAS_TIMEPOINT
+#define WITHDRAW_GAS_TIMEPOINT (fc::time_point_sec( 1585817104 ))
+#endif
+/* 于20200402自动回收gas，在此区块之前的按需手动回收；在此之后的，自动回收gas*/
 #ifndef AUTO_GAS_TIMEPOINT
 #define AUTO_GAS_TIMEPOINT (fc::time_point_sec( 1585826672 ))
-#endif 
-// withdraw gas fee
-#ifndef WITHDRAW_GAS_TIMEPOINT
-#define WITHDRAW_GAS_TIMEPOINT (fc::time_point_sec( 1585211357 ))
+#endif
+/* 合约费用分摊需求 2020-07-03 */
+#ifndef CONTRACT_CALL_FEE_SHARE_TIMEPOINT
+#define CONTRACT_CALL_FEE_SHARE_TIMEPOINT  (fc::time_point_sec( 1593907200 ))
 #endif
