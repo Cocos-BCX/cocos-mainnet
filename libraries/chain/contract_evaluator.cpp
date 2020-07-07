@@ -182,15 +182,16 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     database &_db = db();
     contract_id_type db_index = result.contract_id;
     const contract_object &contract_obj = db_index(_db); 
+    ilog("head_block_time: ${time}, hard_fork time: ${hf_time}", ("time", _db.head_block_time())("hf_time", CONTRACT_CALL_FEE_SHARE_TIMEPOINT));
 	if (_db.head_block_time() > CONTRACT_CALL_FEE_SHARE_TIMEPOINT) {
-        ilog("old---------------old");
-		auto user_invoke_share_fee =  core_fee_paid*contract_obj.user_invoke_share_percent/GRAPHENE_FULL_PROPOTION;
+        ilog("old --------------- old");
+		auto user_invoke_share_fee = core_fee_paid*contract_obj.user_invoke_share_percent/GRAPHENE_FULL_PROPOTION;
 		user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
 		core_fee_paid = user_invoke_share_fee;
 	} else {
         ilog("new >>>>>>>>>>>>>>>>>>>> new");
 		// remove by gkany
-		// auto user_invoke_share_fee =  core_fee_paid*contract_obj.user_invoke_share_percent/GRAPHENE_FULL_PROPOTION;
+		// auto user_invoke_share_fee = core_fee_paid*contract_obj.user_invoke_share_percent/GRAPHENE_FULL_PROPOTION;
 		// user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
 		// core_fee_paid = user_invoke_share_fee;
 
