@@ -143,6 +143,14 @@ lua_Number register_scheduler::nummin()
 {
     return std::numeric_limits<lua_Number>::min();
 }
+int64_t register_scheduler::integermax()
+{
+    return LUA_MAXINTEGER;
+}
+int64_t register_scheduler::integermin()
+{
+    return LUA_MININTEGER;
+}
 uint32_t register_scheduler::head_block_time()
 {
     return db.head_block_time().sec_since_epoch();
@@ -393,6 +401,8 @@ void lua_scheduler::chain_function_bind()
     registerFunction("log", &register_scheduler::log);
     registerFunction("number_max", &register_scheduler::nummax);
     registerFunction("number_min", &register_scheduler::nummin);
+    registerFunction("integer_max", &register_scheduler::integermax);
+    registerFunction("integer_min", &register_scheduler::integermin);
     registerFunction("real_time", &register_scheduler::real_time);
     registerFunction("time", &register_scheduler::head_block_time);
     registerFunction("hash256", &register_scheduler::hash256);
@@ -505,6 +515,17 @@ void lua_scheduler::chain_function_bind()
                 auto& token =fc_register.get_nh_asset(token_hash_or_id);
                 auto& account_to = fc_register.get_account(to).id;;
                 fc_register.transfer_nft_ownership(fc_register.caller, account_to, token,enable_logger); });
+
+    registerFunction<register_scheduler, string(string)>("get_nft_asset",
+                                                                     [](register_scheduler &fc_register, string hash_or_id) {
+                auto& token =fc_register.get_nh_asset(hash_or_id);
+                try{
+                    return  fc::json::to_string(token);
+                }
+                catch (fc::exception e)
+                {
+                    LUA_C_ERR_THROW(fc_register.context.mState, e.to_string());
+                }});                
 }
 
 void contract_object::register_function(lua_scheduler &context, register_scheduler *fc_register, contract_base_info *base_info)const
