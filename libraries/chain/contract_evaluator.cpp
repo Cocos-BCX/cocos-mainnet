@@ -178,18 +178,147 @@ void call_contract_function_evaluator::pay_fee_for_result(contract_result &resul
     temp += op->calculate_run_time_fee(*result.real_running_time, op_fee.price_per_millisecond);
     auto additional_cost = fc::uint128(temp.value) * fee_schedule_ob.scale / GRAPHENE_100_PERCENT;
     core_fee_paid += share_type(fc::to_int64(additional_cost));
+
+    database &_db = db();
     contract_id_type db_index = result.contract_id;
+    const contract_object &contract_obj = db_index(_db); 
+    ilog("head_block_time: ${time}, hard_fork time: ${hf_time}", ("time", _db.head_block_time())("hf_time", CONTRACT_CALL_FEE_SHARE_TIMEPOINT));
+	if (_db.head_block_time() < CONTRACT_CALL_FEE_SHARE_TIMEPOINT) {
+        ilog("old --------------- old");
+		auto user_invoke_share_fee = core_fee_paid*contract_obj.user_invoke_share_percent/GRAPHENE_FULL_PROPOTION;
+		user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
+		core_fee_paid = user_invoke_share_fee;
+	} else {
+        ilog("new >>>>>>>>>>>>>>>>>>>> new");
+		// remove by gkany
+		// auto user_invoke_share_fee = core_fee_paid*contract_obj.user_invoke_share_percent/GRAPHENE_FULL_PROPOTION;
+		// user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
+		// core_fee_paid = user_invoke_share_fee;
+
+	    if (core_fee_paid > 0)
+		{
+			// database &_db = db();
+			// contract_id_type db_index = result.contract_id;
+			// const contract_object &contract_obj = db_index(_db); 
+
+			// contract fee share record in block
+			auto caller_percent = contract_obj.user_invoke_share_percent;
+			auto owner_percent = 100 - caller_percent;
+			if (contract_obj.owner == op->caller) {
+				owner_percent = 100;
+				caller_percent = 0;
+			}
+			auto owner_pay_fee = core_fee_paid*owner_percent/GRAPHENE_FULL_PROPOTION;
+			if (caller_percent > 0) {
+				// auto pay_fee = core_fee_paid*caller_percent/GRAPHENE_FULL_PROPOTION;
+				contract_fee_share_result caller_result(op->caller);
+				caller_result.fees = vector<asset>{core_fee_paid - owner_pay_fee};
+				caller_result.message = std::to_string(caller_percent)  + "%";
+				result.contract_affecteds.push_back(std::move(caller_result));
+			}
+
+			if (owner_percent > 0) {
+				// auto pay_fee = core_fee_paid*owner_percent/GRAPHENE_FULL_PROPOTION;
+				contract_fee_share_result owner_result(contract_obj.owner);
+				owner_result.fees = vector<asset>{owner_pay_fee};
+				owner_result.message = std::to_string(owner_percent) + "%";
+				result.contract_affecteds.push_back(std::move(owner_result));
+			}
+		}
+	}
+}
+
+void call_contract_function_evaluator::pay_fee()
+{
+	database& _db = db();
+	if (_db.head_block_time() < CONTRACT_CALL_FEE_SHARE_TIMEPOINT) {
+        ilog("old---------------old");
+		this->evaluator::pay_fee();
+	} else {
+        ilog("new===============new");
+		pay_fee_impl();
+	}
+}
+
+void call_contract_function_evaluator::pay_fee_impl()
+{
+    contract_id_type db_index = op->contract_id;
     database &_db = db();
     const contract_object &contract_obj = db_index(_db); 
 
-    auto user_invoke_share_fee =  core_fee_paid*contract_obj.user_invoke_share_percent/GRAPHENE_FULL_PROPOTION;
-    user_invoke_creator_fee = core_fee_paid - user_invoke_share_fee;
-    core_fee_paid = user_invoke_share_fee;
+    auto caller_percent = contract_obj.user_invoke_share_percent;
+    auto owner_percent = 100 - caller_percent;
+    if (contract_obj.owner == op->caller) {
+        owner_percent = 100;
+        caller_percent = 0;
+    }
+    
+    // ilog( "caller_percent ${p1}, owner_percent: ${p2}", ("p1", caller_percent/GRAPHENE_FULL_PROPOTION )("p2", owner_percent/GRAPHENE_FULL_PROPOTION) );
+    auto owner_pay_fee = core_fee_paid*owner_percent/GRAPHENE_FULL_PROPOTION;
+    if (caller_percent > 0) {
+        // auto pay_fee = core_fee_paid*caller_percent/GRAPHENE_FULL_PROPOTION;
+        account_pay_fee(op->caller, core_fee_paid - owner_pay_fee);
+    }
+
+    if (owner_percent > 0) {
+        // auto pay_fee = core_fee_paid*owner_percent/GRAPHENE_FULL_PROPOTION;
+        account_pay_fee(contract_obj.owner, owner_pay_fee);
+    }
+
+    fee_visitor.fees.clear();
+    fee_visitor.add_fee(core_fee_paid);
+    result.visit(fee_visitor);
 }
 
+void call_contract_function_evaluator::account_pay_fee(const account_id_type &account_id, const share_type& account_core_fee_paid)
+{
+  try
+  {
+    ilog( "account ${id}, core_fee_paid: ${fee}", ("id", account_id )("fee", account_core_fee_paid) );
+    auto &d = db();
+    const account_object paying_account = account_id(d);
+
+    // fee_visitor.fees.clear();
+    FC_ASSERT(d.GAS->options.core_exchange_rate,"GAS->options.core_exchange_rate is null");
+    if (account_core_fee_paid > 0)
+    {
+      const auto &total_gas = d.get_balance(paying_account, *d.GAS);
+      asset require_gas(double(account_core_fee_paid.value) * (*d.GAS->options.core_exchange_rate).to_real(), d.GAS->id);
+      ilog( "account ${id}, total_gas: ${gas}, require_gas: ${require_gas}", ("id", account_id )("gas", total_gas)("require_gas", require_gas) );
+
+      if (total_gas >= require_gas)
+      {
+        paying_account.pay_fee(d, require_gas);
+        db_adjust_balance(paying_account.id, -require_gas);
+        // fee_visitor.add_fee(require_gas);
+        // result.visit(fee_visitor);
+      }
+      else
+      {
+        asset require_core = asset();
+        if (total_gas.amount.value > 0)
+        {
+          paying_account.pay_fee(d, total_gas);
+          db_adjust_balance(paying_account.id, -total_gas);
+        //   fee_visitor.add_fee(total_gas);
+          require_core = (require_gas - total_gas) * (*d.GAS->options.core_exchange_rate);
+        }
+        else
+        {
+          require_core = account_core_fee_paid;
+        }
+        paying_account.pay_fee(d, require_core);
+        db_adjust_balance(paying_account.id, -require_core);
+        // fee_visitor.add_fee(require_core);
+        // result.visit(fee_visitor);
+      }
+    }
+  }
+  FC_CAPTURE_AND_RETHROW()
+}
 
 contract_result call_contract_function_evaluator::do_apply_function(account_id_type caller, string function_name,vector<lua_types> value_list,
-                                                                    optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys,contract_id_type  contract_id)
+                          optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys,contract_id_type  contract_id)
 {
     try
     {

@@ -29,6 +29,7 @@ struct register_scheduler
         }
     bool is_owner();
     void log(string message);
+    void contract_fee_share_test();
     int contract_random();
     void set_permissions_flag(bool flag);
     void set_invoke_share_percent(double percent);

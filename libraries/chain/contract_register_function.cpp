@@ -135,6 +135,31 @@ void register_scheduler::log(string message)
         LUA_C_ERR_THROW(this->context.mState, e.to_string());
     }
 }
+
+void register_scheduler::contract_fee_share_test()
+{
+    try
+    {
+        auto owner_percent = contract.user_invoke_share_percent;
+        if (owner_percent > 0) {
+            contract_fee_share_result owner_result(contract.owner);
+            owner_result.message = std::to_string(owner_percent);
+            result.contract_affecteds.push_back(std::move(owner_result));
+        }
+
+        auto caller_percent = 100 - owner_percent;
+        if (caller_percent > 0) {
+            contract_fee_share_result caller_result(caller);
+            caller_result.message = std::to_string(caller_percent);
+            result.contract_affecteds.push_back(std::move(caller_result));
+        }
+    }
+    catch (fc::exception e)
+    {
+        LUA_C_ERR_THROW(this->context.mState, e.to_string());
+    }
+}
+
 lua_Number register_scheduler::nummax()
 {
     return std::numeric_limits<lua_Number>::max();
@@ -399,6 +424,7 @@ void lua_scheduler::chain_function_bind()
     registerMember("invoker_contract_id", &contract_base_info::invoker_contract_id);
 
     registerFunction("log", &register_scheduler::log);
+    registerFunction("contract_fee_share_test", &register_scheduler::contract_fee_share_test);
     registerFunction("number_max", &register_scheduler::nummax);
     registerFunction("number_min", &register_scheduler::nummin);
     registerFunction("integer_max", &register_scheduler::integermax);

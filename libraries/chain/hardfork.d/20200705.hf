@@ -1,0 +1,4 @@
+/* 合约费用分摊需求 2020-07-03 */
+#ifndef CONTRACT_CALL_FEE_SHARE_TIMEPOINT
+#define CONTRACT_CALL_FEE_SHARE_TIMEPOINT  (fc::time_point_sec( 1593907200 ))
+#endif
