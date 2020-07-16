@@ -36,10 +36,15 @@ class call_contract_function_evaluator : public evaluator<call_contract_function
     void_result do_evaluate(const operation_type &o);
     contract_result do_apply(const operation_type &o);
     void pay_fee_for_result(contract_result& result);
+    virtual void pay_fee() override;
     const contract_object *contract_pir= nullptr;
     const contract_bin_code_object *contract_code_pir= nullptr;
     const operation_type* op;
 
+private:
+    void pay_fee_impl() ;
+    void account_pay_fee(const account_id_type &account_id, const share_type& account_core_fee_paid, uint32_t percent);
+    
   private:
     share_type user_invoke_creator_fee;
 
