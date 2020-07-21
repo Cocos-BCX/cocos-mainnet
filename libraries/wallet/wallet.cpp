@@ -2010,6 +2010,19 @@ public:
             FC_CAPTURE_AND_RETHROW((owner)(name)(data)(broadcast))
       }
 
+      signed_transaction create_contract_from_file(string owner, string name, public_key_type contract_authority, string filename, bool broadcast = false)
+      {
+            try
+            {
+                  FC_ASSERT(filename != "" && fc::exists(filename));
+                  std::string contract_data;
+                  fc::read_file_contents(filename, contract_data);
+                  boost::algorithm::replace_all( contract_data, "\n", " ");
+                  return create_contract(owner, name, contract_authority, contract_data, broadcast);
+            }
+            FC_CAPTURE_AND_RETHROW((owner)(name)(contract_authority)(filename)(broadcast))
+      }
+
       signed_transaction revise_contract(string reviser, string contract_id_or_name, string data, bool broadcast = false) // wallet 合约 API
       {
             try
@@ -2033,6 +2046,19 @@ public:
                   return sign_transaction(tx, broadcast);
             }
             FC_CAPTURE_AND_RETHROW((reviser)(contract_id_or_name)(data)(broadcast))
+      }
+
+      signed_transaction revise_contract_from_file(string reviser, string contract_id_or_name, string filename, bool broadcast = false) // wallet 合约 API      
+      {
+            try
+            {
+                  FC_ASSERT(filename != "" && fc::exists(filename));
+                  std::string contract_data;
+                  fc::read_file_contents(filename, contract_data);
+                  boost::algorithm::replace_all( contract_data, "\n", " ");
+                  return revise_contract(reviser, contract_id_or_name, contract_data, broadcast);
+            }
+            FC_CAPTURE_AND_RETHROW((reviser)(contract_id_or_name)(filename)(broadcast))
       }
 
       signed_transaction call_contract_function(string account_id_or_name, string contract_id_or_name, string function_name,
@@ -3541,9 +3567,22 @@ pair<tx_hash_type, signed_transaction> wallet_api::create_contract(string owner,
       auto tx = my->create_contract(owner, name, contract_authority, data, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
+
+pair<tx_hash_type, signed_transaction> wallet_api::create_contract_from_file(string owner, string name, public_key_type contract_authority, string filename,bool broadcast /* = false */)
+{
+      auto tx = my->create_contract_from_file(owner, name, contract_authority, filename, broadcast);
+      return std::make_pair(tx.hash(), tx);
+}
+
 pair<tx_hash_type, signed_transaction> wallet_api::revise_contract(string reviser, string contract_id_or_name, string data, bool broadcast /*= false*/)
 {
       auto tx = my->revise_contract(reviser, contract_id_or_name, data, broadcast);
+      return std::make_pair(tx.hash(), tx);
+}
+
+pair<tx_hash_type, signed_transaction> wallet_api::revise_contract_from_file(string reviser, string contract_id_or_name, string filename, bool broadcast /*= false*/)
+{
+      auto tx = my->revise_contract_from_file(reviser, contract_id_or_name, filename, broadcast);
       return std::make_pair(tx.hash(), tx);
 }
 
@@ -3569,7 +3608,8 @@ lua_map wallet_api::get_contract_public_data(string contract_id_or_name, lua_map
 {
       return my->_remote_db->get_contract_public_data(contract_id_or_name, filter);
 }
-pair<tx_hash_type, signed_transaction> wallet_api::call_contract_function(string account_id_or_name, string contract_id_or_name, string function_name, vector<lua_types> value_list, bool broadcast /* = false */)
+pair<tx_hash_type, signed_transaction> wallet_api::call_contract_function(string account_id_or_name, 
+string contract_id_or_name, string function_name, vector<lua_types> value_list, bool broadcast /* = false */)
 {
       auto tx = my->call_contract_function(account_id_or_name, contract_id_or_name, function_name, value_list, this,broadcast);
       return std::make_pair(tx.hash(), tx);
