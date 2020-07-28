@@ -21,7 +21,7 @@
 #ifndef UNSUCCESSFUL_CANDIDATE_DIFFPOINT
 #define UNSUCCESSFUL_CANDIDATE_DIFFPOINT 1765771
 #endif
-// AUTO GAS
+/* 于2020-05-14 14:39:22自动回收gas，在此区块之前的按需手动回收；在此之后的，自动回收gas*/
 #ifndef AUTO_GAS_TIMEPOINT
-#define AUTO_GAS_TIMEPOINT (fc::time_point_sec( 1585826672 ))
-#endif 
+#define AUTO_GAS_TIMEPOINT (fc::time_point_sec( 1589438362 ))
+#endif

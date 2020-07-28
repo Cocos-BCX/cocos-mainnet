@@ -345,7 +345,7 @@ namespace fc { namespace rpc {
    future<variant> json_connection::async_call( const fc::string& method, const variants& args )
    {
       auto id = my->_next_id++;
-      my->_awaiting[id] = fc::promise<variant>::ptr( new fc::promise<variant>("json_connection::async_call") );
+      my->_awaiting[id] = fc::promise<variant>::create("json_connection::async_call");
 
       {
          fc::scoped_lock<fc::mutex> lock(my->_write_mutex);
@@ -371,7 +371,7 @@ namespace fc { namespace rpc {
    future<variant> json_connection::async_call( const fc::string& method, const variant& a1 )
    {
       auto id = my->_next_id++;
-      my->_awaiting[id] = fc::promise<variant>::ptr( new fc::promise<variant>("json_connection::async_call") );
+      my->_awaiting[id] = fc::promise<variant>::create("json_connection::async_call");
 
       {
          fc::scoped_lock<fc::mutex> lock(my->_write_mutex);
@@ -389,7 +389,7 @@ namespace fc { namespace rpc {
    future<variant> json_connection::async_call( const fc::string& method, const variant& a1, const variant& a2 )
    {
       auto id = my->_next_id++;
-      my->_awaiting[id] = fc::promise<variant>::ptr( new fc::promise<variant>("json_connection::async_call") );
+      my->_awaiting[id] = fc::promise<variant>::create("json_connection::async_call");
 
       {
          fc::scoped_lock<fc::mutex> lock(my->_write_mutex);
@@ -409,7 +409,7 @@ namespace fc { namespace rpc {
    future<variant> json_connection::async_call( const fc::string& method, const variant& a1, const variant& a2, const variant& a3 )
    {
       auto id = my->_next_id++;
-      my->_awaiting[id] = fc::promise<variant>::ptr( new fc::promise<variant>("json_connection::async_call") );
+      my->_awaiting[id] = fc::promise<variant>::create("json_connection::async_call");
 
       {
          fc::scoped_lock<fc::mutex> lock(my->_write_mutex);
@@ -432,7 +432,7 @@ namespace fc { namespace rpc {
    future<variant> json_connection::async_call( const fc::string& method, const variant& a1, const variant& a2, const variant& a3, const variant& a4 )
    {
       auto id = my->_next_id++;
-      my->_awaiting[id] = fc::promise<variant>::ptr( new fc::promise<variant>("json_connection::async_call") );
+      my->_awaiting[id] = fc::promise<variant>::create("json_connection::async_call");
 
       {
          fc::scoped_lock<fc::mutex> lock(my->_write_mutex);
@@ -457,7 +457,7 @@ namespace fc { namespace rpc {
    future<variant> json_connection::async_call( const fc::string& method, const variant& a1, const variant& a2, const variant& a3, const variant& a4, const variant& a5 )
    {
       auto id = my->_next_id++;
-      my->_awaiting[id] = fc::promise<variant>::ptr( new fc::promise<variant>("json_connection::async_call") );
+      my->_awaiting[id] = fc::promise<variant>::create("json_connection::async_call");
 
       {
          fc::scoped_lock<fc::mutex> lock(my->_write_mutex);
@@ -484,7 +484,7 @@ namespace fc { namespace rpc {
    future<variant> json_connection::async_call( const fc::string& method, const variant& a1, const variant& a2, const variant& a3, const variant& a4, const variant& a5, const variant& a6 )
    {
       auto id = my->_next_id++;
-      my->_awaiting[id] = fc::promise<variant>::ptr( new fc::promise<variant>("json_connection::async_call") );
+      my->_awaiting[id] = fc::promise<variant>::create("json_connection::async_call");
 
       {
          fc::scoped_lock<fc::mutex> lock(my->_write_mutex);
@@ -512,7 +512,7 @@ namespace fc { namespace rpc {
    future<variant> json_connection::async_call( const fc::string& method, const variant& a1, const variant& a2, const variant& a3, const variant& a4, const variant& a5, const variant& a6, const variant& a7 )
    {
       auto id = my->_next_id++;
-      my->_awaiting[id] = fc::promise<variant>::ptr( new fc::promise<variant>("json_connection::async_call") );
+      my->_awaiting[id] = fc::promise<variant>::create("json_connection::async_call");
 
       {
          fc::scoped_lock<fc::mutex> lock(my->_write_mutex);
@@ -550,7 +550,7 @@ namespace fc { namespace rpc {
                                                 const variant& a8 )
    {
       auto id = my->_next_id++;
-      my->_awaiting[id] = fc::promise<variant>::ptr( new fc::promise<variant>("json_connection::async_call") );
+      my->_awaiting[id] = fc::promise<variant>::create("json_connection::async_call");
 
       {
          fc::scoped_lock<fc::mutex> lock(my->_write_mutex);
@@ -591,7 +591,7 @@ namespace fc { namespace rpc {
                                                 const variant& a9 )
    {
       auto id = my->_next_id++;
-      my->_awaiting[id] = fc::promise<variant>::ptr( new fc::promise<variant>("json_connection::async_call") );
+      my->_awaiting[id] = fc::promise<variant>::create("json_connection::async_call");
 
       {
          fc::scoped_lock<fc::mutex> lock(my->_write_mutex);
@@ -635,7 +635,7 @@ namespace fc { namespace rpc {
                                                 const variant& a10 )
    {
       auto id = my->_next_id++;
-      my->_awaiting[id] = fc::promise<variant>::ptr( new fc::promise<variant>("json_connection::async_call") );
+      my->_awaiting[id] = fc::promise<variant>::create("json_connection::async_call");
 
       {
          fc::scoped_lock<fc::mutex> lock(my->_write_mutex);
@@ -676,7 +676,7 @@ namespace fc { namespace rpc {
    future<variant> json_connection::async_call( const fc::string& method, const variant_object& named_args )
    {
       auto id = my->_next_id++;
-      my->_awaiting[id] = fc::promise<variant>::ptr( new fc::promise<variant>("json_connection::async_call") );
+      my->_awaiting[id] = fc::promise<variant>::create("json_connection::async_call");
       fc::scoped_lock<fc::mutex> lock(my->_write_mutex);
       {
          *my->_out << "{\"id\":";
@@ -693,7 +693,7 @@ namespace fc { namespace rpc {
    future<variant> json_connection::async_call( const fc::string& method )
    {
       auto id = my->_next_id++;
-      my->_awaiting[id] = fc::promise<variant>::ptr( new fc::promise<variant>("json_connection::async_call") );
+      my->_awaiting[id] = fc::promise<variant>::create("json_connection::async_call");
       fc::scoped_lock<fc::mutex> lock(my->_write_mutex);
       {
         *my->_out << "{\"id\":";

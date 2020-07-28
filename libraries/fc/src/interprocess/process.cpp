@@ -119,7 +119,7 @@ iprocess& process::exec( const fc::path& exe,
   }
 
 
-  promise<int>::ptr p(new promise<int>("process"));
+  promise<int>::ptr p = fc::promise<int>::create("process");
   my->stat.async_wait(  my->child->get_id(), [=]( const boost::system::error_code& ec, int exit_code )
     {
       //slog( "process::result %d", exit_code );

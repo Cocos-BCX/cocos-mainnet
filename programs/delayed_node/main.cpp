@@ -173,7 +173,7 @@ int main(int argc, char** argv) {
       node.startup();
       node.startup_plugins();
 
-      fc::promise<int>::ptr exit_promise = new fc::promise<int>("UNIX Signal Handler");
+      fc::promise<int>::ptr exit_promise = fc::promise<int>::create("UNIX Signal Handler");
       fc::set_signal_handler([&exit_promise](int signal) {
          exit_promise->set_value(signal);
       }, SIGINT);

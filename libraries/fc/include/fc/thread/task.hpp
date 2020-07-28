@@ -1,8 +1,10 @@
 #pragma once
 #include <fc/thread/future.hpp>
 #include <fc/thread/priority.hpp>
-#include <fc/aligned.hpp>
 #include <fc/fwd.hpp>
+#include <type_traits>
+
+#include <boost/atomic.hpp>
 
 namespace fc {
   struct context;
@@ -25,15 +27,35 @@ namespace fc {
       };
       void* get_task_specific_data(unsigned slot);
       void set_task_specific_data(unsigned slot, void* new_value, void(*cleanup)(void*));
+      class idle_guard;
    }
 
   class task_base : virtual public promise_base {
     public:
               void run(); 
       virtual void cancel(const char* reason FC_CANCELATION_REASON_DEFAULT_ARG) override;
+      virtual ~task_base();
+
+      /* HERE BE DRAGONS
+       *
+       * Tasks are handled by an fc::thread . To avoid concurrency issues, fc::thread keeps a reference to the
+       * task in the form of a simple pointer.
+       * At the same time, a task is also a promise that will be fulfilled with the task result, so typically the
+       * creator of the task also keeps a reference to the task (but not necessarily always).
+       *
+       * Because effectively neither fc::thread nor the task creator are responsible for releasing resources
+       * associated with a task, and neither can delete the task without knowing if the other still needs it,
+       * the task object is managed by a shared_ptr.
+       * However, fc::thread doesn't hold a shared_ptr but a native pointer. To work around this, the task can
+       * be made to contain a shared_ptr holding itself (by calling retain()), which happens before the task
+       * is handed to an fc::thread, e. g. in fc::async(). Once the thread has processed the task, it calls
+       * release() which deletes the self-referencing shared_ptr and deletes the task object if it's no longer
+       * in use anywhere.
+       */
+      void retain();
+      void release();
 
     protected:
-      ~task_base();
       /// Task priority looks like unsupported feature.
       uint64_t    _posted_num;
       priority    _prio;
@@ -53,6 +75,7 @@ namespace fc {
       // thread/thread_private
       friend class thread;
       friend class thread_d;
+      friend class detail::idle_guard;
       fwd<spin_lock,8> _spinlock;
 
       // avoid rtti info for every possible functor...
@@ -64,6 +87,9 @@ namespace fc {
       void          run_impl(); 
 
       void cleanup_task_specific_data();
+    private:
+      std::shared_ptr<promise_base> _self;
+      boost::atomic<int32_t>        _retain_count;
   };
 
   namespace detail {
@@ -89,41 +115,57 @@ namespace fc {
   template<typename R,uint64_t FunctorSize=64>
   class task : virtual public task_base, virtual public promise<R> {
     public:
+      typedef std::shared_ptr<task<R,FunctorSize>> ptr;
+
+      virtual ~task(){}
+
+      template<typename Functor>
+      static ptr create( Functor&& f, const char* desc )
+      {
+         return ptr( new task<R,FunctorSize>( std::move(f), desc ) );
+      }
+      virtual void cancel(const char* reason FC_CANCELATION_REASON_DEFAULT_ARG) override { task_base::cancel(reason); }
+    private:
       template<typename Functor>
       task( Functor&& f, const char* desc ):promise_base(desc), task_base(&_functor), promise<R>(desc) {
-        typedef typename fc::deduce<Functor>::type FunctorType;
+        typedef typename std::remove_const_t< std::remove_reference_t<Functor> > FunctorType;
         static_assert( sizeof(f) <= sizeof(_functor), "sizeof(Functor) is larger than FunctorSize" );
-        new ((char*)&_functor) FunctorType( fc::forward<Functor>(f) );
+        new ((char*)&_functor) FunctorType( std::forward<Functor>(f) );
         _destroy_functor = &detail::functor_destructor<FunctorType>::destroy;
 
         _promise_impl = static_cast<promise<R>*>(this);
         _run_functor  = &detail::functor_run<FunctorType>::run;
       }
-      virtual void cancel(const char* reason FC_CANCELATION_REASON_DEFAULT_ARG) override { task_base::cancel(reason); }
 
-      aligned<FunctorSize> _functor;
-    private:
-      ~task(){}
+      alignas(double) char _functor[FunctorSize];
   };
 
   template<uint64_t FunctorSize>
-  class task<void,FunctorSize> : virtual public task_base, virtual public promise<void> {
+  class task<void,FunctorSize> : public task_base, public promise<void> {
     public:
+      typedef std::shared_ptr<task<void,FunctorSize>> ptr;
+
+      virtual ~task(){}
+      
+      template<typename Functor>
+      static ptr create( Functor&& f, const char* desc )
+      {
+         return ptr( new task<void,FunctorSize>( std::move(f), desc ) );
+      }
+      virtual void cancel(const char* reason FC_CANCELATION_REASON_DEFAULT_ARG) override { task_base::cancel(reason); }
+    private:
       template<typename Functor>
       task( Functor&& f, const char* desc ):promise_base(desc), task_base(&_functor), promise<void>(desc) {
-        typedef typename fc::deduce<Functor>::type FunctorType;
+        typedef typename std::remove_const_t< std::remove_reference_t<Functor> > FunctorType;
         static_assert( sizeof(f) <= sizeof(_functor), "sizeof(Functor) is larger than FunctorSize"  );
-        new ((char*)&_functor) FunctorType( fc::forward<Functor>(f) );
+        new ((char*)&_functor) FunctorType( std::forward<Functor>(f) );
         _destroy_functor = &detail::functor_destructor<FunctorType>::destroy;
 
         _promise_impl = static_cast<promise<void>*>(this);
         _run_functor  = &detail::void_functor_run<FunctorType>::run;
       }
-      virtual void cancel(const char* reason FC_CANCELATION_REASON_DEFAULT_ARG) override { task_base::cancel(reason); }
 
-      aligned<FunctorSize> _functor;      
-    private:
-      ~task(){}
+      alignas(double) char _functor[FunctorSize];
   };
 
 }

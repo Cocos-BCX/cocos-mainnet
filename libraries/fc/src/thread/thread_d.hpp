@@ -1,13 +1,14 @@
 #include <fc/thread/thread.hpp>
-#include <fc/string.hpp>
+#include <fc/stacktrace.hpp>
 #include <fc/time.hpp>
 #include <boost/thread.hpp>
 #include "context.hpp"
 #include <boost/thread/condition_variable.hpp>
 #include <boost/thread.hpp>
 #include <boost/atomic.hpp>
+
+#include <sstream>
 #include <vector>
-//#include <fc/logger.hpp>
 
 namespace fc {
     struct sleep_priority_less {
@@ -15,12 +16,23 @@ namespace fc {
             return a->resume_time > b->resume_time;
         }
     };
+
+    namespace detail {
+       class idle_guard {
+       public:
+          explicit idle_guard( thread_d* t );
+          ~idle_guard();
+       private:
+          thread_idle_notifier* notifier;
+       };
+    }
+
     class thread_d {
 
         public:
            using context_pair = std::pair<thread_d*, fc::context*>;
 
-           thread_d(fc::thread& s)
+           thread_d( fc::thread& s, thread_idle_notifier* n = 0 )
             :self(s), boost_thread(0),
              task_in_queue(0),
              next_posted_num(1),
@@ -28,22 +40,31 @@ namespace fc {
              current(0),
              pt_head(0),
              blocked(0),
-             next_unused_task_storage_slot(0)
+             next_unused_task_storage_slot(0),
+             notifier(n)
 #ifndef NDEBUG
              ,non_preemptable_scope_count(0)
 #endif
             { 
               static boost::atomic<int> cnt(0);
-              name = fc::string("th_") + char('a'+cnt++); 
-//             printf("thread=%p\n",this);
+              name = std::string("th_") + char('a'+cnt++); 
+//              printf("thread=%p\n",this);
             }
 
             ~thread_d()
             {
               delete current;
+              current = nullptr;
               fc::context* temp;
               for (fc::context* ready_context : ready_heap)
-                delete ready_context;
+              {
+                  if (ready_context->cur_task)
+                  {
+                     ready_context->cur_task->release();
+                     ready_context->cur_task = nullptr;
+                  }
+                  delete ready_context;
+              }
               ready_heap.clear();
               while (blocked)
               {
@@ -81,7 +102,7 @@ namespace fc {
            std::vector<fc::context*>       free_list;      // list of unused contexts that are ready for deletion
 
            bool                     done;
-           fc::string               name;
+           std::string               name;
            fc::context*             current;     // the currently-executing task in this thread
 
            fc::context*             pt_head;     // list of contexts that can be reused for new tasks
@@ -98,12 +119,14 @@ namespace fc {
            std::vector<detail::specific_data_info> non_task_specific_data;
            unsigned next_unused_task_storage_slot;
 
+           thread_idle_notifier *notifier;
+
 #ifndef NDEBUG
            unsigned                 non_preemptable_scope_count;
 #endif
 
 #if 0
-           void debug( const fc::string& s ) {
+           void debug( const std::string& s ) {
           return;
               //boost::unique_lock<boost::mutex> lock(log_mutex());
 
@@ -314,7 +337,7 @@ namespace fc {
                  if( (*task_itr)->canceled() )
                  {
                     (*task_itr)->run();
-                    (*task_itr)->release();
+                    (*task_itr)->release(); // HERE BE DRAGONS
                     task_itr = task_sch_queue.erase(task_itr);
                     canceled_task = true;
                     continue;
@@ -369,7 +392,14 @@ namespace fc {
               /* NB: At least on Win64, this only catches a yield while in the body of 
                * a catch block; it fails to catch a yield while unwinding the stack, which 
                * is probably just as likely to cause crashes */
-              assert(std::current_exception() == std::exception_ptr());
+              if( std::current_exception() != std::exception_ptr() )
+              {
+                 std::stringstream stacktrace;
+                 print_stacktrace( stacktrace );
+                 elog( "Thread ${name} yielded in exception handler!\n${trace}",
+                       ("name",thread::current().name())("trace",stacktrace.str()) );
+                 assert( std::current_exception() == std::exception_ptr() );
+              }
 
               check_for_timeouts();
               if( !current ) 
@@ -511,9 +541,9 @@ namespace fc {
               next->_set_active_context( current );
               current->cur_task = next;
               next->run();
-              current->cur_task = 0;
-              next->_set_active_context(0);
-              next->release();
+              current->cur_task = nullptr;
+              next->_set_active_context(nullptr);
+              next->release(); // HERE BE DRAGONS
               current->reinitialize();
            }
 
@@ -585,6 +615,11 @@ namespace fc {
                   
                   if( done ) 
                     return;
+
+                  detail::idle_guard guard( this );
+                  if( task_in_queue.load(boost::memory_order_relaxed) )
+                     continue;
+
                   if( timeout_time == time_point::maximum() ) 
                     task_ready.wait( lock );
                   else if( timeout_time != time_point::min() ) 
@@ -666,7 +701,7 @@ namespace fc {
         {
           if( fc::thread::current().my != this ) 
           {
-            self.async( [=](){ unblock(c); }, "thread_d::unblock" );
+            self.async( [this,c](){ unblock(c); }, "thread_d::unblock" );
             return;
           }
 

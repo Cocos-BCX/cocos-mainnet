@@ -288,7 +288,7 @@ class websocket_server_impl
             _server.stop_listening();
 
         if (_connections.size())
-            _closed = new fc::promise<void>();
+            _closed = fc::promise<void>::create();
 
         auto cpy_con = _connections;
         for (auto item : cpy_con)
@@ -675,12 +675,12 @@ websocket_connection_ptr websocket_client::connect(const std::string &uri)
         websocketpp::lib::error_code ec;
 
         my->_uri = uri;
-        my->_connected = fc::promise<void>::ptr(new fc::promise<void>("websocket::connect"));
+        my->_connected = fc::promise<void>::create("websocket::connect");
 
         my->_client.set_open_handler([=](websocketpp::connection_hdl hdl) {
             auto con = my->_client.get_con_from_hdl(hdl);
             my->_connection = std::make_shared<detail::websocket_connection_impl<detail::websocket_client_connection_type>>(con);
-            my->_closed = fc::promise<void>::ptr(new fc::promise<void>("websocket::closed"));
+            my->_closed = fc::promise<void>::create("websocket::closed");
             my->_connected->set_value();
         });
 
@@ -707,12 +707,12 @@ websocket_connection_ptr websocket_client::secure_connect(const std::string &uri
         websocketpp::lib::error_code ec;
 
         smy->_uri = uri;
-        smy->_connected = fc::promise<void>::ptr(new fc::promise<void>("websocket::connect"));
+        smy->_connected = fc::promise<void>::create("websocket::connect");
 
         smy->_client.set_open_handler([=](websocketpp::connection_hdl hdl) {
             auto con = smy->_client.get_con_from_hdl(hdl);
             smy->_connection = std::make_shared<detail::websocket_connection_impl<detail::websocket_tls_client_connection_type>>(con);
-            smy->_closed = fc::promise<void>::ptr(new fc::promise<void>("websocket::closed"));
+            smy->_closed = fc::promise<void>::create("websocket::closed");
             smy->_connected->set_value();
         });
 
@@ -733,12 +733,12 @@ websocket_connection_ptr websocket_tls_client::connect(const std::string &uri)
         // wlog( "connecting to ${uri}", ("uri",uri));
         websocketpp::lib::error_code ec;
 
-        my->_connected = fc::promise<void>::ptr(new fc::promise<void>("websocket::connect"));
+        my->_connected = fc::promise<void>::create("websocket::connect");
 
         my->_client.set_open_handler([=](websocketpp::connection_hdl hdl) {
             auto con = my->_client.get_con_from_hdl(hdl);
             my->_connection = std::make_shared<detail::websocket_connection_impl<detail::websocket_tls_client_connection_type>>(con);
-            my->_closed = fc::promise<void>::ptr(new fc::promise<void>("websocket::closed"));
+            my->_closed = fc::promise<void>::create("websocket::closed");
             my->_connected->set_value();
         });
 

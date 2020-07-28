@@ -1,10 +1,11 @@
 #pragma once
-#include <fc/utility.hpp>
 #include <fc/time.hpp>
-#include <fc/shared_ptr.hpp>
 #include <fc/exception/exception.hpp>
 #include <fc/thread/spin_yield_lock.hpp>
 #include <fc/optional.hpp>
+
+#include <atomic>
+#include <memory>
 
 //#define FC_TASK_NAMES_ARE_MANDATORY 1
 #ifdef FC_TASK_NAMES_ARE_MANDATORY
@@ -21,7 +22,6 @@
 #endif
 
 namespace fc {
-  class abstract_thread;
   struct void_t{};
   class priority;
   class thread;
@@ -36,7 +36,7 @@ namespace fc {
      template<typename Functor, typename T>
      class completion_handler_impl : public completion_handler {
        public:
-         completion_handler_impl( Functor&& f ):_func(fc::move(f)){}
+         completion_handler_impl( Functor&& f ):_func(std::move(f)){}
          completion_handler_impl( const Functor& f ):_func(f){}
      
          virtual void on_complete( const void* v, const fc::exception_ptr& e ) {
@@ -48,7 +48,7 @@ namespace fc {
      template<typename Functor>
      class completion_handler_impl<Functor,void> : public completion_handler {
        public:
-         completion_handler_impl( Functor&& f ):_func(fc::move(f)){}
+         completion_handler_impl( Functor&& f ):_func(std::move(f)){}
          completion_handler_impl( const Functor& f ):_func(f){}
          virtual void on_complete( const void* v, const fc::exception_ptr& e ) {
            _func(e);
@@ -58,10 +58,10 @@ namespace fc {
      };
   }
 
-  class promise_base : public virtual retainable{
+  class promise_base : public std::enable_shared_from_this<promise_base> {
     public:
-      typedef fc::shared_ptr<promise_base> ptr;
-      promise_base(const char* desc FC_TASK_NAME_DEFAULT_ARG);
+      typedef std::shared_ptr<promise_base> ptr;
+      virtual ~promise_base();
 
       const char* get_desc()const;
                    
@@ -73,26 +73,26 @@ namespace fc {
       void set_exception( const fc::exception_ptr& e );
 
     protected:
+      promise_base(const char* desc FC_TASK_NAME_DEFAULT_ARG);
+
       void _wait( const microseconds& timeout_us );
       void _wait_until( const time_point& timeout_us );
-      void _enqueue_thread();
-      void _dequeue_thread();
       void _notify();
-      void _set_timeout();
       void _set_value(const void* v);
 
       void _on_complete( detail::completion_handler* c );
-      ~promise_base();
 
     private:
+      void _enqueue_thread();
+      void _dequeue_thread();
+
       friend class  thread;
       friend struct context;
       friend class  thread_d;
 
-      bool                        _ready;
-      mutable spin_yield_lock     _spin_yield;
-      thread*                     _blocked_thread;
-      unsigned                    _blocked_fiber_count;
+      std::atomic<bool>           _ready;
+      std::atomic<thread*>        _blocked_thread;
+      std::atomic<int32_t>        _blocked_fiber_count;
       time_point                  _timeout;
       fc::exception_ptr           _exceptp;
       bool                        _canceled;
@@ -101,18 +101,29 @@ namespace fc {
       const char*                 _cancellation_reason;
     private:
 #endif
-      const char*                 _desc;
-      detail::completion_handler* _compl;
+      const char*                   _desc;
+      std::atomic<detail::completion_handler*> _compl;
   };
 
   template<typename T = void> 
   class promise : virtual public promise_base {
     public:
-      typedef fc::shared_ptr< promise<T> > ptr;
-      promise( const char* desc FC_TASK_NAME_DEFAULT_ARG):promise_base(desc){}
-      promise( const T& val ){ set_value(val); }
-      promise( T&& val ){ set_value(fc::move(val) ); }
-    
+      typedef std::shared_ptr< promise<T> > ptr;
+      virtual ~promise(){}
+
+      static ptr create( const char* desc FC_TASK_NAME_DEFAULT_ARG )
+      {
+         return ptr( new promise<T>( desc ) );
+      }
+      static ptr create( const T& val )
+      {
+         return ptr( new promise<T>( val ) );
+      }
+      static ptr create( T&& val )
+      {
+         return ptr( new promise<T>( std::move(val) ) );
+      }
+
       const T& wait(const microseconds& timeout = microseconds::maximum() ){
         this->_wait( timeout );
         return *result;
@@ -128,26 +139,38 @@ namespace fc {
       }
 
       void set_value( T&& v ) {
-        result = fc::move(v);
+        result = std::move(v);
         _set_value(&*result);
       }
 
       template<typename CompletionHandler>
       void on_complete( CompletionHandler&& c ) {
-        _on_complete( new detail::completion_handler_impl<CompletionHandler,T>(fc::forward<CompletionHandler>(c)) );
+        _on_complete( new detail::completion_handler_impl<CompletionHandler,T>(std::forward<CompletionHandler>(c)) );
       }
     protected:
+      promise( const char* desc ):promise_base(desc){}
+      promise( const T& val ){ set_value(val); }
+      promise( T&& val ){ set_value(std::move(val) ); }
+
       optional<T> result;
-      ~promise(){}
   };
 
   template<>
   class promise<void> : virtual public promise_base {
     public:
-      typedef fc::shared_ptr< promise<void> > ptr;
-      promise( const char* desc FC_TASK_NAME_DEFAULT_ARG):promise_base(desc){}
-      //promise( const void_t& ){ set_value(); }
+      typedef std::shared_ptr< promise<void> > ptr;
+
+      virtual ~promise(){}
     
+      static ptr create( const char* desc FC_TASK_NAME_DEFAULT_ARG )
+      {
+         return ptr( new promise<void>( desc ) );
+      }
+      static ptr create( bool fulfilled, const char* desc FC_TASK_NAME_DEFAULT_ARG )
+      {
+         return ptr( new promise<void>( fulfilled, desc ) );
+      }
+
       void wait(const microseconds& timeout = microseconds::maximum() ){
         this->_wait( timeout );
       }
@@ -160,10 +183,13 @@ namespace fc {
 
       template<typename CompletionHandler>
       void on_complete( CompletionHandler&& c ) {
-        _on_complete( new detail::completion_handler_impl<CompletionHandler,void>(fc::forward<CompletionHandler>(c)) );
+        _on_complete( new detail::completion_handler_impl<CompletionHandler,void>(std::forward<CompletionHandler>(c)) );
       }
     protected:
-      ~promise(){}
+      promise( const char* desc ):promise_base(desc){}
+      promise( bool fulfilled, const char* desc ){
+          if( fulfilled ) set_value();
+      }
   };
   
   /**
@@ -184,16 +210,15 @@ namespace fc {
   template<typename T> 
   class future {
     public:
-      future( const fc::shared_ptr<promise<T>>& p ):m_prom(p){}
-      future( fc::shared_ptr<promise<T>>&& p ):m_prom(fc::move(p)){}
+      future( const typename promise<T>::ptr& p ):m_prom(p){}
+      future( typename promise<T>::ptr&& p ):m_prom(std::move(p)){}
       future(const future<T>& f ) : m_prom(f.m_prom){}
       future(){}
 
       future& operator=(future<T>&& f ) {
-        fc_swap(m_prom,f.m_prom); 
+        std::swap(m_prom,f.m_prom);
         return *this;
       }
-
 
       operator const T&()const { return wait(); }
       
@@ -247,23 +272,23 @@ namespace fc {
        */
       template<typename CompletionHandler>
       void on_complete( CompletionHandler&& c ) {
-        m_prom->on_complete( fc::forward<CompletionHandler>(c) );
+        m_prom->on_complete( std::forward<CompletionHandler>(c) );
       }
     private:
       friend class thread;
-      fc::shared_ptr<promise<T>> m_prom;
+      typename promise<T>::ptr m_prom;
   };
 
   template<>
   class future<void> {
     public:
-      future( const fc::shared_ptr<promise<void>>& p ):m_prom(p){}
-      future( fc::shared_ptr<promise<void>>&& p ):m_prom(fc::move(p)){}
+      future( const typename promise<void>::ptr& p ):m_prom(p){}
+      future( typename promise<void>::ptr&& p ):m_prom(std::move(p)){}
       future(const future<void>& f ) : m_prom(f.m_prom){}
       future(){}
 
       future& operator=(future<void>&& f ) {
-        fc_swap(m_prom,f.m_prom); 
+        std::swap(m_prom,f.m_prom);
         return *this;
       }
 
@@ -308,12 +333,12 @@ namespace fc {
 
       template<typename CompletionHandler>
       void on_complete( CompletionHandler&& c ) {
-        m_prom->on_complete( fc::forward<CompletionHandler>(c) );
+        m_prom->on_complete( std::forward<CompletionHandler>(c) );
       }
 
     private:
       friend class thread;
-      fc::shared_ptr<promise<void>> m_prom;
+      typename promise<void>::ptr m_prom;
   };
 } 
 

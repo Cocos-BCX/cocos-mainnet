@@ -45,7 +45,7 @@ void  state::handle_reply( const response& response )
 request state::start_remote_call( const string& method_name, variants args )
 {
    request request{ _next_id++, method_name, std::move(args) };
-   _awaiting[*request.id] = fc::promise<variant>::ptr( new fc::promise<variant>("json_connection::async_call") );
+   _awaiting[*request.id] = fc::promise<variant>::create("json_connection::async_call");
    return request;
 }
 variant state::wait_for_response( uint64_t request_id )

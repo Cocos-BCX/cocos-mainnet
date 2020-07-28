@@ -3,6 +3,9 @@
 #include <boost/thread.hpp>
 #include <fc/log/logger.hpp>
 #include <fc/exception/exception.hpp>
+#include <boost/scope_exit.hpp>
+#include <algorithm>
+#include <thread>
 
 namespace fc {
   namespace asio {
@@ -55,7 +58,6 @@ namespace fc {
                 }
                 else
                 {
-                  //elog( "${message} ", ("message", boost::system::system_error(ec).what()));
                   p->set_exception( fc::exception_ptr( new fc::exception(
                           FC_LOG_MESSAGE( error, "${message} ", ("message", boost::system::system_error(ec).what())) ) ) );
                 }
@@ -80,8 +82,6 @@ namespace fc {
                 }
                 p->set_value( eps );
             } else {
-                //elog( "%s", boost::system::system_error(ec).what() );
-                //p->set_exception( fc::copy_exception( boost::system::system_error(ec) ) );
                 p->set_exception(
                     fc::exception_ptr( new fc::exception(
                         FC_LOG_MESSAGE( error, "process exited with: ${message} ",
@@ -90,67 +90,97 @@ namespace fc {
         }
     }
 
-    struct default_io_service_scope
-    {
-       boost::asio::io_service*          io;
-       std::vector<boost::thread*>       asio_threads;
-       boost::asio::io_service::work*    the_work;
+    uint16_t fc::asio::default_io_service_scope::num_io_threads = 0;
 
-       default_io_service_scope()
+    /***
+     * @brief set the default number of threads for the io service
+     *
+     * Sets the number of threads for the io service. This will throw
+     * an exception if called more than once.
+     *
+     * @param num_threads the number of threads
+     */
+    void default_io_service_scope::set_num_threads(uint16_t num_threads) {
+       FC_ASSERT(num_io_threads == 0);
+       num_io_threads = num_threads;
+    }
+
+    uint16_t default_io_service_scope::get_num_threads() { return num_io_threads; }
+
+    /***
+     * Default constructor
+     */
+    default_io_service_scope::default_io_service_scope()
+    {
+       io           = new boost::asio::io_service();
+       the_work     = new boost::asio::io_service::work(*io);
+
+       if( num_io_threads == 0 )
        {
-            io           = new boost::asio::io_service();
-            the_work     = new boost::asio::io_service::work(*io);
-            for( int i = 0; i < 8; ++i ) {
-               asio_threads.push_back( new boost::thread( [=]()
-               {
-                 fc::thread::current().set_name("asio");
+          // the default was not set by the configuration. Determine a good
+          // number of threads. Minimum of 8, maximum of hardware_concurrency
+          num_io_threads = std::max( boost::thread::hardware_concurrency(), 8U );
+       }
+
+       for( uint16_t i = 0; i < num_io_threads; ++i )
+       {
+          asio_threads.push_back( new boost::thread( [i,this]()
+                {
+                 fc::thread::current().set_name( "fc::asio worker #" + fc::to_string(i) );
+                 
+                 BOOST_SCOPE_EXIT(void)
+                 {
+                    fc::thread::cleanup();
+                 } 
+                 BOOST_SCOPE_EXIT_END
+
                  while (!io->stopped())
                  {
-                   try
-                   {
-                     io->run();
-                   }
-                   catch (const fc::exception& e)
-                   {
-                     elog("Caught unhandled exception in asio service loop: ${e}", ("e", e));
-                   }
-                   catch (const std::exception& e)
-                   {
-                     elog("Caught unhandled exception in asio service loop: ${e}", ("e", e.what()));
-                   }
-                   catch (...)
-                   {
-                     elog("Caught unhandled exception in asio service loop");
-                   }
+                    try
+                    {
+                       io->run();
+                    }
+                    catch (const fc::exception& e)
+                    {
+                       elog("Caught unhandled exception in asio service loop: ${e}", ("e", e));
+                    }
+                    catch (const std::exception& e)
+                    {
+                       elog("Caught unhandled exception in asio service loop: ${e}", ("e", e.what()));
+                    }
+                    catch (...)
+                    {
+                       elog("Caught unhandled exception in asio service loop");
+                    }
                  }
-               }) );
-            }
-       }
+                }) );
+       } // build thread loop
+    } // end of constructor
 
-       void cleanup()
+    /***
+     * destructor
+     */
+    default_io_service_scope::~default_io_service_scope()
+    {
+       delete the_work;
+       io->stop();
+       for( auto asio_thread : asio_threads )
        {
-          delete the_work;
-          io->stop();
-          for( auto asio_thread : asio_threads ) {
-             asio_thread->join();
-          }
-          delete io;
-          for( auto asio_thread : asio_threads ) {
-             delete asio_thread;
-          }
+          asio_thread->join();
        }
+       delete io;
+       for( auto asio_thread : asio_threads )
+       {
+          delete asio_thread;
+       }
+    } // end of destructor
 
-       ~default_io_service_scope()
-       {}
-    };
-
-    /// If cleanup is true, do not use the return value; it is a null reference
-    boost::asio::io_service& default_io_service(bool cleanup) {
+    /***
+     * @brief create an io_service
+     * @returns the io_service
+     */
+    boost::asio::io_service& default_io_service() {
         static default_io_service_scope fc_asio_service[1];
-        if (cleanup) {
-           for( int i = 0; i < 1; ++i )
-              fc_asio_service[i].cleanup();
-        }
         return *fc_asio_service[0].io;
     }
 
@@ -160,10 +190,10 @@ namespace fc {
         try
         {
           resolver res( fc::asio::default_io_service() );
-          promise<std::vector<boost::asio::ip::tcp::endpoint> >::ptr p( new promise<std::vector<boost::asio::ip::tcp::endpoint> >("tcp::resolve completion") );
+          promise<std::vector<boost::asio::ip::tcp::endpoint> >::ptr p = promise<std::vector<boost::asio::ip::tcp::endpoint> >::create("tcp::resolve completion");
           res.async_resolve( boost::asio::ip::tcp::resolver::query(hostname,port),
                             boost::bind( detail::resolve_handler<boost::asio::ip::tcp::endpoint,resolver_iterator>, p, _1, _2 ) );
-          return p->wait();;
+          return p->wait();
         }
         FC_RETHROW_EXCEPTIONS(warn, "")
       }
@@ -174,7 +204,7 @@ namespace fc {
         try
         {
           resolver res( fc::asio::default_io_service() );
-          promise<std::vector<endpoint> >::ptr p( new promise<std::vector<endpoint> >("udp::resolve completion") );
+          promise<std::vector<endpoint> >::ptr p = promise<std::vector<endpoint> >::create("udp::resolve completion");
           res.async_resolve( resolver::query(hostname,port),
                               boost::bind( detail::resolve_handler<endpoint,resolver_iterator>, p, _1, _2 ) );
           return p->wait();

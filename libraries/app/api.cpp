@@ -175,7 +175,7 @@ tx_hash_type network_broadcast_api::broadcast_transaction(const signed_transacti
 
 fc::variant network_broadcast_api::broadcast_transaction_synchronous(const signed_transaction &trx)
 {
-  fc::promise<fc::variant>::ptr prom(new fc::promise<fc::variant>());
+  fc::promise<fc::variant>::ptr prom = fc::promise<fc::variant>::create();
 
   return fc::future<fc::variant>(prom).wait();
 }

@@ -45,7 +45,7 @@ void  bstate::handle_reply( const bresponse& bresponse )
 brequest bstate::start_remote_call( const string& method_name, params_type args )
 {
    brequest brequest{ _next_id++, method_name, std::move(args) };
-   _awaiting[*brequest.id] = fc::promise<result_type>::ptr( new fc::promise<result_type>("json_connection::async_call") );
+   _awaiting[*brequest.id] = fc::promise<result_type>::create("json_connection::async_call");
    return brequest;
 }
 result_type bstate::wait_for_response( uint64_t request_id )

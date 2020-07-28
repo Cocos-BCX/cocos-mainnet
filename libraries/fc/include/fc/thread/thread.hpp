@@ -3,8 +3,6 @@
 #define FC_CONTEXT_STACK_SIZE (2048*1024)
 
 #include <fc/thread/task.hpp>
-#include <fc/vector.hpp>
-#include <fc/string.hpp>
 
 namespace fc {
   class time_point;
@@ -12,6 +10,7 @@ namespace fc {
 
    namespace detail
    {
+      class worker_pool;
       void* get_thread_specific_data(unsigned slot);
       void set_thread_specific_data(unsigned slot, void* new_value, void(*cleanup)(void*));
       unsigned get_next_unused_task_storage_slot();
@@ -19,11 +18,29 @@ namespace fc {
       void set_task_specific_data(unsigned slot, void* new_value, void(*cleanup)(void*));
    }
 
+   /** Instances of this class can be used to get notifications when a thread is
+    *  (or is no longer) idle.
+    */
+   class thread_idle_notifier {
+   public:
+      virtual ~thread_idle_notifier() {}
+
+      /** This method is called when the thread is idle. If it returns a
+       *  task_base it will be queued and executed immediately.
+       *  @return a task to execute, or nullptr
+       */
+      virtual task_base* idle() = 0;
+      /** This method is called when the thread is no longer idle, e. g. after
+       *  it has woken up due to a timer or signal.
+       */
+      virtual void busy() = 0;
+   };
+
   class thread {
     public:
-      thread( const std::string& name = "" );
-      thread( thread&& m );
-      thread& operator=(thread&& t );
+      thread( const std::string& name = "", thread_idle_notifier* notifier = 0 );
+      thread( thread&& m ) = delete;
+      thread& operator=(thread&& t ) = delete;
 
       /**
        *  Returns the current thread.
@@ -32,6 +49,7 @@ namespace fc {
                 an existing "unknown" boost thread). In such cases, thread_d doesn't have access boost::thread object.
        */
       static thread& current();
+      static void    cleanup();
 
      
       /**
@@ -55,7 +73,7 @@ namespace fc {
        *  @note debug info is more useful if you provide a description for your
        *  async tasks and promises.
        */
-      void    debug( const fc::string& d );
+      void    debug( const std::string& d );
      
      
       /**
@@ -66,14 +84,14 @@ namespace fc {
        *  @param prio the priority relative to other tasks
        */
       template<typename Functor>
-      auto async( Functor&& f, const char* desc FC_TASK_NAME_DEFAULT_ARG, priority prio = priority()) -> fc::future<decltype(f())> 
-      {
+      auto async( Functor&& f, const char* desc FC_TASK_NAME_DEFAULT_ARG, priority prio = priority()) -> fc::future<decltype(f())> {
          typedef decltype(f()) Result;
-         typedef typename fc::deduce<Functor>::type FunctorType;
-         fc::task<Result,sizeof(FunctorType)>* tsk = 
-              new fc::task<Result,sizeof(FunctorType)>( fc::forward<Functor>(f), desc );
-         fc::future<Result> r(fc::shared_ptr< fc::promise<Result> >(tsk,true) );
-         async_task(tsk,prio);
+         typedef typename std::remove_const_t< std::remove_reference_t<Functor> > FunctorType;
+         typename task<Result,sizeof(FunctorType)>::ptr tsk = 
+              task<Result,sizeof(FunctorType)>::create( std::forward<Functor>(f), desc );
+         tsk->retain(); // HERE BE DRAGONS
+         fc::future<Result> r( std::dynamic_pointer_cast< promise<Result> >(tsk) );
+         async_task(tsk.get(),prio);
          return r;
       }
       void poke();
@@ -92,10 +110,11 @@ namespace fc {
       auto schedule( Functor&& f, const fc::time_point& when, 
                      const char* desc FC_TASK_NAME_DEFAULT_ARG, priority prio = priority()) -> fc::future<decltype(f())> {
          typedef decltype(f()) Result;
-         fc::task<Result,sizeof(Functor)>* tsk = 
-              new fc::task<Result,sizeof(Functor)>( fc::forward<Functor>(f), desc );
-         fc::future<Result> r(fc::shared_ptr< fc::promise<Result> >(tsk,true) );
-         async_task(tsk,prio,when);
+         typename task<Result,sizeof(Functor)>::ptr tsk = 
+              task<Result,sizeof(Functor)>::create( std::forward<Functor>(f), desc );
+         tsk->retain(); // HERE BE DRAGONS
+         fc::future<Result> r( std::dynamic_pointer_cast< promise<Result> >(tsk) );
+         async_task(tsk.get(),prio,when);
          return r;
       }
      
@@ -112,6 +131,11 @@ namespace fc {
        *  @todo make quit non-blocking of the calling thread by eliminating the call to <code>boost::thread::join</code>
        */
       void quit();
+
+      /**
+       * Send signal to underlying native thread. Only for Linux and macOS
+       */
+      void signal(int);
      
       /**
        *  @return true unless quit() has been called.
@@ -125,16 +149,17 @@ namespace fc {
        template<typename T1, typename T2>
        int wait_any( const fc::future<T1>& f1, const fc::future<T2>& f2, const microseconds& timeout_us = microseconds::maximum()) {
           std::vector<fc::promise_base::ptr> proms(2);
-          proms[0] = fc::static_pointer_cast<fc::promise_base>(f1.m_prom);
-          proms[1] = fc::static_pointer_cast<fc::promise_base>(f2.m_prom);
-          return wait_any_until(fc::move(proms), fc::time_point::now()+timeout_us );
+          proms[0] = std::static_pointer_cast<fc::promise_base>(f1.m_prom);
+          proms[1] = std::static_pointer_cast<fc::promise_base>(f2.m_prom);
+          return wait_any_until(std::move(proms), fc::time_point::now()+timeout_us );
        }
     private:
-      thread( class thread_d* );
+      thread( class thread_d* ); // parameter is ignored, will create a new thread_d
       friend class promise_base;
       friend class task_base;
       friend class thread_d;
       friend class mutex;
+      friend class detail::worker_pool;
       friend void* detail::get_thread_specific_data(unsigned slot);
       friend void detail::set_thread_specific_data(unsigned slot, void* new_value, void(*cleanup)(void*));
       friend unsigned detail::get_next_unused_task_storage_slot();
@@ -200,11 +225,11 @@ namespace fc {
 
    template<typename Functor>
    auto async( Functor&& f, const char* desc FC_TASK_NAME_DEFAULT_ARG, priority prio = priority()) -> fc::future<decltype(f())> {
-      return fc::thread::current().async( fc::forward<Functor>(f), desc, prio );
+      return fc::thread::current().async( std::forward<Functor>(f), desc, prio );
    }
    template<typename Functor>
    auto schedule( Functor&& f, const fc::time_point& t, const char* desc FC_TASK_NAME_DEFAULT_ARG, priority prio = priority()) -> fc::future<decltype(f())> {
-      return fc::thread::current().schedule( fc::forward<Functor>(f), t, desc, prio );
+      return fc::thread::current().schedule( std::forward<Functor>(f), t, desc, prio );
    }
 
   /**
