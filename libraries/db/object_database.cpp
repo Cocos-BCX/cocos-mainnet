@@ -86,6 +86,7 @@ void object_database::flush()
                _index[space][type]->save( _data_dir / "object_database.tmp" / fc::to_string(space)/fc::to_string(type) );
             } ) );
    }
+   ilog("Save object_database task size:${s}, now: ${now}", ("s", tasks.size())("now", fc::time_point::now()));
    for( auto& task : tasks )
       task.wait();
    fc::remove_all( _data_dir / "object_database.tmp" / "lock" );
@@ -121,6 +122,7 @@ void object_database::open(const fc::path& data_dir)
             tasks.push_back( fc::do_parallel( [this,space,type] () {
                _index[space][type]->open( _data_dir / "object_database" / fc::to_string(space)/fc::to_string(type) );
             } ) );
+   ilog("Opening object database tasks size:${size}, now: ${now}", ("size", tasks.size())("now", fc::time_point::now()));
    for( auto& task : tasks )
       task.wait();
    ilog( "Done opening object database. now: ${now}", ("now", fc::time_point::now()) );
