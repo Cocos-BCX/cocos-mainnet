@@ -72,7 +72,7 @@ index& object_database::get_mutable_index(uint8_t space_id, uint8_t type_id)
 
 void object_database::flush()
 {
-   ilog("Save object_database in ${d}, now: ${now}", ("d", _data_dir)("now", fc::time_point::now())); //内存到文件系统的存储过程
+   // ilog("Save object_database in ${d}, now: ${now}", ("d", _data_dir)("now", fc::time_point::now())); //内存到文件系统的存储过程
    fc::create_directories( _data_dir / "object_database.tmp" / "lock" );
    std::vector<fc::future<void>> tasks;
    tasks.reserve(200);

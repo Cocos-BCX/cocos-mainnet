@@ -179,19 +179,23 @@ void database::reindex(fc::path data_dir,int roll_back_at_height)
         }
         else
             _undo_db.disable();
-        int progrees0=0;
+        int progrees0 = 0;
         double progrees1;
+        uint32_t last_flush_block = head_block_num() + 1;
         for (uint32_t i = head_block_num() + 1; i <= last_block_num; ++i)
         {
             if (i % 10000 == 0)
             {   
-                progrees1=double(i * 100) / last_block_num;
+                progrees1 = double(i * 100) / last_block_num;
                 std::cerr << "   " << progrees1 << "%   " << i << " of " << last_block_num << "   \n";
-                if((int)progrees1>progrees0)
+                if((int)progrees1 > progrees0)
                 {
-                    progrees0=(int)progrees1;
+                    progrees0 = (int)progrees1;
+                    auto flush_start = fc::time_point::now();
                     flush();
-                    ilog("wrote database to disk at block ${i}", ("i", i));
+                    ilog("wrote database to disk at block ${li}~${i}, elapsed time: ${t} sec", 
+                    ("li", last_flush_block)("i", i)("t", double((fc::time_point::now() - flush_start).count()) / 1000000.0));
+                    last_flush_block = i;
                 }
             }
             fc::optional<signed_block> block = _block_id_to_block.fetch_by_number(i);
