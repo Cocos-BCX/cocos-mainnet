@@ -103,11 +103,13 @@ void object_database::open(const fc::path& data_dir)
        return;
    }
    ilog("Opening object database from ${d} ...", ("d", data_dir));
+   auto open_start = fc::time_point::now();
    for( uint32_t space = 1; space < graphene::chain::reserved_spaces::RESERVED_SPACES_COUNT; ++space )
       for( uint32_t type = 0; type  < _index[space].size(); ++type )
          if( _index[space][type] )
             _index[space][type]->open( _data_dir / "object_database" / fc::to_string(space)/fc::to_string(type) );
-   ilog( "Done opening object database." );
+   ilog( "Done opening object database. elapsed time: ${t} sec", 
+      ("t", double((fc::time_point::now() - open_start).count()) / 1000000.0));
 
 } FC_CAPTURE_AND_RETHROW( (data_dir) ) }
 

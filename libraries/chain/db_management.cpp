@@ -181,6 +181,7 @@ void database::reindex(fc::path data_dir,int roll_back_at_height)
             _undo_db.disable();
         int progrees0=0;
         double progrees1;
+        uint32_t last_flush_block = head_block_num() + 1;
         for (uint32_t i = head_block_num() + 1; i <= last_block_num; ++i)
         {
             if (i % 10000 == 0)
@@ -190,8 +191,11 @@ void database::reindex(fc::path data_dir,int roll_back_at_height)
                 if((int)progrees1>progrees0)
                 {
                     progrees0=(int)progrees1;
+                    auto flush_start = fc::time_point::now();
                     flush();
-                    ilog("wrote database to disk at block ${i}", ("i", i));
+                    ilog("wrote database to disk at block ${n1}~${n2}, elapsed time: ${t} sec", 
+                    ("n1", last_flush_block)("n2", i)("t", double((fc::time_point::now() - flush_start).count()) / 1000000.0));
+                    last_flush_block = i;
                 }
             }
             fc::optional<signed_block> block = _block_id_to_block.fetch_by_number(i);
