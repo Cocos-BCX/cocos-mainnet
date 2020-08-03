@@ -73,105 +73,12 @@ void database::reindex(fc::path data_dir)
         if (last_block->block_num() <= head_block_num())
             return;
 
-        ilog("reindexing blockchain");
+        ilog("reindexing blockchain, now: ${now}", ("now", fc::time_point::now()));
         auto start = fc::time_point::now();
         const auto last_block_num = last_block->block_num();
         uint32_t undo_point = last_block_num < 50 ? 0 : last_block_num - 50;
 
-        ilog("Replaying blocks, starting at ${next}...", ("next", head_block_num() + 1));
-        if (head_block_num() >= undo_point)
-        {
-            if (head_block_num() > 0)
-                _fork_db.start_block(*fetch_block_by_number(head_block_num()));
-        }
-        else
-            _undo_db.disable();
-        int progrees0=0;
-        double progrees1;
-        for (uint32_t i = head_block_num() + 1; i <= last_block_num; ++i)
-        {
-            if (i % 10000 == 0)
-            {   
-                progrees1=double(i * 100) / last_block_num;
-                std::cerr << "   " << progrees1 << "%   " << i << " of " << last_block_num << "   \n";
-                if((int)progrees1>progrees0)
-                {
-                    progrees0=(int)progrees1;
-                    flush();
-                    ilog("wrote database to disk at block ${i}", ("i", i));
-                }
-            }
-            fc::optional<signed_block> block = _block_id_to_block.fetch_by_number(i);
-            if (!block.valid())
-            {
-                wlog("Reindexing terminated due to gap:  Block ${i} does not exist!", ("i", i));
-                uint32_t dropped_count = 0;
-                while (true)
-                {
-                    fc::optional<block_id_type> last_id = _block_id_to_block.last_id();
-                    // this can trigger if we attempt to e.g. read a file that has block #2 but no block #1
-                    if (!last_id.valid())
-                        break;
-                    // we've caught up to the gap
-                    if (block_header::num_from_id(*last_id) <= i)
-                        break;
-                    _block_id_to_block.remove(*last_id);
-                    dropped_count++;
-                }
-                wlog("Dropped ${n} blocks from after the gap", ("n", dropped_count));
-                break;
-            }
-            if (i < undo_point)
-            {
-                apply_block(*block, skip_witness_signature |
-                                        skip_transaction_signatures |   //
-                                        skip_transaction_dupe_check |   //
-                                        skip_tapos_check |
-                                        skip_witness_schedule_check |
-                                        skip_authority_check);
-            }
-            else
-            {
-                _undo_db.enable();
-                push_block(*block, skip_witness_signature |
-                                       skip_transaction_signatures |
-                                       skip_transaction_dupe_check |
-                                       skip_tapos_check |
-                                       skip_witness_schedule_check |
-                                       skip_authority_check);
-            }
-        }
-        _undo_db.enable();
-        auto end = fc::time_point::now();
-        ilog("Done reindexing, elapsed time: ${t} sec", ("t", double((end - start).count()) / 1000000.0));
-    }
-    FC_CAPTURE_AND_RETHROW((data_dir))
-}
-
-void database::reindex(fc::path data_dir,int roll_back_at_height)
-{
-    try
-    {
-        auto last_block = _block_id_to_block.last();
-        if (!last_block)
-        {
-            elog("!no last block");
-            edump((last_block));
-            return;
-        }
-        if (last_block->block_num() <= head_block_num())
-            return;
-
-        ilog("reindexing blockchain");
-        auto start = fc::time_point::now();
-        auto last_block_num = last_block->block_num();
-
-        if(roll_back_at_height > 0)
-            last_block_num = roll_back_at_height;
-            
-        uint32_t undo_point = last_block_num < 50 ? 0 : last_block_num - 50;
-
-        ilog("Replaying blocks, starting at ${next}...", ("next", head_block_num() + 1));
+        ilog("Replaying blocks, starting at ${next}..., now: ${now}", ("next", head_block_num() + 1)("now", fc::time_point::now()));
         if (head_block_num() >= undo_point)
         {
             if (head_block_num() > 0)
@@ -193,8 +100,8 @@ void database::reindex(fc::path data_dir,int roll_back_at_height)
                     progrees0=(int)progrees1;
                     auto flush_start = fc::time_point::now();
                     flush();
-                    ilog("wrote database to disk at block ${n1}~${n2}, elapsed time: ${t} sec", 
-                    ("n1", last_flush_block)("n2", i)("t", double((fc::time_point::now() - flush_start).count()) / 1000000.0));
+                    ilog("wrote database to disk at block ${n1}~${n2}, elapsed time: ${t} sec, now: ${now}", 
+                    ("n1", last_flush_block)("n2", i)("t", double((fc::time_point::now() - flush_start).count()) / 1000000.0)("now", fc::time_point::now()));
                     last_flush_block = i;
                 }
             }
@@ -240,7 +147,104 @@ void database::reindex(fc::path data_dir,int roll_back_at_height)
         }
         _undo_db.enable();
         auto end = fc::time_point::now();
-        ilog("Done reindexing, elapsed time: ${t} sec", ("t", double((end - start).count()) / 1000000.0));
+        ilog("Done reindexing, elapsed time: ${t} sec, now: ${now}", ("t", double((end - start).count()) / 1000000.0)("now", end));
+    }
+    FC_CAPTURE_AND_RETHROW((data_dir))
+}
+
+void database::reindex(fc::path data_dir,int roll_back_at_height)
+{
+    try
+    {
+        auto last_block = _block_id_to_block.last();
+        if (!last_block)
+        {
+            elog("!no last block");
+            edump((last_block));
+            return;
+        }
+        if (last_block->block_num() <= head_block_num())
+            return;
+
+        ilog("reindexing blockchain, now: ${now}", ("now", fc::time_point::now()));
+        auto start = fc::time_point::now();
+        auto last_block_num = last_block->block_num();
+
+        if(roll_back_at_height > 0)
+            last_block_num = roll_back_at_height;
+            
+        uint32_t undo_point = last_block_num < 50 ? 0 : last_block_num - 50;
+
+        ilog("Replaying blocks, starting at ${next}..., now: ${now}", ("next", head_block_num() + 1)("now", fc::time_point::now()));
+        if (head_block_num() >= undo_point)
+        {
+            if (head_block_num() > 0)
+                _fork_db.start_block(*fetch_block_by_number(head_block_num()));
+        }
+        else
+            _undo_db.disable();
+        int progrees0=0;
+        double progrees1;
+        uint32_t last_flush_block = head_block_num() + 1;
+        for (uint32_t i = head_block_num() + 1; i <= last_block_num; ++i)
+        {
+            if (i % 10000 == 0)
+            {   
+                progrees1=double(i * 100) / last_block_num;
+                std::cerr << "   " << progrees1 << "%   " << i << " of " << last_block_num << "   \n";
+                if((int)progrees1>progrees0)
+                {
+                    progrees0=(int)progrees1;
+                    auto flush_start = fc::time_point::now();
+                    flush();
+                    ilog("wrote database to disk at block ${n1}~${n2}, elapsed time: ${t} sec, now: ${now}", 
+                    ("n1", last_flush_block)("n2", i)("t", double((fc::time_point::now() - flush_start).count()) / 1000000.0)("now", fc::time_point::now()));
+                    last_flush_block = i;
+                }
+            }
+            fc::optional<signed_block> block = _block_id_to_block.fetch_by_number(i);
+            if (!block.valid())
+            {
+                wlog("Reindexing terminated due to gap:  Block ${i} does not exist!", ("i", i));
+                uint32_t dropped_count = 0;
+                while (true)
+                {
+                    fc::optional<block_id_type> last_id = _block_id_to_block.last_id();
+                    // this can trigger if we attempt to e.g. read a file that has block #2 but no block #1
+                    if (!last_id.valid())
+                        break;
+                    // we've caught up to the gap
+                    if (block_header::num_from_id(*last_id) <= i)
+                        break;
+                    _block_id_to_block.remove(*last_id);
+                    dropped_count++;
+                }
+                wlog("Dropped ${n} blocks from after the gap", ("n", dropped_count));
+                break;
+            }
+            if (i < undo_point)
+            {
+                apply_block(*block, skip_witness_signature |
+                                        skip_transaction_signatures |   //
+                                        skip_transaction_dupe_check |   //
+                                        skip_tapos_check |
+                                        skip_witness_schedule_check |
+                                        skip_authority_check);
+            }
+            else
+            {
+                _undo_db.enable();
+                push_block(*block, skip_witness_signature |
+                                       skip_transaction_signatures |
+                                       skip_transaction_dupe_check |
+                                       skip_tapos_check |
+                                       skip_witness_schedule_check |
+                                       skip_authority_check);
+            }
+        }
+        _undo_db.enable();
+        auto end = fc::time_point::now();
+        ilog("Done reindexing, elapsed time: ${t} sec, now: ${now}", ("t", double((end - start).count()) / 1000000.0)("now", end));
     }
     FC_CAPTURE_AND_RETHROW((data_dir))
 }
