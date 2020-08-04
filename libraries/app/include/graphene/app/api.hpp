@@ -197,7 +197,6 @@ public:
           */
   void broadcast_transaction_with_callback(confirmation_callback cb,  const signed_transaction &trx);
 
-  //static void share();
   /** this version of broadcast transaction registers a callback method that will be called when the transaction is
           * included into a block.  The callback method includes the transaction id, block number, and transaction number in the
           * block.
