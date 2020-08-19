@@ -138,9 +138,17 @@ typedef struct error_result:public base_result
   error_result() {}
 } error_result;
 
+typedef struct contract_fee_share_result : public base_result
+{
+  account_id_type affected_account;
+  string message;
+  contract_fee_share_result() {}
+  contract_fee_share_result(account_id_type aft) : affected_account(aft) {}
+} contract_fee_share_result;
+
 struct contract_result;
 
-typedef fc::static_variant<token_affected, nht_affected, contract_memo_message, contract_logger, contract_result> contract_affected_type;
+typedef fc::static_variant<token_affected, nht_affected, contract_memo_message, contract_logger, contract_result, contract_fee_share_result> contract_affected_type;
 
 typedef struct contract_result:public base_result
 {
@@ -277,6 +285,7 @@ FC_REFLECT_DERIVED(graphene::chain::asset_result,(graphene::chain::base_result),
 FC_REFLECT(graphene::chain::nht_affected, (affected_account)(affected_item)(action)(modified))
 FC_REFLECT(graphene::chain::contract_memo_message, (affected_account)(memo))
 FC_REFLECT(graphene::chain::contract_logger, (affected_account)(message))
+FC_REFLECT_DERIVED(graphene::chain::contract_fee_share_result,(graphene::chain::base_result), (affected_account)(message))
 FC_REFLECT_DERIVED(graphene::chain::contract_result,(graphene::chain::base_result), (contract_id)(contract_affecteds)(real_running_time)(existed_pv)(process_value)(relevant_datasize))
 FC_REFLECT_DERIVED(graphene::chain::logger_result,(graphene::chain::base_result), (message)(real_running_time))
 FC_REFLECT_DERIVED(graphene::chain::error_result,(graphene::chain::base_result), (error_code)(message)(real_running_time))
