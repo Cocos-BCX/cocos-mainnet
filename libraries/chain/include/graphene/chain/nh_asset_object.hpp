@@ -77,7 +77,8 @@ class nh_asset_object : public graphene::db::abstract_object<nh_asset_object>
 	void get_hash()
 	{
 	    nh_hash_type::encoder enc;
-		fc::raw::pack(enc, base_describe);
+		string hash_str = base_describe + create_time.to_iso_string();
+		fc::raw::pack(enc, hash_str);
 		nh_hash = enc.result();
         nh_hash._hash[0] = id.instance();
 	}
