@@ -643,6 +643,15 @@ public:
             FC_ASSERT(rec);
             return *rec;
       }
+
+      world_view_object get_world_view(const string &world_view_name_or_id)
+      {
+            FC_ASSERT(world_view_name_or_id.size() > 0);
+            auto world_view_object_result = _remote_db->lookup_world_view({world_view_name_or_id}).front();
+            FC_ASSERT(world_view_object_result);
+            return *world_view_object_result;
+      }
+
       account_object get_account(string account_name_or_id) const
       {
             FC_ASSERT(account_name_or_id.size() > 0);
@@ -4648,6 +4657,11 @@ bool wallet_api::set_key_label(public_key_type key, string label)
 order_book wallet_api::get_order_book(const string &base, const string &quote, unsigned limit)
 {
       return (my->_remote_db->get_order_book(base, quote, limit));
+}
+
+world_view_object wallet_api::get_world_view(const string &world_view_name_or_id)
+{
+      return my->get_world_view(world_view_name_or_id);
 }
 
 vesting_balance_object_with_info::vesting_balance_object_with_info(const vesting_balance_object &vbo, fc::time_point_sec now)

@@ -1463,6 +1463,7 @@ class wallet_api
     // zhangfan end
     int add_extern_sign_key(string wif);
 
+   world_view_object get_world_view(const string &world_view_name_or_id);
     /**********************************************nico end*********************************************************************************/
 };
 
@@ -1503,7 +1504,9 @@ FC_API(graphene::wallet::wallet_api,
        //transaction
        (get_transaction_by_id)(get_transaction_in_block_info)(get_account_top_transaction)(get_account_transaction)(adjustment_temporary_authorization)(get_chain_properties)(validate_transaction)(add_extern_sign_key)
        //nh asset
-       (register_nh_asset_creator)(create_world_view)(propose_relate_world_view)(create_nh_asset)(list_nh_asset_by_creator)(list_account_nh_asset)(transfer_nh_asset)(get_nh_creator)(delete_nh_asset)(create_nh_asset_order)(list_nh_asset_order)(cancel_nh_asset_order)(fill_nh_asset_order)(list_account_nh_asset_order)
+       (register_nh_asset_creator)(create_world_view)(propose_relate_world_view)(create_nh_asset)(list_nh_asset_by_creator)
+       (list_account_nh_asset)(transfer_nh_asset)(get_nh_creator)(delete_nh_asset)(create_nh_asset_order)(list_nh_asset_order)
+       (cancel_nh_asset_order)(fill_nh_asset_order)(list_account_nh_asset_order)(get_world_view)
        //(relate_nh_asset)
        //file
        (create_file)(add_file_relate_account)(file_signature)(propose_relate_parent_file)(list_account_created_file)(lookup_file)(propose_extensions_parameter_change)
