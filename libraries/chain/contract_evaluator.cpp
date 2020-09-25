@@ -94,9 +94,10 @@ void_result revise_contract_evaluator::do_evaluate(const operation_type &o)
         auto &contract_owner = contract.owner(d);
         FC_ASSERT(!contract.is_release," The current contract is  release version cannot be change ");
         FC_ASSERT(contract_owner.asset_locked.contract_lock_details.find(o.contract_id) == contract_owner.asset_locked.contract_lock_details.end(), "You can't modify the contract with some token locked within.");
-        FC_ASSERT(contract_owner.asset_locked.contract_nft_lock_details.find(o.contract_id) == contract_owner.asset_locked.contract_nft_lock_details.end(), "You can't modify the contract with some NFT asset locked within.");
+        FC_ASSERT((contract_owner.asset_locked.contract_nft_lock_details.find(o.contract_id) == contract_owner.asset_locked.contract_nft_lock_details.end() || contract_owner.asset_locked.contract_nft_lock_details.find(o.contract_id)->second.size() == 0), "You can't modify the contract with some NFT asset locked within.");
         FC_ASSERT(contract_owner.get_id() == o.reviser, "You do not have the authority to modify the contract,the contract owner is ${owner}",
                   ("owner", contract_owner.get_id()));
+
         return void_result();
     }
     FC_CAPTURE_AND_RETHROW((o))
