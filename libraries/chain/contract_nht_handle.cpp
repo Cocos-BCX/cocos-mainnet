@@ -449,7 +449,11 @@ void register_scheduler::adjust_lock_nft_asset(const nh_asset_object &token, boo
         if (lock_or_unlock)
         {
             // to lock
-            FC_ASSERT( !is_already_locked, "The NFT token has already been locked somewhere, token:${token}", ("token", token));
+            // FC_ASSERT( !is_already_locked, "The NFT token has already been locked somewhere, token:${token}", ("token", token));
+            
+            if (is_already_locked) { // already locked, skip now
+                return;
+            }
 
             nft_locked.push_back(nft_asset_id);
             contract_nft_lock_details.push_back(nft_asset_id);
@@ -457,10 +461,14 @@ void register_scheduler::adjust_lock_nft_asset(const nh_asset_object &token, boo
         else
         {
             // to unlock
-            FC_ASSERT( is_already_locked, "The NFT token has not be locked anywhere, token:${token}", ("token", token));
+            //FC_ASSERT( is_already_locked, "The NFT token has not be locked anywhere, token:${token}", ("token", token));
+
+            if (!is_already_locked) { // already unlocked, skip now
+                return;
+            }
 
             vector<nh_asset_id_type>::iterator contract_find_pos = std::find(contract_nft_lock_details.begin(), contract_nft_lock_details.end(), nft_asset_id);
-            FC_ASSERT( contract_find_pos != contract_nft_lock_details.end(), "The NFT token has already been locked by some other contract, token:${token}", ("token", token));
+            //FC_ASSERT( contract_find_pos != contract_nft_lock_details.end(), "The NFT token has already been locked by some other contract, token:${token}", ("token", token));
 
             nft_locked.erase(find_pos);
             contract_nft_lock_details.erase(contract_find_pos);
