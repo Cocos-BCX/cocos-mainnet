@@ -476,7 +476,13 @@ void register_scheduler::adjust_lock_nft_asset(const nh_asset_object &token, boo
 
         // update locked asset
         contract_owner.asset_locked.nft_locked = nft_locked;
-        contract_owner.asset_locked.contract_nft_lock_details[contract_id] = contract_nft_lock_details;
+        if (contract_nft_lock_details.size() == 0) {
+            contract_owner.asset_locked.contract_nft_lock_details.erase(contract_id);
+        }
+        else {
+            contract_owner.asset_locked.contract_nft_lock_details[contract_id] = contract_nft_lock_details;
+        }
+
         db.modify(contract.owner(db), [&](account_object &ac) {
             ac.asset_locked = contract_owner.asset_locked;
         });
