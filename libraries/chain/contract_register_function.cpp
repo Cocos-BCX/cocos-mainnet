@@ -93,7 +93,8 @@ void register_scheduler::invoke_contract_function(string contract_id_or_name, st
         state.sigkeys = sigkeys;
         evaluator.trx_state = &state;
         evaluator.evaluate_contract_authority(contract_id, state.sigkeys);
-        optional<contract_result> _contract_result;
+        //optional<contract_result> _contract_result;
+        contract_result _contract_result;
         if (trx_state->run_mode == transaction_apply_mode::apply_block_mode)
         {
             for (auto contract_afd = apply_result.contract_affecteds.begin(); contract_afd != apply_result.contract_affecteds.end(); contract_afd++)
@@ -111,7 +112,8 @@ void register_scheduler::invoke_contract_function(string contract_id_or_name, st
             _contract_result = contract_result();
         }
         auto current_contract_name = context.readVariable<string>("current_contract");
-        auto ret = evaluator.apply(caller, this->contract.id,function_name, value_list, _contract_result, sigkeys);
+        auto ocr = optional<contract_result>(_contract_result);
+        auto ret = evaluator.apply(caller, this->contract.id,function_name, value_list, ocr, sigkeys);
         context.writeVariable("current_contract", current_contract_name);
         if (ret.existed_pv)
             result.existed_pv = true;
