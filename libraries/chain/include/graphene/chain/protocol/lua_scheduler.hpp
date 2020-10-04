@@ -135,7 +135,7 @@ public:
             chain_function_bind();
         }
 
-        lua_checkstack(mState, 5000);
+        lua_checkstack(mState, 1000);
     }
 
     void chain_function_bind();
