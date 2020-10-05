@@ -148,7 +148,7 @@ void_result call_contract_function_evaluator::do_evaluate(const operation_type &
         this->op = &o;
         FC_ASSERT(o.contract_id!=contract_id_type());
         evaluate_contract_authority(o.contract_id, trx_state->sigkeys);
-        database &d = db();
+        //database &d = db();
         lua_settop (d.get_luaVM().mState, 0);
         return void_result();
     }
