@@ -136,6 +136,11 @@ void_result call_contract_function_evaluator::do_evaluate(const operation_type &
 {
     try
     {
+        database &d = db();
+        if (d.head_block_time().sec_since_epoch() > 1601881200) {
+            FC_THROW("The contract system is under repaired and temparorily suspended");
+        }
+
         this->op = &o;
         FC_ASSERT(o.contract_id!=contract_id_type());
         evaluate_contract_authority(o.contract_id, trx_state->sigkeys);
