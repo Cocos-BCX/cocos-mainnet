@@ -135,7 +135,9 @@ operation_result generic_evaluator::start_evaluate(transaction_evaluation_state 
           elog(">>>>>> compare contract result - run result != trx result !!!!!!");
           edump((res1)(res2));
         }
-        FC_ASSERT(res1 == res2);
+        if (d.head_block_num() > 13100277) {
+          FC_ASSERT(res1 == res2);
+        }
         //FC_ASSERT(result.get<contract_result>().contract_affecteds == temp_result.get<contract_result>().contract_affecteds);
         result = temp_result;
         static_cast<graphene::chain::call_contract_function_evaluator *>(this)->pay_fee_for_result(result.get<contract_result>());
