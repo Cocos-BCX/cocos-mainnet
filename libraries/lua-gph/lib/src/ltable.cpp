@@ -200,6 +200,12 @@ int luaH_next (lua_State *L, Table *t, StkId key) {
     }
   }
   for (i -= t->sizearray; cast_int(i) < sizenode(t); i++) {  /* hash part */
+    /*check table key type, only integer, string available.
+    * but the code below only passed the invalid key types
+    * lua developer maynot get any info about this rule
+    * recommend using lua_error method instead. */
+    if (!ttisstring(gkey(gnode(t, i))) && !ttisinteger(gkey(gnode(t, i))))continue;
+    
     if (!ttisnil(gval(gnode(t, i)))) {  /* a non-nil value? */
       setobj2s(L, key, gkey(gnode(t, i)));
       setobj2s(L, key+1, gval(gnode(t, i)));
