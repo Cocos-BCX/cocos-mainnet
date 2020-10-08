@@ -1,5 +1,6 @@
 #include <graphene/chain/contract_evaluator.hpp>
 #include <graphene/chain/database.hpp>
+#include <lua_extern.hpp>
 
 namespace graphene
 {
@@ -12,9 +13,15 @@ uint64_t contract_max_data_size = 2 * 1024 * 1024 * 1024;
 
 void_result contract_create_evaluator::do_evaluate(const operation_type &o)
 {
-
-    return void_result(); //TODO: add verification in future
+    try
+    {
+        database &d = db();
+        lua_settop (d.get_luaVM().mState, 0);
+        return void_result(); //TODO: add verification in future
+    }
+    FC_CAPTURE_AND_RETHROW((o))
 }
+
 object_id_result contract_create_evaluator::do_apply(const operation_type &o)
 {
     try
@@ -94,9 +101,11 @@ void_result revise_contract_evaluator::do_evaluate(const operation_type &o)
         auto &contract_owner = contract.owner(d);
         FC_ASSERT(!contract.is_release," The current contract is  release version cannot be change ");
         FC_ASSERT(contract_owner.asset_locked.contract_lock_details.find(o.contract_id) == contract_owner.asset_locked.contract_lock_details.end(), "You can't modify the contract with some token locked within.");
-        FC_ASSERT(contract_owner.asset_locked.contract_nft_lock_details.find(o.contract_id) == contract_owner.asset_locked.contract_nft_lock_details.end(), "You can't modify the contract with some NFT asset locked within.");
+	FC_ASSERT((contract_owner.asset_locked.contract_nft_lock_details.find(o.contract_id) == contract_owner.asset_locked.contract_nft_lock_details.end() || contract_owner.asset_locked.contract_nft_lock_details.find(o.contract_id)->second.size() == 0), "You can't modify the contract with some NFT asset locked within.");
         FC_ASSERT(contract_owner.get_id() == o.reviser, "You do not have the authority to modify the contract,the contract owner is ${owner}",
                   ("owner", contract_owner.get_id()));
+
+        lua_settop (d.get_luaVM().mState, 0);
         return void_result();
     }
     FC_CAPTURE_AND_RETHROW((o))
@@ -130,6 +139,8 @@ void_result call_contract_function_evaluator::do_evaluate(const operation_type &
         this->op = &o;
         FC_ASSERT(o.contract_id!=contract_id_type());
         evaluate_contract_authority(o.contract_id, trx_state->sigkeys);
+        database &d = db();
+        lua_settop (d.get_luaVM().mState, 0);
         return void_result();
     }
     FC_CAPTURE_AND_RETHROW((o))

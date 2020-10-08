@@ -93,7 +93,8 @@ void register_scheduler::invoke_contract_function(string contract_id_or_name, st
         state.sigkeys = sigkeys;
         evaluator.trx_state = &state;
         evaluator.evaluate_contract_authority(contract_id, state.sigkeys);
-        optional<contract_result> _contract_result;
+        //optional<contract_result> _contract_result;
+        contract_result _contract_result;
         if (trx_state->run_mode == transaction_apply_mode::apply_block_mode)
         {
             for (auto contract_afd = apply_result.contract_affecteds.begin(); contract_afd != apply_result.contract_affecteds.end(); contract_afd++)
@@ -111,7 +112,8 @@ void register_scheduler::invoke_contract_function(string contract_id_or_name, st
             _contract_result = contract_result();
         }
         auto current_contract_name = context.readVariable<string>("current_contract");
-        auto ret = evaluator.apply(caller, this->contract.id,function_name, value_list, _contract_result, sigkeys);
+        auto ocr = optional<contract_result>(_contract_result);
+        auto ret = evaluator.apply(caller, this->contract.id,function_name, value_list, ocr, sigkeys);
         context.writeVariable("current_contract", current_contract_name);
         if (ret.existed_pv)
             result.existed_pv = true;
@@ -315,6 +317,7 @@ static int get_account_contract_data(lua_State *L)
 }
 static int import_contract(lua_State *L)
 {
+    const contract_object* temp_contract=nullptr;
     try
     {
         lua_scheduler context(L);
@@ -322,38 +325,50 @@ static int import_contract(lua_State *L)
         auto name_or_id = lua_scheduler::readTopAndPop<string>(L, -1);
         auto current_contract_name = context.readVariable<string>("current_contract");
         auto chainhelper = context.readVariable<register_scheduler *>(current_contract_name, "chainhelper");
-        auto &temp_contract = chainhelper->get_contract(name_or_id);
-        auto &temp_contract_code=temp_contract.lua_code_b_id(chainhelper->db);
+        //auto &temp_contract = chainhelper->get_contract(name_or_id);
+        temp_contract = &chainhelper->get_contract(name_or_id);
+        auto &temp_contract_code=temp_contract->lua_code_b_id(chainhelper->db);
         auto cbi=context.readVariable<contract_base_info *>(current_contract_name, "contract_base_info");
         auto &baseENV = contract_bin_code_id_type(0)(chainhelper->db);
-        FC_ASSERT(lua_getglobal(context.mState, temp_contract.name.c_str())==LUA_TNIL);
-        context.new_sandbox(temp_contract.name,baseENV.lua_code_b.data(),baseENV.lua_code_b.size());
-        temp_contract.register_function(context,chainhelper, cbi);
+        FC_ASSERT(lua_getglobal(context.mState, temp_contract->name.c_str())==LUA_TNIL);
+        context.new_sandbox(temp_contract->name,baseENV.lua_code_b.data(),baseENV.lua_code_b.size());
+        temp_contract->register_function(context,chainhelper, cbi);
         FC_ASSERT(lua_getglobal(context.mState, current_contract_name.c_str()) == LUA_TTABLE);
-        if (lua_getfield(context.mState, -1, temp_contract.name.c_str()) == LUA_TTABLE)
+        if (lua_getfield(context.mState, -1, temp_contract->name.c_str()) == LUA_TTABLE)
             return 1;
         lua_pop(context.mState, 1);
-        lua_getglobal(context.mState, temp_contract.name.c_str());
-        lua_setfield(context.mState, -2, temp_contract.name.c_str());
+        lua_getglobal(context.mState, temp_contract->name.c_str());
+        lua_setfield(context.mState, -2, temp_contract->name.c_str());
         lua_pushnil(context.mState);
-        lua_setglobal(context.mState,temp_contract.name.c_str());
-        luaL_loadbuffer(context.mState, temp_contract_code.lua_code_b.data(), temp_contract_code.lua_code_b.size(), temp_contract.name.data()); //  lua加载脚本之后会返回一个函数(即此时栈顶的chunk块)，lua_pcall将默认调用此块
+        lua_setglobal(context.mState,temp_contract->name.c_str());
+        luaL_loadbuffer(context.mState, temp_contract_code.lua_code_b.data(), temp_contract_code.lua_code_b.size(), temp_contract->name.data()); //  lua加载脚本之后会返回一个函数(即此时栈顶的chunk块)，lua_pcall将默认调用此块
         lua_getglobal(context.mState, current_contract_name.c_str());
-        lua_getfield(context.mState, -1, temp_contract.name.c_str()); //想要使用的_ENV备用空间
+        lua_getfield(context.mState, -1, temp_contract->name.c_str()); //想要使用的_ENV备用空间
         lua_setupvalue(context.mState, -3, 1);                        //将栈顶变量赋值给栈顶第二个函数的第一个upvalue(当前第二个函数为load返回的函数，第一个upvalue为_ENV),注：upvalue:函数的外部引用变量
         lua_pop(context.mState, 1);
-        FC_ASSERT(lua_pcall(context.mState, 0, 0, 0) == 0, "import_contract ${contract}", ("contract", temp_contract.name));
+        FC_ASSERT(lua_pcall(context.mState, 0, 0, 0) == 0, "import_contract ${contract}", ("contract", temp_contract->name));
         lua_getglobal(context.mState, current_contract_name.c_str());
-        lua_getfield(context.mState, -1, temp_contract.name.c_str());
+        lua_getfield(context.mState, -1, temp_contract->name.c_str());
         return 1;
     }
     catch (fc::exception e)
     {
+        if(temp_contract)
+        {
+           lua_pushnil(L);
+           lua_setglobal(L,temp_contract->name.c_str()); 
+        }
+
         wdump((e.to_detail_string()));
         LUA_C_ERR_THROW(L, e.to_string());
     }
     catch (std::runtime_error e)
     {   
+        if(temp_contract)
+        {
+           lua_pushnil(L);
+           lua_setglobal(L,temp_contract->name.c_str()); 
+        }
         wdump((e.what()));
         LUA_C_ERR_THROW(L, e.what());
     }
