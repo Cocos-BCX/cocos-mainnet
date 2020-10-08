@@ -12,7 +12,7 @@ Click [here](https://github.com/Cocos-BCX/cocos_mainnet/blob/develop/README_CN.m
 
 
 
-Cocos-BCX is the next generation gaming digital economy platform. The project aims to provide game developers with an easy-to-use, comprehensive blockchain gaming infrastructure. Provide gamers with a transparent, fair and open game environment. The underlying chain system is based on graphene for optimization of consensus mechanisms and the addition of intelligent contract systems. And provide a lot of game features, such as: random number, contract session mechanism, timer and heartbeat.  
+Cocos-BCX is the next generation gaming digital economy platform. The project aims to provide game developers with an easy-to-use, comprehensive blockchain gaming infrastructure. Provide gamers with a transparent, fair, and open game environment. The underlying chain system is based on graphene for the optimization of consensus mechanisms and the addition of intelligent contract systems. And provide a lot of game features, such as random number, contract session mechanism, timer, and heartbeat.  
 
 
 # Getting Started  
@@ -95,7 +95,7 @@ API 0 is accessible using regular JSON-RPC:
 
 
 # Contribution    
-Thank you for considering to help out with the source code! We welcome contributions from anyone on the internet, and are grateful for even the smallest of fixes!If you'd like to contribute to cocos-mainnet, please fork, fix, commit and send a pull request for the maintainers to review and merge into the main code base.  
+Thank you for considering helping out with the source code! We welcome contributions from anyone on the internet, and are grateful for even the smallest of fixes! If you'd like to contribute to cocos-mainnet, please fork, fix, commit and send a pull request for the maintainers to review and merge into the main codebase.  
 
 # Resources  
 * [Cocos-BCX scan](https://www.cocosabc.com/): We can view the corresponding information on the chain in the blockchain browser.
@@ -107,4 +107,3 @@ Thank you for considering to help out with the source code! We welcome contribut
 # License  
 Cocos-BCX mainnet is under the MIT license. See COPYING for more information or see https://opensource.org/licenses/MIT.  
    
-

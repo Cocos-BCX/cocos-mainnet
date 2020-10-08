@@ -134,6 +134,8 @@ public:
             luaL_openlibs(mState);
             chain_function_bind();
         }
+
+        lua_checkstack(mState, 1000);
     }
 
     void chain_function_bind();
