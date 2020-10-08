@@ -293,7 +293,7 @@ struct account_authentication_operation : public base_operation
 FC_REFLECT(graphene::chain::account_options, (memo_key)(votes)(extensions))
 FC_REFLECT(graphene::chain::account_authentication_operation::fee_parameters_type, (fee))
 FC_REFLECT(graphene::chain::account_authentication_operation, (account_id)(data)(extensions))
-FC_REFLECT(graphene::chain::asset_locked_object, (locked_total)(contract_lock_details)(committee_freeze)(witness_freeze)(vote_for_committee)(vote_for_witness))
+FC_REFLECT(graphene::chain::asset_locked_object, (locked_total)(contract_lock_details)(committee_freeze)(witness_freeze)(vote_for_committee)(vote_for_witness)(contract_nft_lock_details)(nft_locked))
 /*
 FC_REFLECT_ENUM(graphene::chain::account_whitelist_operation::account_listing,
                 (no_listing)(white_listed)(black_listed)(white_and_black_listed))

@@ -129,7 +129,14 @@ operation_result generic_evaluator::start_evaluate(transaction_evaluation_state 
         auto &temp_result = ((processed_transaction *)trx_state->_trx)->operation_results[db().get_current_op_index()];
         if (temp_result.which() == operation_result::tag<error_result>::value)
           throw result;
-        FC_ASSERT(result.get<contract_result>().contract_affecteds == temp_result.get<contract_result>().contract_affecteds);
+        auto &res1 = result.get<contract_result>().contract_affecteds;
+        auto &res2 = temp_result.get<contract_result>().contract_affecteds;
+        if (res1 != res2) {
+          elog(">>>>>> compare contract result - run result != trx result !!!!!!");
+          edump((res1)(res2));
+        }
+        FC_ASSERT(res1 == res2);
+        //FC_ASSERT(result.get<contract_result>().contract_affecteds == temp_result.get<contract_result>().contract_affecteds);
         result = temp_result;
         static_cast<graphene::chain::call_contract_function_evaluator *>(this)->pay_fee_for_result(result.get<contract_result>());
         FC_ASSERT(core_fee_paid.value < db().get_global_properties().parameters.current_fees->maximun_handling_fee);
