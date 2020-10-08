@@ -165,10 +165,19 @@ void database::reindex(fc::path data_dir,int roll_back_at_height)
         ilog("reindexing blockchain");
         auto start = fc::time_point::now();
         auto last_block_num = last_block->block_num();
+        auto _last_block_num = last_block_num;
 
-        if(roll_back_at_height > 0)
+        if(roll_back_at_height > 0 && roll_back_at_height <= last_block_num)
+        {
             last_block_num = roll_back_at_height;
-            
+            for(int re_idx = _last_block_num; re_idx > roll_back_at_height; re_idx--)
+            {
+                fc::optional<block_id_type> last_id = _block_id_to_block.last_id();
+                ilog("remove block =>> ${block_num}:${block_id}",("block_num", re_idx)("block_id", *last_id));
+                _block_id_to_block.remove(*last_id);
+            }
+        }
+
         uint32_t undo_point = last_block_num < 50 ? 0 : last_block_num - 50;
 
         ilog("Replaying blocks, starting at ${next}...", ("next", head_block_num() + 1));

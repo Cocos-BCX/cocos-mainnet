@@ -47,7 +47,7 @@ int luaS_eqlngstr (TString *a, TString *b) {
 
 
 unsigned int luaS_hash (const char *str, size_t l, unsigned int seed) {
-  unsigned int h = seed ^ cast(unsigned int, l);
+  unsigned int h = cast(unsigned int, l);
   size_t step = (l >> LUAI_HASHLIMIT) + 1;
   for (; l >= step; l -= step)
     h ^= ((h<<5) + (h>>2) + cast_byte(str[l - 1]));
