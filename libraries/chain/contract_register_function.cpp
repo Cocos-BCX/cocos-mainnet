@@ -83,9 +83,18 @@ memo_data register_scheduler::make_memo(string receiver_id_or_name, string key, 
 }
 void register_scheduler::invoke_contract_function(string contract_id_or_name, string function_name, string value_list_json)
 {
-    auto contract_id = get_contract(contract_id_or_name).id;
+    auto &contract_obj = get_contract(contract_id_or_name);
+    auto contract_id = contract_obj.id;
+    static vector<string> invoking_path;
     try
     {
+        if (std::find(invoking_path.begin(), invoking_path.end(), contract_obj.name) != invoking_path.end()) {
+            invoking_path.clear();
+            FC_THROW("Contract cicular references are prohibitted in invoking");
+        } else {
+            invoking_path.push_back(contract_obj.name);
+        }
+
         FC_ASSERT(contract_id != this->contract.id, " You can't use it to make recursive calls. ");
         auto value_list = fc::json::from_string(value_list_json).as<vector<lua_types>>();
         call_contract_function_evaluator evaluator;
@@ -118,9 +127,11 @@ void register_scheduler::invoke_contract_function(string contract_id_or_name, st
         if (ret.existed_pv)
             result.existed_pv = true;
         result.contract_affecteds.push_back(ret);
+        invoking_path.pop_back();
     }
     catch (fc::exception e)
     {
+        invoking_path.clear();
         LUA_C_ERR_THROW(this->context.mState, e.to_string());
     }
 }
@@ -330,7 +341,7 @@ static int import_contract(lua_State *L)
         auto &temp_contract_code=temp_contract->lua_code_b_id(chainhelper->db);
         auto cbi=context.readVariable<contract_base_info *>(current_contract_name, "contract_base_info");
         auto &baseENV = contract_bin_code_id_type(0)(chainhelper->db);
-        FC_ASSERT(lua_getglobal(context.mState, temp_contract->name.c_str())==LUA_TNIL);
+        //FC_ASSERT(lua_getglobal(context.mState, temp_contract->name.c_str())==LUA_TNIL);
         context.new_sandbox(temp_contract->name,baseENV.lua_code_b.data(),baseENV.lua_code_b.size());
         temp_contract->register_function(context,chainhelper, cbi);
         FC_ASSERT(lua_getglobal(context.mState, current_contract_name.c_str()) == LUA_TTABLE);
@@ -353,10 +364,9 @@ static int import_contract(lua_State *L)
     }
     catch (fc::exception e)
     {
-        if(temp_contract)
-        {
+        if(temp_contract) {
            lua_pushnil(L);
-           lua_setglobal(L,temp_contract->name.c_str()); 
+           lua_setglobal(L,temp_contract->name.c_str());
         }
 
         wdump((e.to_detail_string()));
@@ -364,11 +374,11 @@ static int import_contract(lua_State *L)
     }
     catch (std::runtime_error e)
     {   
-        if(temp_contract)
-        {
+        if(temp_contract) {
            lua_pushnil(L);
-           lua_setglobal(L,temp_contract->name.c_str()); 
+           lua_setglobal(L,temp_contract->name.c_str());
         }
+
         wdump((e.what()));
         LUA_C_ERR_THROW(L, e.what());
     }
