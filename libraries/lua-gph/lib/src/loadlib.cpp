@@ -706,6 +706,7 @@ static int ll_seeall (lua_State *L) {
 
 
 static const luaL_Reg pk_funcs[] = { //nico lua ::packgae fun
+#if !defined(LUA_COMPAT_GRAPHENE)
   {"loadlib", ll_loadlib},
   {"searchpath", ll_searchpath},
 #if defined(LUA_COMPAT_MODULE)
@@ -717,6 +718,7 @@ static const luaL_Reg pk_funcs[] = { //nico lua ::packgae fun
   {"path", NULL},
   {"searchers", NULL},
   {"loaded", NULL},
+#endif
   {NULL, NULL}
 };
 
