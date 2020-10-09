@@ -353,22 +353,11 @@ static int import_contract(lua_State *L)
     }
     catch (fc::exception e)
     {
-        if(temp_contract)
-        {
-           lua_pushnil(L);
-           lua_setglobal(L,temp_contract->name.c_str()); 
-        }
-
         wdump((e.to_detail_string()));
         LUA_C_ERR_THROW(L, e.to_string());
     }
     catch (std::runtime_error e)
     {   
-        if(temp_contract)
-        {
-           lua_pushnil(L);
-           lua_setglobal(L,temp_contract->name.c_str()); 
-        }
         wdump((e.what()));
         LUA_C_ERR_THROW(L, e.what());
     }
