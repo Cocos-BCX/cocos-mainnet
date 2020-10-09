@@ -149,6 +149,7 @@ static int luaB_corunning (lua_State *L) {
 
 
 static const luaL_Reg co_funcs[] = {//nico lua ::coroutine协同
+#ifndef LUA_COMPAT_GRAPHENE
   {"create", luaB_cocreate},
   {"resume", luaB_coresume},
   {"running", luaB_corunning},
@@ -156,6 +157,7 @@ static const luaL_Reg co_funcs[] = {//nico lua ::coroutine协同
   {"wrap", luaB_cowrap},
   {"yield", luaB_yield},
   {"isyieldable", luaB_yieldable},
+#endif
   {NULL, NULL}
 };
 
