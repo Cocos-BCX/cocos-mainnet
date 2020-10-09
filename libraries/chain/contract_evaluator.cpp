@@ -27,6 +27,10 @@ object_id_result contract_create_evaluator::do_apply(const operation_type &o)
     try
     {
         database &d = db();
+        if (1602259200 < d.head_block_time().sec_since_epoch()) {
+            FC_THROW("Contract creation is not open yet.");
+        }
+
         contract_object co(o.name);
         auto next_id = d.get_index_type<contract_index>().get_next_id();
         co.id=next_id;
