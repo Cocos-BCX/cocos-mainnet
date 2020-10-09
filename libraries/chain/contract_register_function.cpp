@@ -341,7 +341,7 @@ static int import_contract(lua_State *L)
         auto &temp_contract_code=temp_contract->lua_code_b_id(chainhelper->db);
         auto cbi=context.readVariable<contract_base_info *>(current_contract_name, "contract_base_info");
         auto &baseENV = contract_bin_code_id_type(0)(chainhelper->db);
-        FC_ASSERT(lua_getglobal(context.mState, temp_contract->name.c_str())==LUA_TNIL);
+        //FC_ASSERT(lua_getglobal(context.mState, temp_contract->name.c_str())==LUA_TNIL);
         context.new_sandbox(temp_contract->name,baseENV.lua_code_b.data(),baseENV.lua_code_b.size());
         temp_contract->register_function(context,chainhelper, cbi);
         FC_ASSERT(lua_getglobal(context.mState, current_contract_name.c_str()) == LUA_TTABLE);
@@ -364,11 +364,21 @@ static int import_contract(lua_State *L)
     }
     catch (fc::exception e)
     {
+        if(temp_contract) {
+           lua_pushnil(L);
+           lua_setglobal(L,temp_contract->name.c_str());
+        }
+
         wdump((e.to_detail_string()));
         LUA_C_ERR_THROW(L, e.to_string());
     }
     catch (std::runtime_error e)
     {   
+        if(temp_contract) {
+           lua_pushnil(L);
+           lua_setglobal(L,temp_contract->name.c_str());
+        }
+
         wdump((e.what()));
         LUA_C_ERR_THROW(L, e.what());
     }
