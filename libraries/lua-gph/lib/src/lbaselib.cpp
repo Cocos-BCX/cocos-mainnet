@@ -453,31 +453,31 @@ static int luaB_tostring (lua_State *L) {
 static const luaL_Reg base_funcs[] = {  //nico lua::baselib
   {"assert", luaB_assert},
   {"collectgarbage", luaB_collectgarbage},
-  {"dofile", luaB_dofile},
   {"error", luaB_error}, 
   {"ipairs", luaB_ipairs},
-  {"loadfile", luaB_loadfile},
-  {"load", luaB_load},
 #if defined(LUA_COMPAT_LOADSTRING)
   {"loadstring", luaB_load},
 #endif
   {"next", luaB_next},
   {"pairs", luaB_pairs},
-  {"pcall", luaB_pcall},
   {"print", luaB_print},
 #if !defined(LUA_COMPAT_GRAPHENE)
+  {"dofile", luaB_dofile},
+  {"loadfile", luaB_loadfile},
+  {"load", luaB_load},
+  {"pcall", luaB_pcall},
   {"getmetatable", luaB_getmetatable},
   {"setmetatable", luaB_setmetatable},
-#endif 
+  {"xpcall", luaB_xpcall},
   {"rawequal", luaB_rawequal},
   {"rawlen", luaB_rawlen},
   {"rawget", luaB_rawget},
   {"rawset", luaB_rawset},
-  {"select", luaB_select}, 
+  {"select", luaB_select},
+#endif 
   {"tonumber", luaB_tonumber},
   {"tostring", luaB_tostring},
   {"type", luaB_type},
-  {"xpcall", luaB_xpcall},
   /* placeholders */
   {"_G", NULL},
   {"_VERSION", NULL},
