@@ -528,6 +528,8 @@ public:
     try
     {
       auto latency = fc::time_point::now() - blk_msg.block.timestamp;
+      if(_chain_db->is_known_block(blk_msg.block.block_id))
+        return true;
       if (!sync_mode || blk_msg.block.block_num() % 10000 == 0) // check if the block is an asynchronous block
       {
         const auto &witness = blk_msg.block.witness(*_chain_db);
