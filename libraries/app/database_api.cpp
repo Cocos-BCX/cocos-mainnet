@@ -213,8 +213,9 @@ class database_api_impl : public std::enable_shared_from_this<database_api_impl>
     {
         if (!_subscribe_callback)
             return false;
+        auto vec = fc::raw::pack(i);
 
-        return _subscribe_filter.contains(i);
+        return _subscribe_filter.contains(vec.data(), vec.size());
     }
 
     bool is_impacted_account(const flat_set<account_id_type> &accounts)
