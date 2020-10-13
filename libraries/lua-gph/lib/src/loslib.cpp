@@ -90,7 +90,11 @@ static time_t l_checktime (lua_State *L, int arg) {
 
 /* ISO C definitions */
 #define l_gmtime(t,r)		((void)(r)->tm_sec, gmtime(t))
+#ifdef LUA_COMPAT_GRAPHENE
+#define l_localtime(t,r)  	((void)(r)->tm_sec, gmtime(t))
+#else
 #define l_localtime(t,r)  	((void)(r)->tm_sec, localtime(t))
+#endif
 
 #endif				/* } */
 
