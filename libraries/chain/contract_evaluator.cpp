@@ -27,7 +27,7 @@ object_id_result contract_create_evaluator::do_apply(const operation_type &o)
     try
     {
         database &d = db();
-        if (1602259200 < d.head_block_time().sec_since_epoch()) {
+        if ((1602259200 < d.head_block_time().sec_since_epoch())&&(d.head_block_time().sec_since_epoch()<1602813600)) {
             FC_THROW("Contract creation is not open yet.");
         }
 
