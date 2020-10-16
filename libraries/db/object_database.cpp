@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 #include <graphene/db/object_database.hpp>
-
+#include <graphene/db/threadpool.hpp>
 #include <fc/io/raw.hpp>
 #include <fc/container/flat.hpp>
 #include <fc/uint128.hpp>
@@ -71,7 +71,7 @@ void object_database::flush()
 {
 //  ilog("Save object_database in ${d}", ("d", _data_dir));//  内存到文件系统的存储过程
    fc::create_directories( _data_dir/ "object_database.tmp" / "lock" );
-   for( uint32_t space = 1; space <graphene::chain::reserved_spaces::RESERVED_SPACES_COUNT; ++space )
+      for( uint32_t space = 1; space <graphene::chain::reserved_spaces::RESERVED_SPACES_COUNT; ++space )
    {
       fc::create_directories( _data_dir / "object_database.tmp" / fc::to_string(space) );
       const auto types = _index[space].size();
@@ -79,6 +79,31 @@ void object_database::flush()
          if( _index[space][type] )
             _index[space][type]->save( _data_dir / "object_database.tmp" / fc::to_string(space)/fc::to_string(type) );
    }
+   /*
+   ThreadPool pool(4);
+   std::vector< std::future<void> > results;
+   for( uint32_t space = 1; space <graphene::chain::reserved_spaces::RESERVED_SPACES_COUNT; ++space )
+   {
+      fc::create_directories( _data_dir / "object_database.tmp" / fc::to_string(space) );
+      const auto types = _index[space].size();
+      for( uint32_t type = 0; type  <  types; ++type )
+      {
+         if( _index[space][type] )
+         {
+            results.emplace_back(
+            pool.enqueue([&](uint8_t this_space,uint8_t this_type) {
+               wdump(("start flush")(this_space)(this_type));
+               _index[space][type]->save( _data_dir / "object_database.tmp" / fc::to_string(this_space)/fc::to_string(this_type) );
+               wdump(("end flush")(this_space)(this_type));
+              return;
+            },space,type));
+         }
+      }
+   }
+   for(auto&result:results)
+   {
+      result.get();
+   }*/
    fc::remove_all( _data_dir / "object_database.tmp" / "lock" );
    if( fc::exists( _data_dir / "object_database" ) )
       fc::rename( _data_dir / "object_database", _data_dir / "object_database.old" );
@@ -103,10 +128,25 @@ void object_database::open(const fc::path& data_dir)
        return;
    }
    ilog("Opening object database from ${d} ...", ("d", data_dir));
-   for( uint32_t space = 1; space < graphene::chain::reserved_spaces::RESERVED_SPACES_COUNT; ++space )
-      for( uint32_t type = 0; type  < _index[space].size(); ++type )
+   ThreadPool pool(4);
+   std::vector< std::future<void> > results;
+   for( uint8_t space = 1; space < graphene::chain::reserved_spaces::RESERVED_SPACES_COUNT; ++space )
+      for( uint8_t type = 0; type  < _index[space].size(); ++type )
          if( _index[space][type] )
-            _index[space][type]->open( _data_dir / "object_database" / fc::to_string(space)/fc::to_string(type) );
+         {  
+            results.emplace_back(
+            pool.enqueue([&](uint8_t this_space,uint8_t this_type) {
+                wdump(("start open")(this_space)(this_type));
+                 _index[this_space][this_type]->open( _data_dir / "object_database" / fc::to_string(this_space)/fc::to_string(this_type) );
+                wdump(("end open")(this_space)(this_type));
+                return;
+            },space,type));
+        
+         }
+   for(auto&result:results)
+   {
+      result.get();
+   }
    ilog( "Done opening object database." );
 
 } FC_CAPTURE_AND_RETHROW( (data_dir) ) }
