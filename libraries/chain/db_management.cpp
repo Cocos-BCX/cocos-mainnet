@@ -41,6 +41,7 @@ namespace chain
 
 database::database(const fc::path& data_dir)
 {
+    op_percent = -1;
     _data_dir=data_dir/"blockchain";
     initialize_indexes();
     initialize_evaluators();
@@ -48,6 +49,7 @@ database::database(const fc::path& data_dir)
 
 database::database(const fc::path& data_dir, const boost::program_options::variables_map &options)
 {
+    op_percent = -1;
     _options = &options;
     _data_dir=data_dir/"blockchain";
     initialize_indexes();

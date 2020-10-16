@@ -147,6 +147,12 @@ void database::pay_workers(share_type &budget)
       }
 }
 
+void database::set_op_percent(const boost::program_options::variables_map& options)
+{
+   if(options.count("op_maxsize_proportion_percent"))
+      op_percent = options.at("op_maxsize_proportion_percent").as<uint32_t>();
+}
+
 void database::pay_candidates(share_type &budget, const uint16_t &committee_percent_of_candidate_award, const uint16_t &unsuccessful_candidates_percent, uint64_t block_num)
 {
       fc::uint128 temp_value = budget.value * committee_percent_of_candidate_award;
