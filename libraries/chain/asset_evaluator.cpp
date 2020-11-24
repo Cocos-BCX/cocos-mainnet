@@ -253,7 +253,7 @@ void_result asset_update_evaluator::do_evaluate(const asset_update_operation &o)
             database &d = db();
 
             const asset_object &a = o.asset_to_update(d);
-            FC_ASSERT(o.new_options.max_supply.value * std::pow(10, a.precision) < share_type::max());
+            FC_ASSERT(o.new_options.max_supply.value /** std::pow(10, a.precision)*/ < share_type::max());
             auto a_copy = a;
             a_copy.options = o.new_options;
             a_copy.validate();
