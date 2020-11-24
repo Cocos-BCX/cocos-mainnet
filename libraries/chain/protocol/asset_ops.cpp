@@ -108,7 +108,7 @@ void  asset_create_operation::validate()const
    }
   */
    if( bitasset_opts ) bitasset_opts->validate();
-   FC_ASSERT(common_options.max_supply.value*std::pow(10,precision)<share_type::max());
+   FC_ASSERT(common_options.max_supply.value /** std::pow(10,precision)*/<share_type::max());
    FC_ASSERT(precision <= 12);
 }
 

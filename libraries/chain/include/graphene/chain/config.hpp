@@ -61,7 +61,7 @@
 
 #define GRAPHENE_EXPIRATION_TIME_OFFSET                         1200
 #define GRAPHENE_FULL_PROPOTION                                 100
-#define GRAPHENE_BLOCKCHAIN_PRECISION_DIGITS                    5 // 核心资产精度
+#define GRAPHENE_BLOCKCHAIN_PRECISION_DIGITS                    8 // 核心资产精度
 #define GRAPHENE_DEFAULT_TRANSFER_FEE                           (1*GRAPHENE_BLOCKCHAIN_PRECISION)
 #define GRAPHENE_MAX_INSTANCE_ID                                (uint64_t(-1)>>16)
 /** percentage fields are fixed point with a denominator of 10,000 */
