@@ -461,23 +461,23 @@ static const luaL_Reg base_funcs[] = {  //nico lua::baselib
   {"next", luaB_next},
   {"pairs", luaB_pairs},
   {"print", luaB_print},
-#if !defined(LUA_COMPAT_GRAPHENE)
   {"dofile", luaB_dofile},
   {"loadfile", luaB_loadfile},
   {"load", luaB_load},
   {"pcall", luaB_pcall},
+#if !defined(LUA_COMPAT_GRAPHENE)
   {"getmetatable", luaB_getmetatable},
   {"setmetatable", luaB_setmetatable},
-  {"xpcall", luaB_xpcall},
+#endif 
   {"rawequal", luaB_rawequal},
   {"rawlen", luaB_rawlen},
   {"rawget", luaB_rawget},
   {"rawset", luaB_rawset},
   {"select", luaB_select},
-#endif 
   {"tonumber", luaB_tonumber},
   {"tostring", luaB_tostring},
   {"type", luaB_type},
+  {"xpcall", luaB_xpcall},
   /* placeholders */
   {"_G", NULL},
   {"_VERSION", NULL},
