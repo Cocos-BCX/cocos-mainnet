@@ -26,7 +26,7 @@ class call_contract_function_evaluator : public evaluator<call_contract_function
 {
   public:
     typedef call_contract_function_operation operation_type;
-    void_result evaluate_contract_authority(contract_id_type contract_id,const flat_set<public_key_type> &sigkeys);
+    void_result evaluate_contract_authority(const account_id_type caller,const contract_id_type contract_id,const flat_set<public_key_type> &sigkeys);
     contract_result apply(account_id_type caller,string function_name, vector<lua_types> value_list,
                           optional<contract_result> &_contract_result, const flat_set<public_key_type> &sigkeys);
     contract_result apply(account_id_type caller, contract_id_type  contract_id,string function_name, vector<lua_types> value_list,

@@ -101,7 +101,7 @@ void register_scheduler::invoke_contract_function(string contract_id_or_name, st
         auto state = *trx_state;
         state.sigkeys = sigkeys;
         evaluator.trx_state = &state;
-        evaluator.evaluate_contract_authority(contract_id, state.sigkeys);
+        evaluator.evaluate_contract_authority(caller,contract_id, state.sigkeys);
         //optional<contract_result> _contract_result;
         contract_result _contract_result;
         if (trx_state->run_mode == transaction_apply_mode::apply_block_mode)
