@@ -71,6 +71,7 @@ class contract_object : public graphene::db::abstract_object<contract_object>
     void push_function_actual_parameters(lua_State *L, vector<lua_types> &value_list);
     void get_code(vector<char>&target){target=lua_code_b;lua_code_b.clear();}
     void set_code(vector<char>source){FC_ASSERT(source.size()>0); lua_code_b=source;}
+    bool can_do(const database&db)const;
   private:
     process_encryption_helper encryption_helper; 
     vector<char> lua_code_b;

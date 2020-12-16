@@ -98,6 +98,8 @@ void_result revise_contract_evaluator::do_evaluate(const operation_type &o)
     {
         database &d = db();
         auto &contract = o.contract_id(d);
+        if(o.reviser!=GRAPHENE_COMMITTEE_ACCOUNT)
+            FC_ASSERT(contract.can_do(d),"The current contract may have been listed in the forbidden call list");
         auto &contract_owner = contract.owner(d);
         FC_ASSERT(!contract.is_release," The current contract is  release version cannot be change ");
         FC_ASSERT(contract_owner.asset_locked.contract_lock_details.find(o.contract_id) == contract_owner.asset_locked.contract_lock_details.end(), "You can't modify the contract with some token locked within.");
@@ -149,6 +151,8 @@ void_result call_contract_function_evaluator::evaluate_contract_authority(contra
 {
     database &d = db();
     contract_pir = &contract_id(d);
+    if(op->caller!=GRAPHENE_COMMITTEE_ACCOUNT)
+        FC_ASSERT(contract_pir->can_do(d),"The current contract may have been listed in the forbidden call list");
     contract_code_pir=&(contract_pir->lua_code_b_id(d));
     if (contract_pir->check_contract_authority)
     {

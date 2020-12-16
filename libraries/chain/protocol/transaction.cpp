@@ -299,7 +299,7 @@ void verify_authority(const vector<operation> &ops, const flat_set<public_key_ty
             if (!allow_committe)
                   GRAPHENE_ASSERT(required_active.find(GRAPHENE_COMMITTEE_ACCOUNT) == required_active.end(),
                                   invalid_committee_approval, "Committee account may only propose transactions");
-            else
+           /* else
             {
                   try
                   {
@@ -313,7 +313,7 @@ void verify_authority(const vector<operation> &ops, const flat_set<public_key_ty
                   {
                         wlog("test committee authority error");
                   }
-            }
+            }*/
             for (const auto &auth : other)
             {
                   GRAPHENE_ASSERT(s.check_authority(&auth), tx_missing_other_auth, "Missing Authority", ("auth", auth)("sigs", sigs));
