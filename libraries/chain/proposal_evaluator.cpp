@@ -239,10 +239,12 @@ void_result proposal_update_evaluator::do_apply(const proposal_update_operation 
             temp.proposed_transaction.set_expiration(temp.expiration_time +std::min<uint32_t>(d.get_global_properties().parameters.assigned_task_life_cycle,7200));
             temp.proposed_transaction.validate();
             if(d.head_block_time()>fc::time_point_sec(1608793200))
-            {
-                temp.proposed_transaction.extensions[2]=fc::json::to_string(temp.available_active_approvals);
-                temp.proposed_transaction.extensions[3]=fc::json::to_string(temp.available_key_approvals);
-            }
+            { 
+                temp.proposed_transaction.extensions.clear();
+                temp.proposed_transaction.extensions.push_back(string(temp.id));
+                temp.proposed_transaction.extensions.push_back(fc::json::to_string(temp.available_active_approvals));
+                temp.proposed_transaction.extensions.push_back(fc::json::to_string(temp.available_key_approvals));
+            } 
             temp.allow_execution = true;
         }
         else temp.allow_execution = false;
