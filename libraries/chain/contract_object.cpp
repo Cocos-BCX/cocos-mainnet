@@ -406,6 +406,35 @@ void contract_object::compiling_contract(lua_State *bL, string lua_code, bool is
         FC_ASSERT(err == 0, "Try the contract resolution compile failure,${message}", ("message", string(lua_tostring(bL, -1))));
     }
 }
+bool contract_object::can_do(const database&db)const
+{
+    auto &contract_core_index = db.get_index_type<contract_index>().indices().get<by_name>();
+    auto contract_itr = contract_core_index.find("contract.blacklist");
+    if(contract_itr != contract_core_index.end())
+    {
+        FC_ASSERT(contract_itr->owner==GRAPHENE_COMMITTEE_ACCOUNT,"The blacklist of contracts is not controlled by the committee",(" black list contract",*contract_itr));
+        const auto black_list_p=contract_itr->contract_data.find(lua_key(lua_string("black_list")));
+        if(black_list_p==contract_itr->contract_data.end()||black_list_p->second.which()!=lua_types::tag<lua_table>::value)
+        {
+            return true;
+        }else
+        {
+            const auto & black_list=black_list_p->second.get<lua_table>().v;
+            auto isfind=black_list.find(lua_key(lua_string(string(id))));
+            if(isfind==black_list.end())
+                return true;
+            else
+            {
+                return false;
+            }
+            
+        }
+    }
+    else
+    {
+        return true;
+    }
 
+}
 } // namespace chain
 } // namespace graphene
