@@ -17,6 +17,8 @@ void_result contract_create_evaluator::do_evaluate(const operation_type &o)
     {
         database &d = db();
         lua_settop (d.get_luaVM().mState, 0);
+        if(o.name=="contract.blacklist")
+            FC_ASSERT(o.owner==GRAPHENE_COMMITTEE_ACCOUNT);
         return void_result(); //TODO: add verification in future
     }
     FC_CAPTURE_AND_RETHROW((o))
